@@ -410,14 +410,37 @@ app.post('/api/recalculate-macros', apiLimiter, requireAuth, async (req, res) =>
       const toEstimate = Array.from(foodsToEstimate);
       const prompt = `Você é nutricionista clínica brasileira. Para cada item da lista abaixo, estime calorias e macros NA QUANTIDADE EXATAMENTE como foi escrita. Use TBCA/TACO como referência.
 
-REGRAS:
-1. Some apenas o que está em cada item, na quantidade indicada.
-2. Se não houver quantidade explícita, use porção padrão: 1 copo = 200 ml, 1 fatia de pão = 30 g, 1 colher de sopa = 15 ml/g, 1 unidade média (fruta) = 120 g.
-3. Quantidades grandes → kcal grande (ex: "30 colheres de tapioca" >> "3 colheres de tapioca"). Nunca normalize.
-4. NÃO ajuste para alvo metabólico nenhum. Cada item é uma estimativa independente do que está escrito.
+PROCEDIMENTO OBRIGATÓRIO (siga passo a passo):
+1) Identifique a QUANTIDADE NUMÉRICA literal (ex: "20g", "30 colheres", "1 fatia"). Trate gramas/ml conforme escrito.
+2) Encontre o valor por 100g (ou por porção padrão) na TBCA/TACO.
+3) Calcule proporcionalmente: kcal_total = (kcal_por_100g × gramas) / 100. Faça igual pra prot/carb/gordura.
+
+REGRAS DE PORÇÃO (apenas se NÃO houver quantidade explícita):
+- 1 copo = 200 ml
+- 1 fatia de pão = 30 g
+- 1 colher de sopa = 15 ml/g
+- 1 unidade média (fruta) = 120 g
+- 1 unidade ovo = 50 g
+- 1 xícara cozido = 150 g
+
+REFERÊNCIA RÁPIDA (kcal por 100g — use como sanity check):
+- queijo minas frescal: ~240 kcal/100g | mussarela: ~280 | requeijão: ~280
+- pão francês: ~270 | pão integral: ~250 | tapioca seca: ~360 (hidratada cai p/ ~100)
+- arroz branco cozido: ~130 | feijão cozido: ~75 | aveia em flocos: ~370
+- frango grelhado peito: ~165 | ovo: ~150 | iogurte natural: ~60
+- banana: ~90 | maçã: ~50 | manteiga: ~720 | azeite: ~880
+- leite integral: ~60 (por 100ml) | leite desnatado: ~35
+
+REGRAS CRÍTICAS:
+1. Para QUANTIDADES PEQUENAS (ex: "20g de queijo"), o resultado deve ser PROPORCIONAL: 20g de queijo minas = (240 × 20) / 100 = ~48 kcal. NÃO inflacione.
+2. Para QUANTIDADES GRANDES, vale o mesmo escalonamento. Nunca normalize pra um intake típico.
+3. NÃO ajuste para nenhum alvo metabólico. Cada item é independente.
+4. Limite físico: NUNCA ultrapasse 9 kcal por grama (limite teórico de gordura pura).
 
 [ITENS]
 ${toEstimate.map((f) => `- ${f}`).join('\n')}
+
+Antes de cada item, faça os 3 passos do PROCEDIMENTO mentalmente. Confira se kcal/g do resultado faz sentido (queijo ~2.4, gorduras ~9, frutas ~0.5, pão ~2.7).
 
 Responda APENAS JSON puro neste schema (uma entrada por item, na mesma ordem):
 {
@@ -435,14 +458,39 @@ Responda APENAS JSON puro neste schema (uma entrada por item, na mesma ordem):
       const clean = String(text).replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(clean);
       const items = Array.isArray(parsed.items) ? parsed.items : [];
+
+      // Sanity check: try to extract a gram weight from the food string and
+      // clamp kcal at <=9 kcal/g (theoretical max for pure fat). If the LLM
+      // wildly over-estimates a small-quantity item, this caps it.
+      const extractGrams = (food) => {
+        const s = String(food).toLowerCase();
+        const gMatch = s.match(/(\d+(?:[.,]\d+)?)\s*(?:g\b|gr\b|gramas?\b)/);
+        if (gMatch) return parseFloat(gMatch[1].replace(',', '.'));
+        const mlMatch = s.match(/(\d+(?:[.,]\d+)?)\s*(?:ml\b|mililitros?\b)/);
+        if (mlMatch) return parseFloat(mlMatch[1].replace(',', '.')); // assume 1ml ~= 1g for liquids
+        return null;
+      };
+
       for (const entry of items) {
         if (!entry || typeof entry.food !== 'string') continue;
+        let kcalEntry = Math.round(Number(entry.kcal) || 0);
+        const protEntry = Math.round(Number(entry.prot_g) || 0);
+        const carbEntry = Math.round(Number(entry.carb_g) || 0);
+        const fatEntry = Math.round(Number(entry.fat_g) || 0);
+        const grams = extractGrams(entry.food);
+        if (grams != null && grams > 0) {
+          const maxKcal = Math.ceil(grams * 9); // theoretical max (pure fat)
+          if (kcalEntry > maxKcal) {
+            console.warn(`[recalc] Clamping ${entry.food}: ${kcalEntry} kcal -> ${maxKcal} kcal (max ${grams}g × 9)`);
+            kcalEntry = maxKcal;
+          }
+        }
         cache.set(entry.food, {
           food: entry.food,
-          kcal: Math.round(Number(entry.kcal) || 0),
-          prot_g: Math.round(Number(entry.prot_g) || 0),
-          carb_g: Math.round(Number(entry.carb_g) || 0),
-          fat_g: Math.round(Number(entry.fat_g) || 0),
+          kcal: kcalEntry,
+          prot_g: protEntry,
+          carb_g: carbEntry,
+          fat_g: fatEntry,
         });
       }
     }
