@@ -372,93 +372,102 @@ sem inventar dados.
 });
 
 // Recalculate macros for a structured meal plan after the nutri edited items/quantities.
-// Pure literal summation — patient anthropometry is intentionally NOT used here, because
-// macros depend on what's on the plate, not on who's eating it. Mixing the two biases
-// the model toward a target intake (e.g. ~1800 kcal for a 65kg/30y woman) instead of
-// summing the actual items.
+// Strategy: reuse the cached per-item breakdown for unchanged items (string-exact match
+// on `food`), and only ask the LLM about NEW or CHANGED items. Then sum deterministically.
+// This avoids the drift you get when the LLM re-estimates the entire plan on every recalc.
 app.post('/api/recalculate-macros', apiLimiter, requireAuth, async (req, res) => {
   try {
-    const { mealPlan } = req.body;
+    const { mealPlan, previousBreakdown } = req.body;
     if (!mealPlan || !Array.isArray(mealPlan.meals) || mealPlan.meals.length === 0) {
       return res.status(400).json({ error: 'mealPlan inválido ou vazio' });
     }
 
-    const planText = mealPlan.meals.map((m) => {
-      const items = (m.items || []).map((it) => `  - ${it.food}`).join('\n');
-      return `${m.name || 'Refeição'}${m.time ? ` (${m.time})` : ''}:\n${items}`;
-    }).join('\n\n');
+    // Build cache: food string -> breakdown entry from the previous calculation.
+    const cache = new Map();
+    if (Array.isArray(previousBreakdown)) {
+      for (const entry of previousBreakdown) {
+        if (entry && typeof entry.food === 'string') {
+          cache.set(entry.food, entry);
+        }
+      }
+    }
 
-    const prompt = `Você é nutricionista clínica brasileira. Sua tarefa é SOMAR as calorias e macros de cada item do plano abaixo, na quantidade exatamente como foi escrita.
+    // Collect all current item foods, identify which need fresh estimation.
+    const allFoods = [];
+    const foodsToEstimate = new Set();
+    for (const meal of mealPlan.meals) {
+      for (const item of meal.items || []) {
+        if (!item || !item.food) continue;
+        allFoods.push(item.food);
+        if (!cache.has(item.food)) {
+          foodsToEstimate.add(item.food);
+        }
+      }
+    }
 
-REGRAS CRÍTICAS:
-1. Some LITERALMENTE cada item da lista. NÃO ajuste para nenhum alvo metabólico (TMB/GET). NÃO normalize. NÃO arredonde para um intake típico (1800/2000 kcal etc.).
-2. Se um item não tiver quantidade explícita, use porção padrão: 1 copo = 200 ml, 1 fatia de pão = 30 g, 1 colher de sopa = 15 ml/g, 1 unidade média (fruta) = 120 g.
-3. Use TBCA/TACO como referência nutricional.
-4. Os totais devem refletir EXATAMENTE o que está escrito:
-   - Quantidades MAIORES → totais MAIORES (ex: "30 colheres de tapioca" >> "3 colheres de tapioca").
-   - Quantidades MENORES → totais MENORES.
-   - Itens a MAIS na lista → totais MAIORES (somar o item adicional aumenta os totais).
-   - Itens a MENOS na lista → totais MENORES (somente os itens listados entram na conta; o que não está listado NÃO entra).
-5. Some apenas o que ESTÁ na lista. Não invente itens, não traga itens "típicos" que faltariam.
+    // If there are new foods, ask the LLM to estimate ONLY those.
+    if (foodsToEstimate.size > 0) {
+      const toEstimate = Array.from(foodsToEstimate);
+      const prompt = `Você é nutricionista clínica brasileira. Para cada item da lista abaixo, estime calorias e macros NA QUANTIDADE EXATAMENTE como foi escrita. Use TBCA/TACO como referência.
 
-[PLANO ALIMENTAR]
-${planText}
+REGRAS:
+1. Some apenas o que está em cada item, na quantidade indicada.
+2. Se não houver quantidade explícita, use porção padrão: 1 copo = 200 ml, 1 fatia de pão = 30 g, 1 colher de sopa = 15 ml/g, 1 unidade média (fruta) = 120 g.
+3. Quantidades grandes → kcal grande (ex: "30 colheres de tapioca" >> "3 colheres de tapioca"). Nunca normalize.
+4. NÃO ajuste para alvo metabólico nenhum. Cada item é uma estimativa independente do que está escrito.
 
-Antes de responder, no campo "breakdown" calcule item por item (food, kcal, prot_g, carb_g, fat_g). Depois some e preencha "totals". O "totals" DEVE ser a soma exata do "breakdown".
+[ITENS]
+${toEstimate.map((f) => `- ${f}`).join('\n')}
 
-Responda APENAS com JSON puro neste schema:
+Responda APENAS JSON puro neste schema (uma entrada por item, na mesma ordem):
 {
-  "breakdown": [
-    { "food": "<exatamente como escrito>", "kcal": <int>, "prot_g": <int>, "carb_g": <int>, "fat_g": <int> }
-  ],
-  "totals": {
-    "calories": <int>,
-    "protein": "<int>g",
-    "carbs": "<int>g",
-    "fat": "<int>g"
-  }
+  "items": [
+    { "food": "<exatamente como recebido>", "kcal": <int>, "prot_g": <int>, "carb_g": <int>, "fat_g": <int> }
+  ]
 }`;
 
-    const result = await genAI.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0.1,
-      },
-    });
+      const result = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json', temperature: 0.1 },
+      });
+      const text = result.text || result.response?.text() || '';
+      const clean = String(text).replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+      const items = Array.isArray(parsed.items) ? parsed.items : [];
+      for (const entry of items) {
+        if (!entry || typeof entry.food !== 'string') continue;
+        cache.set(entry.food, {
+          food: entry.food,
+          kcal: Math.round(Number(entry.kcal) || 0),
+          prot_g: Math.round(Number(entry.prot_g) || 0),
+          carb_g: Math.round(Number(entry.carb_g) || 0),
+          fat_g: Math.round(Number(entry.fat_g) || 0),
+        });
+      }
+    }
 
-    const text = result.text || result.response?.text() || '';
-    const clean = String(text).replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
-
-    // Prefer the totals field; fall back to summing the breakdown if totals is missing.
-    let totals = parsed.totals;
-    if (!totals && Array.isArray(parsed.breakdown)) {
-      const sum = parsed.breakdown.reduce(
-        (acc, it) => ({
-          kcal: acc.kcal + (Number(it.kcal) || 0),
-          prot: acc.prot + (Number(it.prot_g) || 0),
-          carb: acc.carb + (Number(it.carb_g) || 0),
-          fat: acc.fat + (Number(it.fat_g) || 0),
-        }),
-        { kcal: 0, prot: 0, carb: 0, fat: 0 }
-      );
-      totals = {
-        calories: Math.round(sum.kcal),
-        protein: `${Math.round(sum.prot)}g`,
-        carbs: `${Math.round(sum.carb)}g`,
-        fat: `${Math.round(sum.fat)}g`,
-      };
+    // Build the final breakdown from the current items (in order), using cache.
+    const breakdown = [];
+    let kcal = 0, prot = 0, carb = 0, fat = 0;
+    for (const food of allFoods) {
+      const entry = cache.get(food);
+      if (!entry) continue;
+      breakdown.push(entry);
+      kcal += Number(entry.kcal) || 0;
+      prot += Number(entry.prot_g) || 0;
+      carb += Number(entry.carb_g) || 0;
+      fat += Number(entry.fat_g) || 0;
     }
 
     res.json({
       macroEstimate: {
-        calories: typeof totals?.calories === 'number' ? totals.calories : Number(totals?.calories) || undefined,
-        protein: totals?.protein || undefined,
-        carbs: totals?.carbs || undefined,
-        fat: totals?.fat || undefined,
+        calories: Math.round(kcal),
+        protein: `${Math.round(prot)}g`,
+        carbs: `${Math.round(carb)}g`,
+        fat: `${Math.round(fat)}g`,
       },
+      macroBreakdown: breakdown,
     });
   } catch (error) {
     console.error('Erro ao recalcular macros:', error);

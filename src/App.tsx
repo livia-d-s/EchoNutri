@@ -2304,15 +2304,23 @@ Análise prévia:
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${idToken}`,
       },
-      // Anthropometry is intentionally omitted: macros depend on what's in
-      // the plan, not on the patient. Sending it biases the LLM toward a
-      // target intake instead of literally summing the items.
-      body: JSON.stringify({ mealPlan }),
+      // Sending the previous breakdown lets the backend reuse cached per-item
+      // macros for unchanged items and only call the LLM for new/changed ones.
+      // Anthropometry is intentionally omitted: macros depend on what's on the
+      // plate, not on who's eating it.
+      body: JSON.stringify({
+        mealPlan,
+        previousBreakdown: mealPlan.macroBreakdown || [],
+      }),
     });
     if (!resp.ok) throw new Error('Erro ao recalcular macros');
     const data = await resp.json();
     if (data.macroEstimate) {
-      const updated = { ...mealPlan, macroEstimate: data.macroEstimate };
+      const updated = {
+        ...mealPlan,
+        macroEstimate: data.macroEstimate,
+        macroBreakdown: data.macroBreakdown || mealPlan.macroBreakdown,
+      };
       setMealPlan(updated);
       if (onSaveResult) onSaveResult({ ...result, structuredMealPlan: updated });
     }
