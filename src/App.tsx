@@ -769,18 +769,40 @@ export default function App() {
           if (newHighlights.length > 0) {
             updated.highlights = [...existingHighlights, ...newHighlights];
           }
-          // Merge training: keep nutri's manual entries + append new ones the AI extracted,
-          // deduping by normalized `type` name (case-insensitive).
+          // Merge training: keep nutri's manual entries + append new ones the AI extracted.
+          // Dedup uses a canonical activity token (strips digits and frequency words like
+          // "x", "semana", "por") so "2x semana futebol" matches "Futebol" + "2x/semana".
+          // If the existing entry is missing frequency and the AI version has it, we
+          // upgrade to the AI's cleaner { type, frequency } pair.
           if (rawTraining.length > 0) {
-            const existingTraining = p.trainingRoutine || [];
-            const existingTypes = new Set(
-              existingTraining.map((t: any) => (t.type || '').toLowerCase().trim())
-            );
-            const toAdd = rawTraining.filter(
-              (t: any) => !existingTypes.has((t.type || '').toLowerCase().trim())
-            );
-            if (toAdd.length > 0) {
-              updated.trainingRoutine = [...existingTraining, ...toAdd];
+            const canonActivity = (t: any): string => {
+              return `${t?.type || ''} ${t?.frequency || ''}`
+                .toLowerCase()
+                .replace(/\d+/g, ' ')
+                .replace(/\b(x|vezes|por|semana|semanal|sem|dia|diaria|mes|mensal|min|minutos?|h|horas?)\b/g, ' ')
+                .replace(/[\/:,.]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            };
+            const merged = [...(p.trainingRoutine || [])];
+            for (const aiT of rawTraining as TrainingActivity[]) {
+              const aiCanon = canonActivity(aiT);
+              if (!aiCanon) continue;
+              const idx = merged.findIndex((e) => canonActivity(e) === aiCanon);
+              if (idx === -1) {
+                merged.push(aiT);
+              } else {
+                // Same activity — if the manual entry has no clean frequency, prefer
+                // the AI's structured version (cleaner type + frequency split).
+                const existing = merged[idx];
+                if (!existing.frequency && aiT.frequency && aiT.type) {
+                  merged[idx] = aiT;
+                }
+              }
+            }
+            if (merged.length !== (p.trainingRoutine || []).length ||
+                merged.some((m, i) => m !== (p.trainingRoutine || [])[i])) {
+              updated.trainingRoutine = merged;
             }
           }
           if (newExams.length > 0) {
@@ -1522,12 +1544,21 @@ function TranscriptionView({
   // Parse training string to TrainingActivity array
   const parseTraining = (str: string): TrainingActivity[] => {
     if (!str.trim()) return [];
-    // Format: "Musculação 3x, Natação 1x" or "Musculação: 3x/semana, Natação: 1x/semana"
+    // Accepts:
+    //   "Musculação 3x, Natação 1x"
+    //   "Musculação: 3x/semana, Natação: 1x/semana"
+    //   "2x semana futebol" / "3x corrida" (frequency first)
     return str.split(',').map(item => {
       const clean = item.trim();
-      const match = clean.match(/^([^:0-9]+?)[\s:]*(\d+x?\/?(?:semana)?)/i);
+      // Type-first: "Musculação 3x" / "Musculação: 3x/semana"
+      let match = clean.match(/^([^:0-9]+?)[\s:]*(\d+x?\/?(?:semana)?)/i);
       if (match) {
         return { type: match[1].trim(), frequency: match[2].trim() };
+      }
+      // Frequency-first: "2x semana futebol" / "3x/semana corrida"
+      match = clean.match(/^(\d+\s*x?\s*\/?\s*(?:por\s*)?(?:semana|sem|dia|mes)?)\s+(.+)$/i);
+      if (match) {
+        return { type: match[2].trim(), frequency: match[1].trim().replace(/\s+/g, ' ') };
       }
       return { type: clean, frequency: '' };
     }).filter(t => t.type);
