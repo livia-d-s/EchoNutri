@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Utensils, Plus, X, Pencil, Check, Repeat, Save, Loader2, Clock, RefreshCw } from 'lucide-react';
+import { Utensils, Plus, X, Pencil, Check, Repeat, Save, Loader2, Clock } from 'lucide-react';
 import { StructuredMealPlan, StructuredMeal, StructuredMealItem } from '../../../types';
 
 interface MealPlanCardProps {
@@ -42,7 +42,6 @@ export function MealPlanCard({
   savedSignature,
 }: MealPlanCardProps) {
   const [recalculating, setRecalculating] = useState(false);
-  const [autoRecalcArmed, setAutoRecalcArmed] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const baselineRef = useRef<string>(planSignature(plan));
   const debounceRef = useRef<number | null>(null);
@@ -51,7 +50,6 @@ export function MealPlanCard({
   const macroId = useMemo(() => JSON.stringify(plan.macroEstimate || null), [plan.macroEstimate]);
   useEffect(() => {
     baselineRef.current = planSignature(plan);
-    setAutoRecalcArmed(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [macroId]);
 
@@ -64,20 +62,16 @@ export function MealPlanCard({
   // "Nova refeição") — we wait until they confirm with a real name.
   useEffect(() => {
     if (!onRecalculateMacros || !macrosStale || recalculating || pendingPlaceholder) {
-      // Cancel any armed recalc if we slid back into a placeholder state.
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      setAutoRecalcArmed(false);
       return;
     }
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    setAutoRecalcArmed(true);
     debounceRef.current = window.setTimeout(async () => {
-      setAutoRecalcArmed(false);
       setRecalculating(true);
       try {
         await onRecalculateMacros();
       } catch {
-        /* parent surfaces the error; keep stale state visible */
+        /* parent surfaces the error; baselineRef stays stale until next attempt */
       } finally {
         setRecalculating(false);
       }
@@ -87,18 +81,6 @@ export function MealPlanCard({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSig, macrosStale, pendingPlaceholder]);
-
-  const handleManualRecalc = async () => {
-    if (!onRecalculateMacros || recalculating) return;
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    setAutoRecalcArmed(false);
-    setRecalculating(true);
-    try {
-      await onRecalculateMacros();
-    } finally {
-      setRecalculating(false);
-    }
-  };
 
   // Save state: dedupe based on signature of the saved plan.
   const isAlreadySaved = !!savedSignature && savedSignature === currentSig;
@@ -178,11 +160,9 @@ export function MealPlanCard({
 
       {/* Macros */}
       {plan.macroEstimate && (
-        <div className={`relative mb-5 bg-white rounded-xl border p-3 transition-colors ${
-          macrosStale ? 'border-amber-200 bg-amber-50/40' : 'border-slate-100'
-        }`}>
+        <div className="relative mb-5 bg-white rounded-xl border border-slate-100 p-3">
           <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 transition-opacity ${
-            macrosStale && !recalculating ? 'opacity-50' : ''
+            recalculating ? 'opacity-50' : ''
           }`}>
             {plan.macroEstimate.calories != null && (
               <MacroCell label="Calorias" value={`${plan.macroEstimate.calories} kcal`} />
@@ -197,25 +177,11 @@ export function MealPlanCard({
               <MacroCell label="Gorduras" value={plan.macroEstimate.fat} />
             )}
           </div>
-          {(macrosStale || recalculating) && onRecalculateMacros && (
-            <div className="mt-2 pt-2 border-t border-amber-200 flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5 text-[11px] text-amber-700 font-bold">
-                {recalculating ? (
-                  <><Loader2 size={12} className="animate-spin" /> Recalculando macros…</>
-                ) : autoRecalcArmed ? (
-                  <><Loader2 size={12} className="animate-spin opacity-60" /> Atualizando macros automaticamente…</>
-                ) : (
-                  <><RefreshCw size={12} /> Macros desatualizados</>
-                )}
+          {recalculating && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/60 rounded-xl">
+              <div className="flex items-center gap-1.5 text-[11px] text-blue-700 font-bold bg-white px-3 py-1.5 rounded-lg shadow-sm border border-blue-100">
+                <Loader2 size={12} className="animate-spin" /> Atualizando macros…
               </div>
-              {!recalculating && (
-                <button
-                  onClick={handleManualRecalc}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-colors"
-                >
-                  <RefreshCw size={11} /> Recalcular agora
-                </button>
-              )}
             </div>
           )}
         </div>

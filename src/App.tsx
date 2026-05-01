@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Mic, Square, Pause, Play, Activity, User, FileText,
   ArrowLeft, Camera, Check, AlertTriangle, Loader2, Users, Pencil, Info, CheckCircle, Trash2,
-  ClipboardCheck, TrendingUp, Brain, Stethoscope, TestTube, Utensils
+  ClipboardCheck, TrendingUp, Brain, Stethoscope, TestTube, Utensils, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { Patient, TimelineEvent, EventType, PatientGoal, GOAL_LABELS, TrainingActivity } from '../types';
 import { PatientList, PatientPage } from './components/patient';
@@ -2259,6 +2259,35 @@ function DiagnosisView({ result, patientName, eventId, onSaveResult, onBack, pre
   const [planGenError, setPlanGenError] = useState<string | null>(null);
   // Signature of the plan when it was last saved as active — for dedupe
   const [savedPlanSignature, setSavedPlanSignature] = useState<string | null>(null);
+  // Per-card collapse state — lets the nutri hide long sections (Racional, Conduta, etc.)
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const toggleCollapse = (section: string) => {
+    setCollapsedSections((prev: Set<string>) => {
+      const next = new Set(prev);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  };
+  const CollapseToggle = ({ section, hoverColor = 'slate' }: { section: string; hoverColor?: string }) => {
+    const collapsed = collapsedSections.has(section);
+    const hoverClass: Record<string, string> = {
+      slate: 'hover:text-slate-700 hover:bg-slate-100',
+      emerald: 'hover:text-emerald-600 hover:bg-emerald-100/50',
+      sky: 'hover:text-sky-600 hover:bg-sky-100/50',
+      amber: 'hover:text-amber-600 hover:bg-amber-100/50',
+      blue: 'hover:text-blue-600 hover:bg-blue-50',
+    };
+    return (
+      <button
+        onClick={() => toggleCollapse(section)}
+        className={`p-1.5 text-slate-400 ${hoverClass[hoverColor] || hoverClass.slate} rounded-lg transition-all`}
+        title={collapsed ? 'Expandir' : 'Recolher'}
+      >
+        {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+      </button>
+    );
+  };
 
   // Compute objective for the plan title:
   // 1) explicit patient goals/goal, 2) BMI-derived if anthropometry available, 3) null.
@@ -2675,49 +2704,58 @@ Análise prévia:
 
       {/* Racional Clínico */}
       <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-8 shadow-sm group relative">
-        <div className="flex items-center justify-between mb-4">
+        <div className={`flex items-center justify-between ${collapsedSections.has('rationale') ? '' : 'mb-4'}`}>
           <h3 className="text-blue-700 font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2">
             <Activity size={13} /> Racional Clínico
           </h3>
-          {editingSection !== 'rationale' && <EditButton section="rationale" />}
-        </div>
-        {editingSection === 'rationale' ? (
-          <div className="space-y-3">
-            <textarea
-              value={editedRationale}
-              onChange={(e) => setEditedRationale(e.target.value)}
-              className="w-full p-3 md:p-4 border border-slate-200 rounded-xl text-[15px] text-slate-700 leading-[1.75] resize-none focus:ring-2 focus:ring-blue-100 outline-none"
-              rows={5}
-            />
-            <div className="flex gap-2 justify-end">
-              <button onClick={cancelEditing} className="px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 rounded-lg">Cancelar</button>
-              <button onClick={saveEditing} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
-            </div>
+          <div className="flex items-center gap-0.5">
+            {editingSection !== 'rationale' && !collapsedSections.has('rationale') && <EditButton section="rationale" />}
+            <CollapseToggle section="rationale" hoverColor="blue" />
           </div>
-        ) : (
-          <p className="text-[15px] md:text-base text-slate-700 leading-[1.75] whitespace-pre-line">
-            {rationale}
-          </p>
+        </div>
+        {!collapsedSections.has('rationale') && (
+          editingSection === 'rationale' ? (
+            <div className="space-y-3">
+              <textarea
+                value={editedRationale}
+                onChange={(e) => setEditedRationale(e.target.value)}
+                className="w-full p-3 md:p-4 border border-slate-200 rounded-xl text-[15px] text-slate-700 leading-[1.75] resize-none focus:ring-2 focus:ring-blue-100 outline-none"
+                rows={5}
+              />
+              <div className="flex gap-2 justify-end">
+                <button onClick={cancelEditing} className="px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                <button onClick={saveEditing} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[15px] md:text-base text-slate-700 leading-[1.75] whitespace-pre-line">
+              {rationale}
+            </p>
+          )
         )}
       </div>
 
       {/* Conduta Nutricional - light clinical checklist */}
       {prefs.showConduct && (
         <div className="bg-gradient-to-br from-emerald-50/60 to-teal-50/40 rounded-2xl md:rounded-3xl border border-emerald-100 p-5 md:p-8 shadow-sm group relative">
-          <div className="flex items-center justify-between mb-5">
+          <div className={`flex items-center justify-between ${collapsedSections.has('conduct') ? '' : 'mb-5'}`}>
             <h3 className="text-emerald-700 font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2">
               <ClipboardCheck size={13} /> Conduta Nutricional
             </h3>
-            {editingSection !== 'conduct' && (
-              <button
-                onClick={() => startEditing('conduct')}
-                className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-100/50 rounded-lg transition-all"
-              >
-                <Pencil size={12} />
-              </button>
-            )}
+            <div className="flex items-center gap-0.5">
+              {editingSection !== 'conduct' && !collapsedSections.has('conduct') && (
+                <button
+                  onClick={() => startEditing('conduct')}
+                  className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-100/50 rounded-lg transition-all"
+                >
+                  <Pencil size={12} />
+                </button>
+              )}
+              <CollapseToggle section="conduct" hoverColor="emerald" />
+            </div>
           </div>
-          {editingSection === 'conduct' ? (
+          {!collapsedSections.has('conduct') && (
+          editingSection === 'conduct' ? (
             <div className="space-y-3">
               <textarea
                 value={editedConduct}
@@ -2744,6 +2782,7 @@ Análise prévia:
                 </li>
               ))}
             </ul>
+          )
           )}
         </div>
       )}
@@ -2770,13 +2809,17 @@ Análise prévia:
         {/* Exames Sugeridos — elegant priority cards */}
         {prefs.showExams && (exams.length > 0 || editingSection === 'exams') && (
           <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-6 shadow-sm group relative">
-            <div className="flex items-center justify-between mb-4">
+            <div className={`flex items-center justify-between ${collapsedSections.has('exams') ? '' : 'mb-4'}`}>
               <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-sky-700 flex items-center gap-2">
                 <TestTube size={13} /> Exames Sugeridos
               </h3>
-              {editingSection !== 'exams' && <EditButton section="exams" />}
+              <div className="flex items-center gap-0.5">
+                {editingSection !== 'exams' && !collapsedSections.has('exams') && <EditButton section="exams" />}
+                <CollapseToggle section="exams" hoverColor="sky" />
+              </div>
             </div>
-            {editingSection === 'exams' ? (
+            {!collapsedSections.has('exams') && (
+            editingSection === 'exams' ? (
               <div className="space-y-2">
                 {editedExams.map((e, i) => (
                   <input
@@ -2819,6 +2862,7 @@ Análise prévia:
                   );
                 })}
               </div>
+            )
             )}
           </div>
         )}
@@ -2826,13 +2870,17 @@ Análise prévia:
         {/* Pontos de Atenção — clinical tags */}
         {prefs.showAttention && (conditions.length > 0 || editingSection === 'conditions') && (
           <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-6 shadow-sm group relative">
-            <div className="flex items-center justify-between mb-4">
+            <div className={`flex items-center justify-between ${collapsedSections.has('conditions') ? '' : 'mb-4'}`}>
               <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-amber-700 flex items-center gap-2">
                 <AlertTriangle size={13} /> Pontos de Atenção
               </h3>
-              {editingSection !== 'conditions' && <EditButton section="conditions" />}
+              <div className="flex items-center gap-0.5">
+                {editingSection !== 'conditions' && !collapsedSections.has('conditions') && <EditButton section="conditions" />}
+                <CollapseToggle section="conditions" hoverColor="amber" />
+              </div>
             </div>
-            {editingSection === 'conditions' ? (
+            {!collapsedSections.has('conditions') && (
+            editingSection === 'conditions' ? (
               <div className="space-y-2">
                 {editedConditions.map((c, i) => (
                   <input
@@ -2867,6 +2915,7 @@ Análise prévia:
                   </div>
                 ))}
               </div>
+            )
             )}
           </div>
         )}
