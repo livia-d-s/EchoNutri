@@ -220,6 +220,30 @@ export default function App() {
   const [currentResult, setCurrentResult] = useState(null);
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
 
+  // Navigation persistence: keep the user on the same screen across refreshes.
+  // We store only lightweight identifiers (view + patient/event id) and look
+  // them up against the actual data on rehydration — the source of truth
+  // remains `patients`/`events`, not a duplicated snapshot.
+  const navRehydratedRef = useRef(false);
+
+  // Persist nav state on changes — only after initial rehydration so we don't
+  // overwrite the saved state with the default 'transcription' on boot.
+  useEffect(() => {
+    if (!userId || !navRehydratedRef.current) return;
+    const navKey = `echomed_${userId}_nav_state`;
+    localStorage.setItem(navKey, JSON.stringify({
+      view,
+      selectedPatientId: selectedPatient?.id || null,
+      selectedEventId: selectedEvent?.id || null,
+    }));
+  }, [view, selectedPatient, selectedEvent, userId]);
+
+  // Reset the rehydration flag when the user changes so a fresh login
+  // re-attempts restoration with that account's data.
+  useEffect(() => {
+    navRehydratedRef.current = false;
+  }, [userId]);
+
   // Patient context for current consultation (supports up to 2 goals)
   const [currentPatientGoals, setCurrentPatientGoals] = useState<PatientGoal[]>([]);
   const [currentPatientGoalCustom, setCurrentPatientGoalCustom] = useState('');
@@ -290,6 +314,55 @@ export default function App() {
         .catch(err => console.error('Failed to save events to Firestore:', err));
     }
   }, [events, userId]);
+
+  // Rehydrate navigation state on mount/login. Views that don't need a data
+  // lookup ('transcription', 'patients') restore immediately; 'patient' and
+  // 'diagnosis' wait until patients/events are populated so we can resolve
+  // the saved id against the actual record.
+  useEffect(() => {
+    if (!userId || navRehydratedRef.current) return;
+    const raw = localStorage.getItem(`echomed_${userId}_nav_state`);
+    if (!raw) {
+      navRehydratedRef.current = true;
+      return;
+    }
+    let nav: any;
+    try { nav = JSON.parse(raw); } catch {
+      navRehydratedRef.current = true;
+      return;
+    }
+
+    if (nav.view === 'patients' || nav.view === 'transcription') {
+      setView(nav.view);
+      navRehydratedRef.current = true;
+      return;
+    }
+
+    // Wait for cached data to load before attempting id-based restoration.
+    if (patients.length === 0 && events.length === 0) return;
+
+    if (nav.view === 'patient' && nav.selectedPatientId) {
+      const p = patients.find((x: Patient) => x.id === nav.selectedPatientId);
+      if (p) {
+        setSelectedPatient(p);
+        setView('patient');
+      }
+    } else if (nav.view === 'diagnosis' && nav.selectedEventId) {
+      const ev = events.find((x: TimelineEvent) => x.id === nav.selectedEventId);
+      if (ev && ev.result) {
+        setSelectedEvent(ev);
+        setCurrentResult(ev.result as any);
+        const p = patients.find((x: Patient) => x.id === ev.patientId);
+        if (p) {
+          setSelectedPatient(p);
+          setPatientName(p.name);
+        }
+        setView('diagnosis');
+      }
+    }
+
+    navRehydratedRef.current = true;
+  }, [userId, patients, events]);
 
   // Migrate existing history to patient-centric format (runs once)
   useEffect(() => {
