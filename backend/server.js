@@ -371,62 +371,103 @@ sem inventar dados.
   }
 });
 
-// Recalculate macros for a structured meal plan after the nutri edited items/quantities
+// Recalculate macros for a structured meal plan after the nutri edited items/quantities.
+// Strategy: reuse the cached per-item breakdown for unchanged items (string-exact match
+// on `food`), and only ask the LLM about NEW or CHANGED items. Then sum deterministically.
+// This avoids the drift you get when the LLM re-estimates the entire plan on every recalc.
 app.post('/api/recalculate-macros', apiLimiter, requireAuth, async (req, res) => {
   try {
-    const { mealPlan, patientAnthropometry } = req.body;
+    const { mealPlan, previousBreakdown } = req.body;
     if (!mealPlan || !Array.isArray(mealPlan.meals) || mealPlan.meals.length === 0) {
       return res.status(400).json({ error: 'mealPlan inválido ou vazio' });
     }
 
-    const anthropoLines = [];
-    if (patientAnthropometry && typeof patientAnthropometry === 'object') {
-      if (patientAnthropometry.weightKg) anthropoLines.push(`Peso: ${patientAnthropometry.weightKg} kg`);
-      if (patientAnthropometry.heightCm) anthropoLines.push(`Altura: ${patientAnthropometry.heightCm} cm`);
-      if (patientAnthropometry.age) anthropoLines.push(`Idade: ${patientAnthropometry.age} anos`);
+    // Build cache: food string -> breakdown entry from the previous calculation.
+    const cache = new Map();
+    if (Array.isArray(previousBreakdown)) {
+      for (const entry of previousBreakdown) {
+        if (entry && typeof entry.food === 'string') {
+          cache.set(entry.food, entry);
+        }
+      }
     }
 
-    const planText = mealPlan.meals.map((m) => {
-      const items = (m.items || []).map((it) => `  - ${it.food}`).join('\n');
-      return `${m.name || 'Refeição'}${m.time ? ` (${m.time})` : ''}:\n${items}`;
-    }).join('\n\n');
+    // Collect all current item foods, identify which need fresh estimation.
+    const allFoods = [];
+    const foodsToEstimate = new Set();
+    for (const meal of mealPlan.meals) {
+      for (const item of meal.items || []) {
+        if (!item || !item.food) continue;
+        allFoods.push(item.food);
+        if (!cache.has(item.food)) {
+          foodsToEstimate.add(item.food);
+        }
+      }
+    }
 
-    const prompt = `Você é nutricionista clínica. Calcule as estimativas de macronutrientes do plano alimentar abaixo, considerando as quantidades em medidas caseiras informadas. Use referências nutricionais brasileiras (TBCA/TACO).
+    // If there are new foods, ask the LLM to estimate ONLY those.
+    if (foodsToEstimate.size > 0) {
+      const toEstimate = Array.from(foodsToEstimate);
+      const prompt = `Você é nutricionista clínica brasileira. Para cada item da lista abaixo, estime calorias e macros NA QUANTIDADE EXATAMENTE como foi escrita. Use TBCA/TACO como referência.
 
-${anthropoLines.length ? `[DADOS DA PACIENTE]\n${anthropoLines.join('\n')}\n\n` : ''}[PLANO ALIMENTAR]
-${planText}
+REGRAS:
+1. Some apenas o que está em cada item, na quantidade indicada.
+2. Se não houver quantidade explícita, use porção padrão: 1 copo = 200 ml, 1 fatia de pão = 30 g, 1 colher de sopa = 15 ml/g, 1 unidade média (fruta) = 120 g.
+3. Quantidades grandes → kcal grande (ex: "30 colheres de tapioca" >> "3 colheres de tapioca"). Nunca normalize.
+4. NÃO ajuste para alvo metabólico nenhum. Cada item é uma estimativa independente do que está escrito.
 
-Responda APENAS com um JSON neste formato (sem texto extra, sem markdown):
+[ITENS]
+${toEstimate.map((f) => `- ${f}`).join('\n')}
+
+Responda APENAS JSON puro neste schema (uma entrada por item, na mesma ordem):
 {
-  "calories": 1800,
-  "protein": "90g",
-  "carbs": "220g",
-  "fat": "60g"
-}
+  "items": [
+    { "food": "<exatamente como recebido>", "kcal": <int>, "prot_g": <int>, "carb_g": <int>, "fat_g": <int> }
+  ]
+}`;
 
-Regras:
-- "calories" é número inteiro (kcal totais do dia)
-- "protein", "carbs", "fat" são strings com unidade em gramas (ex: "90g")
-- Some todos os itens de todas as refeições do dia
-- Se a quantidade de um item for absurda (ex: "30 colheres de tapioca"), reflita isso nos macros — NÃO normalize`;
+      const result = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json', temperature: 0.1 },
+      });
+      const text = result.text || result.response?.text() || '';
+      const clean = String(text).replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+      const items = Array.isArray(parsed.items) ? parsed.items : [];
+      for (const entry of items) {
+        if (!entry || typeof entry.food !== 'string') continue;
+        cache.set(entry.food, {
+          food: entry.food,
+          kcal: Math.round(Number(entry.kcal) || 0),
+          prot_g: Math.round(Number(entry.prot_g) || 0),
+          carb_g: Math.round(Number(entry.carb_g) || 0),
+          fat_g: Math.round(Number(entry.fat_g) || 0),
+        });
+      }
+    }
 
-    const result = await genAI.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: { responseMimeType: 'application/json' },
-    });
-
-    const text = result.text || result.response?.text() || '';
-    const clean = String(text).replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+    // Build the final breakdown from the current items (in order), using cache.
+    const breakdown = [];
+    let kcal = 0, prot = 0, carb = 0, fat = 0;
+    for (const food of allFoods) {
+      const entry = cache.get(food);
+      if (!entry) continue;
+      breakdown.push(entry);
+      kcal += Number(entry.kcal) || 0;
+      prot += Number(entry.prot_g) || 0;
+      carb += Number(entry.carb_g) || 0;
+      fat += Number(entry.fat_g) || 0;
+    }
 
     res.json({
       macroEstimate: {
-        calories: typeof parsed.calories === 'number' ? parsed.calories : Number(parsed.calories) || undefined,
-        protein: parsed.protein || undefined,
-        carbs: parsed.carbs || undefined,
-        fat: parsed.fat || undefined,
+        calories: Math.round(kcal),
+        protein: `${Math.round(prot)}g`,
+        carbs: `${Math.round(carb)}g`,
+        fat: `${Math.round(fat)}g`,
       },
+      macroBreakdown: breakdown,
     });
   } catch (error) {
     console.error('Erro ao recalcular macros:', error);

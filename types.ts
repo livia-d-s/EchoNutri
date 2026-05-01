@@ -101,6 +101,14 @@ export interface StructuredMeal {
   items: StructuredMealItem[];
 }
 
+export interface MacroBreakdownItem {
+  food: string;                  // exact match key for cached recalculation
+  kcal: number;
+  prot_g: number;
+  carb_g: number;
+  fat_g: number;
+}
+
 export interface StructuredMealPlan {
   meals: StructuredMeal[];
   notes?: string;                // hidration, supplements, general guidance
@@ -110,6 +118,10 @@ export interface StructuredMealPlan {
     carbs?: string;
     fat?: string;
   };
+  // Per-item macros, kept in sync with macroEstimate. Reused on partial
+  // recalculation so unchanged items don't get re-estimated by the LLM
+  // (which causes drift on every recalc).
+  macroBreakdown?: MacroBreakdownItem[];
 }
 
 export interface PatientExam {

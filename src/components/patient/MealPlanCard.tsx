@@ -20,6 +20,18 @@ export function planSignature(plan: StructuredMealPlan): string {
     .join('::');
 }
 
+const PLACEHOLDER_FOOD = 'Novo item';
+const PLACEHOLDER_MEAL = 'Nova refeição';
+
+// True when any item is still the just-added placeholder. We skip auto-recalc
+// in that state because the user hasn't confirmed the real food name yet.
+function hasPendingPlaceholder(plan: StructuredMealPlan): boolean {
+  return plan.meals.some((m) => {
+    if (m.name === PLACEHOLDER_MEAL && (!m.items || m.items.length === 0)) return true;
+    return (m.items || []).some((it) => !it.food || it.food.trim() === '' || it.food === PLACEHOLDER_FOOD);
+  });
+}
+
 export function MealPlanCard({
   plan,
   onChange,
@@ -45,10 +57,18 @@ export function MealPlanCard({
 
   const currentSig = planSignature(plan);
   const macrosStale = !!plan.macroEstimate && currentSig !== baselineRef.current;
+  const pendingPlaceholder = hasPendingPlaceholder(plan);
 
   // Auto-recalc: when meals change, debounce 1.5s then recalc automatically.
+  // Skip while the user is still entering a placeholder ("Novo item" /
+  // "Nova refeição") — we wait until they confirm with a real name.
   useEffect(() => {
-    if (!onRecalculateMacros || !macrosStale || recalculating) return;
+    if (!onRecalculateMacros || !macrosStale || recalculating || pendingPlaceholder) {
+      // Cancel any armed recalc if we slid back into a placeholder state.
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      setAutoRecalcArmed(false);
+      return;
+    }
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     setAutoRecalcArmed(true);
     debounceRef.current = window.setTimeout(async () => {
@@ -66,7 +86,7 @@ export function MealPlanCard({
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSig, macrosStale]);
+  }, [currentSig, macrosStale, pendingPlaceholder]);
 
   const handleManualRecalc = async () => {
     if (!onRecalculateMacros || recalculating) return;

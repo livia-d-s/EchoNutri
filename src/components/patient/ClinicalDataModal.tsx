@@ -19,11 +19,9 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
     const h = parseFloat(height.replace(',', '.'));
     const changes: Partial<Patient> = {};
     if (!isNaN(w) && w > 0) changes.weightKg = w;
-    else if (weight.trim() === '') changes.weightKg = undefined;
     if (!isNaN(h) && h > 0) changes.heightCm = h;
-    else if (height.trim() === '') changes.heightCm = undefined;
-    changes.birthDate = birthDate || undefined;
-    changes.dietaryRestrictions = restrictions.trim() || undefined;
+    if (birthDate) changes.birthDate = birthDate;
+    if (restrictions.trim()) changes.dietaryRestrictions = restrictions.trim();
     onSave(changes);
     onClose();
   };
