@@ -263,7 +263,6 @@ export async function generateExamRequestPdf(
     content: [
       ...buildHeader(profile, brand),
       { text: 'PEDIDO DE EXAMES', style: 'tinyLabel', color: brand },
-      { text: 'Solicitação Laboratorial', style: 'documentTitle' },
       buildPatientBlock(patientName || 'Paciente', dateStr, brand),
       { text: 'Solicito a realização dos seguintes exames:', style: 'body', margin: [0, 0, 0, 14] },
       exams.length > 0
@@ -333,7 +332,6 @@ export async function generateConductPdf(
     pageMargins: [40, 40, 40, 40],
     content: [
       ...buildHeader(profile, brand),
-      { text: 'PARA VOCÊ', style: 'tinyLabel', color: brand },
       { text: 'Suas orientações da consulta', style: 'documentTitle' },
       buildPatientBlock(patientName || 'Paciente', dateStr, brand),
 
@@ -382,7 +380,6 @@ export async function generateMedicalReferralPdf(
     content: [
       ...buildHeader(profile, brand),
       { text: 'ENCAMINHAMENTO', style: 'tinyLabel', color: brand },
-      { text: 'Resumo Clínico', style: 'documentTitle' },
       buildPatientBlock(patientName || 'Paciente', dateStr, brand),
 
       { text: 'Prezado(a) Colega,', style: 'body', margin: [0, 8, 0, 14] },
@@ -405,7 +402,7 @@ export async function generateMedicalReferralPdf(
 
       ...(exams.length > 0
         ? [
-            { text: 'EXAMES SOLICITADOS PELA NUTRIÇÃO', style: 'sectionHeader' },
+            { text: 'EXAMES SOLICITADOS', style: 'sectionHeader' },
             {
               ul: exams.map((e) => ({ text: e, margin: [0, 0, 0, 4] })),
               style: 'body',
@@ -497,7 +494,6 @@ export async function generateMealPlanPdf(
     content: [
       ...buildHeader(profile, brand),
       { text: 'PLANO ALIMENTAR', style: 'tinyLabel', color: brand },
-      { text: 'Sugestão Nutricional', style: 'documentTitle' },
       buildPatientBlock(patientName || 'Paciente', dateStr, brand),
 
       { text: 'REFEIÇÕES', style: 'sectionHeader', margin: [0, 12, 0, 6] },

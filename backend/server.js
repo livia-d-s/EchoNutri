@@ -141,6 +141,8 @@ ${planText}`;
       if (patientAnthropometry.weightKg) parts.push(`Peso: ${patientAnthropometry.weightKg} kg`);
       if (patientAnthropometry.heightCm) parts.push(`Altura: ${patientAnthropometry.heightCm} cm`);
       if (patientAnthropometry.age) parts.push(`Idade: ${patientAnthropometry.age} anos`);
+      if (patientAnthropometry.bodyFatPct) parts.push(`% Gordura: ${patientAnthropometry.bodyFatPct}%`);
+      if (patientAnthropometry.leanMassPct) parts.push(`% Massa magra: ${patientAnthropometry.leanMassPct}%`);
       if (patientAnthropometry.dietaryRestrictions) {
         parts.push(`Restrições/preferências: ${patientAnthropometry.dietaryRestrictions}`);
       }

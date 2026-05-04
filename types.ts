@@ -72,6 +72,10 @@ export interface Patient {
   // Anthropometric data (optional, used for structured meal plan)
   weightKg?: number;
   heightCm?: number;
+  // Body composition (%). Useful for evolution tracking + cleaner macro
+  // recommendations (lean mass drives protein needs more than total weight).
+  bodyFatPct?: number;
+  leanMassPct?: number;
   // Dietary restrictions / preferences (free-text, e.g. "vegetariana, sem lactose")
   dietaryRestrictions?: string;
   // New nutrition-focused fields

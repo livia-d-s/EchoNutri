@@ -94,6 +94,52 @@ const DEFAULT_PROFILE: DoctorProfileType = {
   },
 };
 
+// Build a short list of "remember-this-patient" chips shown when the nutri
+// selects an existing patient. Up to 5 entries: training, goal, top 1-2
+// highlights, BMI summary if anthropometry is filled, prior consultations.
+function buildPatientQuickChips(p: any, events?: any[]): string[] {
+  if (!p) return [];
+  const chips: string[] = [];
+
+  // 1. Training (first activity is usually the most relevant)
+  const t = (p.trainingRoutine || [])[0];
+  if (t?.type) {
+    chips.push(`🏋️ ${t.type}${t.frequency ? ` ${t.frequency}` : ''}`);
+  }
+
+  // 2. Goal
+  const goals = (p.goals && p.goals.length ? p.goals : (p.goal ? [p.goal] : [])) as PatientGoal[];
+  if (goals.length > 0) {
+    const labels = goals
+      .map((g) => (g === 'outro' ? p.goalCustom : GOAL_LABELS[g]))
+      .filter(Boolean)
+      .join(' + ');
+    if (labels) chips.push(`🎯 ${labels}`);
+  }
+
+  // 3. Anthropometry summary (BMI or weight if both not present)
+  const w = Number(p.weightKg);
+  const h = Number(p.heightCm);
+  if (w > 0 && h > 0) {
+    const bmi = w / Math.pow(h / 100, 2);
+    chips.push(`📊 IMC ${bmi.toFixed(1)}`);
+  }
+
+  // 4-5. Top highlights (slice 2 max so we don't crowd out other context)
+  for (const h of (p.highlights || []).slice(0, 2)) {
+    if (chips.length >= 5) break;
+    if (h && typeof h === 'string') chips.push(`✨ ${h}`);
+  }
+
+  // Last resort: prior consultation count
+  if (chips.length < 5 && Array.isArray(events)) {
+    const count = events.filter((e: any) => e.patientId === p.id && e.type !== 'adjustment').length;
+    if (count > 0) chips.push(`📅 ${count} consulta${count > 1 ? 's' : ''} anterior${count > 1 ? 'es' : ''}`);
+  }
+
+  return chips.slice(0, 5);
+}
+
 // Recursively strip `undefined` values from objects/arrays so Firestore
 // (which rejects undefined) doesn't blow up when patient fields are cleared.
 function stripUndefinedDeep<T>(value: T): T {
@@ -1626,10 +1672,13 @@ function TranscriptionView({
   })).slice(0, 5) || [];
 
   // Check if patient name exactly matches an existing patient
-  const isExistingPatient = patients?.some((p: any) =>
-    patientName.trim() &&
-    p.name.toLowerCase() === patientName.trim().toLowerCase()
-  );
+  const matchedExistingPatient = patientName.trim()
+    ? (patients || []).find(
+        (p: any) => p.name.toLowerCase() === patientName.trim().toLowerCase()
+      )
+    : null;
+  const isExistingPatient = !!matchedExistingPatient;
+  const matchedExistingChips = buildPatientQuickChips(matchedExistingPatient, events);
 
   // Auto-save transcript to localStorage (user-scoped)
   useEffect(() => {
@@ -1920,6 +1969,21 @@ function TranscriptionView({
         </div>
       </div>
 
+      {/* Quick-context chips: shown when an existing patient is selected so the
+          nutri can refresh memory at a glance before starting the consultation. */}
+      {isExistingPatient && status === AppStatus.IDLE && matchedExistingChips.length > 0 && (
+        <div className="-mt-2 flex flex-wrap gap-1.5 animate-in fade-in duration-200">
+          {matchedExistingChips.map((c, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100"
+            >
+              {c}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Inline Patient Context Inputs - show only for NEW patients (not in history) */}
       {patientName.trim() && status === AppStatus.IDLE && !isExistingPatient && suggestions.length === 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-4 -mt-2 space-y-3 animate-in fade-in duration-200">
@@ -2164,6 +2228,29 @@ function TranscriptionView({
               })()}
             </div>
 
+            {/* Quick-context chips when popup name matches an existing patient */}
+            {(() => {
+              const matched = tempName.trim()
+                ? (patients || []).find(
+                    (p: any) => p.name.toLowerCase() === tempName.trim().toLowerCase()
+                  )
+                : null;
+              const chips = buildPatientQuickChips(matched, events);
+              if (chips.length === 0) return null;
+              return (
+                <div className="-mt-2 mb-4 flex flex-wrap gap-1.5 animate-in fade-in duration-200">
+                  {chips.map((c, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100"
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
+
             {/* First Consultation Toggle */}
             <div className="mb-4">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Primeira Consulta?</label>
@@ -2366,6 +2453,11 @@ function DiagnosisView({ result, patientName, eventId, onSaveResult, onBack, pre
       if (ageFromBirth) anthro.age = ageFromBirth;
       if (currentPatient.dietaryRestrictions) anthro.dietaryRestrictions = currentPatient.dietaryRestrictions;
     }
+    // Body composition is always pulled from the patient record (the bubble
+    // doesn't expose these fields directly — they come from the clinical
+    // data modal). Lean mass drives protein needs, body fat refines targets.
+    if (currentPatient.bodyFatPct) anthro.bodyFatPct = currentPatient.bodyFatPct;
+    if (currentPatient.leanMassPct) anthro.leanMassPct = currentPatient.leanMassPct;
 
     const auth = (await import('firebase/auth')).getAuth();
     const idToken = await auth.currentUser?.getIdToken();

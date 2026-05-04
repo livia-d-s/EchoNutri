@@ -12,14 +12,20 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
   const [weight, setWeight] = useState<string>(patient.weightKg ? String(patient.weightKg) : '');
   const [height, setHeight] = useState<string>(patient.heightCm ? String(patient.heightCm) : '');
   const [birthDate, setBirthDate] = useState<string>(patient.birthDate || '');
+  const [bodyFat, setBodyFat] = useState<string>(patient.bodyFatPct != null ? String(patient.bodyFatPct) : '');
+  const [leanMass, setLeanMass] = useState<string>(patient.leanMassPct != null ? String(patient.leanMassPct) : '');
   const [restrictions, setRestrictions] = useState<string>(patient.dietaryRestrictions || '');
 
   const handleSave = () => {
     const w = parseFloat(weight.replace(',', '.'));
     const h = parseFloat(height.replace(',', '.'));
+    const bf = parseFloat(bodyFat.replace(',', '.'));
+    const lm = parseFloat(leanMass.replace(',', '.'));
     const changes: Partial<Patient> = {};
     if (!isNaN(w) && w > 0) changes.weightKg = w;
     if (!isNaN(h) && h > 0) changes.heightCm = h;
+    if (!isNaN(bf) && bf > 0 && bf < 100) changes.bodyFatPct = bf;
+    if (!isNaN(lm) && lm > 0 && lm < 100) changes.leanMassPct = lm;
     if (birthDate) changes.birthDate = birthDate;
     if (restrictions.trim()) changes.dietaryRestrictions = restrictions.trim();
     onSave(changes);
@@ -91,6 +97,35 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">
+                % Gordura
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Ex: 22"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                value={bodyFat}
+                onChange={(e) => setBodyFat(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">
+                % Massa magra
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Ex: 78"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                value={leanMass}
+                onChange={(e) => setLeanMass(e.target.value)}
               />
             </div>
           </div>
