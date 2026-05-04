@@ -53,6 +53,30 @@ const parseSteps = (text?: string): string[] => {
   return sentences.length > 1 ? sentences : [text];
 };
 
+// Recursively walk a module-like object and return the first nested object
+// that holds the .ttf font entries. Vite/Rollup ESM interop wraps the CJS
+// vfs_fonts module under different shapes (top-level keys, .default, or
+// nested), so we don't try to guess — we just look for the shape that
+// contains the file we need.
+function findVfsObject(root: any): Record<string, string> | null {
+  const seen = new Set<any>();
+  function walk(obj: any, depth: number): Record<string, string> | null {
+    if (!obj || typeof obj !== 'object' || seen.has(obj) || depth > 4) return null;
+    seen.add(obj);
+    if (typeof obj['Roboto-Regular.ttf'] === 'string') {
+      return obj as Record<string, string>;
+    }
+    for (const v of Object.values(obj)) {
+      if (v && typeof v === 'object') {
+        const found = walk(v, depth + 1);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  return walk(root, 0);
+}
+
 // Lazy loader for pdfmake (~600KB chunk; only loaded when nutri actually downloads)
 async function loadPdfMake(): Promise<any> {
   const [pdfMakeModule, fontsModule] = await Promise.all([
@@ -61,36 +85,23 @@ async function loadPdfMake(): Promise<any> {
   ]);
   const pdfMake: any = pdfMakeModule.default || pdfMakeModule;
 
-  // pdfmake's vfs_fonts module shape varies across versions and bundlers
-  // (0.2.x: {pdfMake:{vfs}}, 0.3.x: object with .ttf keys, ESM interop may
-  // wrap it under .default). Merge every plausible source — any .ttf keys
-  // we find go into our vfs.
-  const fonts: any = fontsModule;
-  const candidates: any[] = [
-    fonts,
-    fonts?.default,
-    fonts?.vfs,
-    fonts?.pdfMake?.vfs,
-    fonts?.default?.pdfMake?.vfs,
-    fonts?.default?.vfs,
-  ].filter((c) => c && typeof c === 'object');
-
-  const vfs: Record<string, string> = {};
-  for (const cand of candidates) {
-    for (const [k, v] of Object.entries(cand)) {
-      if (k.endsWith('.ttf') && typeof v === 'string' && !vfs[k]) {
-        vfs[k] = v;
-      }
-    }
+  // Locate the actual vfs object regardless of how the bundler wrapped it.
+  const vfs = findVfsObject(fontsModule);
+  if (!vfs) {
+    console.error('[pdfmake] Could not locate vfs object inside vfs_fonts module', fontsModule);
+    throw new Error('Não foi possível carregar as fontes do PDF. Atualize a página e tente novamente.');
   }
 
-  if (Object.keys(vfs).length === 0) {
-    console.warn('pdfmake: no font .ttf entries found in vfs_fonts module — PDF will fail');
+  // pdfmake 0.3.x exposes addVirtualFileSystem(); fall back to direct assignment
+  // for older builds. Both routes end up populating the same internal vfs.
+  if (typeof pdfMake.addVirtualFileSystem === 'function') {
+    pdfMake.addVirtualFileSystem(vfs);
+  } else {
+    pdfMake.vfs = vfs;
   }
-  pdfMake.vfs = vfs;
 
   // Explicit font config so pdfmake knows exactly which file to use for each
-  // weight/style. Avoids "Roboto-Medium.ttf not found" when bold text is rendered.
+  // weight/style. Without this, "Roboto-Medium.ttf not found" when rendering bold.
   pdfMake.fonts = {
     Roboto: {
       normal: 'Roboto-Regular.ttf',
@@ -263,7 +274,6 @@ export async function generateExamRequestPdf(
     content: [
       ...buildHeader(profile, brand),
       { text: 'PEDIDO DE EXAMES', style: 'tinyLabel', color: brand },
-      { text: 'Solicitação Laboratorial', style: 'documentTitle' },
       buildPatientBlock(patientName || 'Paciente', dateStr, brand),
       { text: 'Solicito a realização dos seguintes exames:', style: 'body', margin: [0, 0, 0, 14] },
       exams.length > 0
@@ -333,7 +343,6 @@ export async function generateConductPdf(
     pageMargins: [40, 40, 40, 40],
     content: [
       ...buildHeader(profile, brand),
-      { text: 'PARA VOCÊ', style: 'tinyLabel', color: brand },
       { text: 'Suas orientações da consulta', style: 'documentTitle' },
       buildPatientBlock(patientName || 'Paciente', dateStr, brand),
 
@@ -382,7 +391,6 @@ export async function generateMedicalReferralPdf(
     content: [
       ...buildHeader(profile, brand),
       { text: 'ENCAMINHAMENTO', style: 'tinyLabel', color: brand },
-      { text: 'Resumo Clínico', style: 'documentTitle' },
       buildPatientBlock(patientName || 'Paciente', dateStr, brand),
 
       { text: 'Prezado(a) Colega,', style: 'body', margin: [0, 8, 0, 14] },
@@ -405,7 +413,7 @@ export async function generateMedicalReferralPdf(
 
       ...(exams.length > 0
         ? [
-            { text: 'EXAMES SOLICITADOS PELA NUTRIÇÃO', style: 'sectionHeader' },
+            { text: 'EXAMES SOLICITADOS', style: 'sectionHeader' },
             {
               ul: exams.map((e) => ({ text: e, margin: [0, 0, 0, 4] })),
               style: 'body',
@@ -497,7 +505,6 @@ export async function generateMealPlanPdf(
     content: [
       ...buildHeader(profile, brand),
       { text: 'PLANO ALIMENTAR', style: 'tinyLabel', color: brand },
-      { text: 'Sugestão Nutricional', style: 'documentTitle' },
       buildPatientBlock(patientName || 'Paciente', dateStr, brand),
 
       { text: 'REFEIÇÕES', style: 'sectionHeader', margin: [0, 12, 0, 6] },
