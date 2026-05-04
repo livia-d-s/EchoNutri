@@ -1548,7 +1548,8 @@ function TranscriptionView({
     //   "Musculação 3x, Natação 1x"
     //   "Musculação: 3x/semana, Natação: 1x/semana"
     //   "2x semana futebol" / "3x corrida" (frequency first)
-    return str.split(',').map(item => {
+    //   "musculação 3x e hiit 1x" / "futebol 2x; corrida 3x" / "musculação + corrida"
+    return str.split(/\s*(?:,|;|\+|\b e \b)\s*/i).map(item => {
       const clean = item.trim();
       // Type-first: "Musculação 3x" / "Musculação: 3x/semana"
       let match = clean.match(/^([^:0-9]+?)[\s:]*(\d+x?\/?(?:semana)?)/i);
@@ -2402,9 +2403,47 @@ Análise prévia:
     }
     const data = await resp.json();
     if (data.structuredMealPlan && Array.isArray(data.structuredMealPlan.meals)) {
-      setMealPlan(data.structuredMealPlan);
-      if (onSaveResult) onSaveResult({ ...result, structuredMealPlan: data.structuredMealPlan });
-      return data.structuredMealPlan;
+      // Build the per-item macroBreakdown from the generation response and use
+      // its sum as macroEstimate. This keeps the displayed totals consistent
+      // with the cached breakdown — so the first recalc after an edit only
+      // re-estimates the new/changed items instead of redoing the whole plan.
+      const generated = data.structuredMealPlan;
+      const breakdown: any[] = [];
+      let kcal = 0, prot = 0, carb = 0, fat = 0;
+      for (const meal of generated.meals) {
+        for (const item of meal.items || []) {
+          if (!item || !item.food) continue;
+          if (typeof item.kcal === 'number') {
+            const entry = {
+              food: item.food,
+              kcal: Math.round(Number(item.kcal) || 0),
+              prot_g: Math.round(Number(item.prot_g) || 0),
+              carb_g: Math.round(Number(item.carb_g) || 0),
+              fat_g: Math.round(Number(item.fat_g) || 0),
+            };
+            breakdown.push(entry);
+            kcal += entry.kcal;
+            prot += entry.prot_g;
+            carb += entry.carb_g;
+            fat += entry.fat_g;
+          }
+        }
+      }
+      const finalPlan: any = { ...generated };
+      if (breakdown.length > 0) {
+        finalPlan.macroBreakdown = breakdown;
+        // Override the AI's holistic macroEstimate with the per-item sum so
+        // displayed totals match what a recalc would produce.
+        finalPlan.macroEstimate = {
+          calories: kcal,
+          protein: `${prot}g`,
+          carbs: `${carb}g`,
+          fat: `${fat}g`,
+        };
+      }
+      setMealPlan(finalPlan);
+      if (onSaveResult) onSaveResult({ ...result, structuredMealPlan: finalPlan });
+      return finalPlan;
     }
     return null;
   };

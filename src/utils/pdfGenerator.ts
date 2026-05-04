@@ -61,21 +61,33 @@ async function loadPdfMake(): Promise<any> {
   ]);
   const pdfMake: any = pdfMakeModule.default || pdfMakeModule;
 
-  // pdfmake 0.2.x: vfs_fonts exports { pdfMake: { vfs } }
-  // pdfmake 0.3.x: vfs_fonts exports the vfs object directly via default
+  // pdfmake's vfs_fonts module shape varies across versions and bundlers
+  // (0.2.x: {pdfMake:{vfs}}, 0.3.x: object with .ttf keys, ESM interop may
+  // wrap it under .default). Merge every plausible source — any .ttf keys
+  // we find go into our vfs.
   const fonts: any = fontsModule;
-  const vfs =
-    fonts.pdfMake?.vfs ||
-    fonts.default?.pdfMake?.vfs ||
-    fonts.vfs ||
-    (fonts.default && typeof fonts.default === 'object' && 'Roboto-Regular.ttf' in fonts.default ? fonts.default : null) ||
-    (typeof fonts === 'object' && 'Roboto-Regular.ttf' in fonts ? fonts : null);
+  const candidates: any[] = [
+    fonts,
+    fonts?.default,
+    fonts?.vfs,
+    fonts?.pdfMake?.vfs,
+    fonts?.default?.pdfMake?.vfs,
+    fonts?.default?.vfs,
+  ].filter((c) => c && typeof c === 'object');
 
-  if (vfs) {
-    pdfMake.vfs = vfs;
-  } else {
-    console.warn('pdfmake vfs not found in expected locations; PDF font may fail');
+  const vfs: Record<string, string> = {};
+  for (const cand of candidates) {
+    for (const [k, v] of Object.entries(cand)) {
+      if (k.endsWith('.ttf') && typeof v === 'string' && !vfs[k]) {
+        vfs[k] = v;
+      }
+    }
   }
+
+  if (Object.keys(vfs).length === 0) {
+    console.warn('pdfmake: no font .ttf entries found in vfs_fonts module — PDF will fail');
+  }
+  pdfMake.vfs = vfs;
 
   // Explicit font config so pdfmake knows exactly which file to use for each
   // weight/style. Avoids "Roboto-Medium.ttf not found" when bold text is rendered.
