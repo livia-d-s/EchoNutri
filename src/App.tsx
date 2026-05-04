@@ -117,12 +117,16 @@ function buildPatientQuickChips(p: any, events?: any[]): string[] {
     if (labels) chips.push(`🎯 ${labels}`);
   }
 
-  // 3. Anthropometry summary (BMI or weight if both not present)
+  // 3. Anthropometry summary: prefer weight + body fat % (more useful for
+  // the nutri than BMI, which she can compute mentally if she needs it).
   const w = Number(p.weightKg);
-  const h = Number(p.heightCm);
-  if (w > 0 && h > 0) {
-    const bmi = w / Math.pow(h / 100, 2);
-    chips.push(`📊 IMC ${bmi.toFixed(1)}`);
+  const bf = Number(p.bodyFatPct);
+  if (w > 0 && bf > 0) {
+    chips.push(`📊 ${w}kg • ${bf}% gord`);
+  } else if (w > 0) {
+    chips.push(`📊 ${w}kg`);
+  } else if (bf > 0) {
+    chips.push(`📊 ${bf}% gord`);
   }
 
   // 4-5. Top highlights (slice 2 max so we don't crowd out other context)
