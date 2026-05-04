@@ -251,15 +251,19 @@ export default function App() {
     if (!key || !userId) return;
     localStorage.setItem(key, JSON.stringify(doctorProfile));
     if (db) {
-      const { photo, ...profileWithoutPhoto } = doctorProfile;
-      // Firestore rejects single fields > ~1MB. If the cached logoUrl is too
-      // large (legacy uncompressed upload), drop it from the Firestore write so
-      // the rest of the profile still saves.
+      // Photo and logo are kept in the Firestore save so they survive hard
+      // refreshes and cross-device logins. Both go through canvas compression
+      // before being set, so they stay under Firestore's 1MB-per-field limit.
+      // Defensive drop only kicks in for legacy uncompressed uploads.
+      const profileToSave: any = { ...doctorProfile };
       const FIRESTORE_FIELD_LIMIT = 1_048_487;
-      if (profileWithoutPhoto.logoUrl && profileWithoutPhoto.logoUrl.length > FIRESTORE_FIELD_LIMIT) {
-        delete profileWithoutPhoto.logoUrl;
+      if (profileToSave.photo && profileToSave.photo.length > FIRESTORE_FIELD_LIMIT) {
+        delete profileToSave.photo;
       }
-      setDoc(doc(db, 'users', userId, 'appData', 'profile'), stripUndefinedDeep(profileWithoutPhoto), { merge: true })
+      if (profileToSave.logoUrl && profileToSave.logoUrl.length > FIRESTORE_FIELD_LIMIT) {
+        delete profileToSave.logoUrl;
+      }
+      setDoc(doc(db, 'users', userId, 'appData', 'profile'), stripUndefinedDeep(profileToSave), { merge: true })
         .catch(err => console.error('Failed to save profile to Firestore:', err));
     }
   }, [doctorProfile, userId]);
@@ -1132,17 +1136,39 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 5MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhoto(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5MB');
+      return;
     }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string;
+      // Resize to max 400x400 and re-encode as JPEG so the base64 stays well
+      // under Firestore's 1MB-per-field limit. Without this, the photo got
+      // stripped from the Firestore save and lost on hard refresh.
+      const img = new Image();
+      img.onload = () => {
+        const maxSide = 400;
+        let { width, height } = img;
+        if (width > maxSide) { height = height * (maxSide / width); width = maxSide; }
+        if (height > maxSide) { width = width * (maxSide / height); height = maxSide; }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(width);
+        canvas.height = Math.round(height);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { setPhoto(dataUrl); return; }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        let compressed = canvas.toDataURL('image/jpeg', 0.85);
+        if (compressed.length > 700_000) {
+          compressed = canvas.toDataURL('image/jpeg', 0.6);
+        }
+        setPhoto(compressed);
+      };
+      img.onerror = () => setPhoto(dataUrl);
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
