@@ -94,25 +94,53 @@ const DEFAULT_PROFILE: DoctorProfileType = {
   },
 };
 
-// Build the quick-context chips shown when the nutri selects an existing
-// patient. Kept intentionally minimal — only training routine and prior
-// consultation count, which are the two facts she most needs at a glance
-// before starting the next session.
+// Build a short list of "remember-this-patient" chips shown when the nutri
+// selects an existing patient. Up to 5 entries: training, goal, weight +
+// body-fat summary, top 1-2 highlights, prior consultations as fallback.
 function buildPatientQuickChips(p: any, events?: any[]): string[] {
   if (!p) return [];
   const chips: string[] = [];
 
+  // 1. Training (first activity is usually the most relevant)
   const t = (p.trainingRoutine || [])[0];
   if (t?.type) {
     chips.push(`${t.type}${t.frequency ? ` ${t.frequency}` : ''}`);
   }
 
-  if (Array.isArray(events)) {
+  // 2. Goal
+  const goals = (p.goals && p.goals.length ? p.goals : (p.goal ? [p.goal] : [])) as PatientGoal[];
+  if (goals.length > 0) {
+    const labels = goals
+      .map((g) => (g === 'outro' ? p.goalCustom : GOAL_LABELS[g]))
+      .filter(Boolean)
+      .join(' + ');
+    if (labels) chips.push(labels);
+  }
+
+  // 3. Weight + body-fat (more useful than BMI for the nutri).
+  const w = Number(p.weightKg);
+  const bf = Number(p.bodyFatPct);
+  if (w > 0 && bf > 0) {
+    chips.push(`${w}kg • ${bf}% gord`);
+  } else if (w > 0) {
+    chips.push(`${w}kg`);
+  } else if (bf > 0) {
+    chips.push(`${bf}% gord`);
+  }
+
+  // 4-5. Top highlights (slice 2 max so we don't crowd out other context)
+  for (const h of (p.highlights || []).slice(0, 2)) {
+    if (chips.length >= 5) break;
+    if (h && typeof h === 'string') chips.push(h);
+  }
+
+  // Last resort: prior consultation count
+  if (chips.length < 5 && Array.isArray(events)) {
     const count = events.filter((e: any) => e.patientId === p.id && e.type !== 'adjustment').length;
     if (count > 0) chips.push(`${count} consulta${count > 1 ? 's' : ''} anterior${count > 1 ? 'es' : ''}`);
   }
 
-  return chips;
+  return chips.slice(0, 5);
 }
 
 // Recursively strip `undefined` values from objects/arrays so Firestore
