@@ -164,11 +164,19 @@ A nutricionista solicitou geração de um plano alimentar estruturado. Inclua o 
         {
           "food": "1 fatia de pão integral",
           "category": "carbo",
+          "kcal": 80,
+          "prot_g": 4,
+          "carb_g": 14,
+          "fat_g": 1,
           "substitutions": ["1 tapioca pequena", "2 colheres de aveia em flocos", "1/2 batata-doce cozida (100g)"]
         },
         {
           "food": "1 ovo mexido",
           "category": "proteina",
+          "kcal": 90,
+          "prot_g": 6,
+          "carb_g": 1,
+          "fat_g": 7,
           "substitutions": ["50g de frango desfiado", "2 colheres de chia", "1/2 xícara de iogurte natural"]
         }
       ]
@@ -183,6 +191,7 @@ Regras OBRIGATÓRIAS para structuredMealPlan:
 - Cada refeição com 2-4 alimentos
 - Cada alimento em "food" deve ter QUANTIDADE EM MEDIDA CASEIRA (ex: "1 fatia", "1 colher de sopa", "100g", "1 unidade média")
 - "category" obrigatório, valores: "carbo", "proteina", "gordura", "fruta", "vegetal", "lacteo", "outro"
+- "kcal", "prot_g", "carb_g", "fat_g" OBRIGATÓRIOS em CADA item (inteiros). Calcule item-a-item proporcional à quantidade escrita usando TBCA/TACO. macroEstimate.calories deve ser EXATAMENTE a soma dos kcal de todos os itens (não estime "no olho", some). Mesmo princípio para protein/carbs/fat.
 - "substitutions" com 3-4 alternativas EQUIVALENTES em quantidade/calorias da MESMA categoria
   * Exemplo: se food é "1 banana média", substituições podem ser ["1 maçã grande", "1 fatia média de mamão", "8 morangos"] (todas frutas com porção similar)
   * NÃO sugira substituição de categoria diferente (ex: trocar carbo por proteína)
