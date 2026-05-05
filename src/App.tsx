@@ -1663,10 +1663,15 @@ function TranscriptionView({
     const estimateMs = Math.max(60_000, Math.round((file.size / (20 * 1024 * 1024)) * 60_000));
     setAudioUploadState({ kind: 'transcribing', fileName: file.name, estimateMs });
 
-    // Poll for the transcript.
+    // Poll for the transcript. Poll faster early on (most short audios are
+    // ready in 5-20s), slow down later to avoid hammering the backend if
+    // the audio is long.
     const pollDeadline = Date.now() + 20 * 60 * 1000; // 20 min cap
+    let attempt = 0;
     while (Date.now() < pollDeadline) {
-      await new Promise((r) => setTimeout(r, 5000));
+      attempt += 1;
+      const interval = attempt < 10 ? 1500 : 5000; // 1.5s for the first ~15s, then 5s
+      await new Promise((r) => setTimeout(r, interval));
       const r = await fetch(`${baseUrl}/api/transcribe-audio/${jobId}`, {
         headers: { Authorization: `Bearer ${idToken}` },
       });
@@ -2243,30 +2248,53 @@ function TranscriptionView({
 
         <div className="p-4 md:p-8 bg-slate-50/50 border-t border-slate-100 flex justify-center gap-3 md:gap-4">
           {status === AppStatus.IDLE && audioUploadState.kind === 'idle' && (
-            <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
-              <button onClick={startRecording} className="flex items-center gap-2 md:gap-3 bg-blue-600 text-white px-6 py-3 md:px-10 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
-                <Mic size={20} /> Iniciar Consulta
-              </button>
-              <button
-                onClick={() => audioInputRef.current?.click()}
-                className="flex items-center gap-2 md:gap-3 bg-white border-2 border-blue-200 text-blue-700 px-5 py-3 md:px-7 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-sm md:text-base hover:bg-blue-50 transition-all active:scale-95"
-                title="Para consultas online: envie o áudio gravado (Zoom, Meet, gravador). Até 200MB / 2:30h."
-              >
-                <Upload size={18} /> Carregar áudio
-              </button>
-              <input
-                ref={audioInputRef}
-                type="file"
-                accept="audio/*,video/mp4,video/webm,.m4a,.mp3,.mp4,.wav,.webm,.aac,.flac,.ogg"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleAudioFileSelected(f);
-                  // Reset so the same file can be re-selected after a failure.
-                  e.target.value = '';
-                }}
-              />
-            </div>
+            transcript.trim() ? (
+              // We already have a transcript (uploaded audio or manual edit) —
+              // hide the "start" controls and let the nutri move on to analysis.
+              <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
+                <button
+                  onClick={handleFinalize}
+                  className="flex items-center gap-2 md:gap-3 bg-blue-600 text-white px-6 py-3 md:px-10 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
+                >
+                  <CheckCircle size={20} /> Analisar Consulta
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Limpar a transcrição atual e começar de novo?')) {
+                      setTranscript('');
+                    }
+                  }}
+                  className="text-sm font-bold text-slate-500 hover:text-slate-700 underline underline-offset-2"
+                >
+                  Limpar e começar de novo
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
+                <button onClick={startRecording} className="flex items-center gap-2 md:gap-3 bg-blue-600 text-white px-6 py-3 md:px-10 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
+                  <Mic size={20} /> Iniciar Consulta
+                </button>
+                <button
+                  onClick={() => audioInputRef.current?.click()}
+                  className="flex items-center gap-2 md:gap-3 bg-white border-2 border-blue-200 text-blue-700 px-5 py-3 md:px-7 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-sm md:text-base hover:bg-blue-50 transition-all active:scale-95"
+                  title="Para consultas online: envie o áudio gravado (Zoom, Meet, gravador). Até 200MB / 2:30h."
+                >
+                  <Upload size={18} /> Carregar áudio
+                </button>
+                <input
+                  ref={audioInputRef}
+                  type="file"
+                  accept="audio/*,video/mp4,video/webm,.m4a,.mp3,.mp4,.wav,.webm,.aac,.flac,.ogg"
+                  className="hidden"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleAudioFileSelected(f);
+                    // Reset so the same file can be re-selected after a failure.
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+            )
           )}
 
           {(audioUploadState.kind === 'uploading' || audioUploadState.kind === 'transcribing') && (
