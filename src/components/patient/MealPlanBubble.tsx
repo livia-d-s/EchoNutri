@@ -33,6 +33,8 @@ export function MealPlanBubble({
   const [weight, setWeight] = useState<string>(patient.weightKg ? String(patient.weightKg) : '');
   const [height, setHeight] = useState<string>(patient.heightCm ? String(patient.heightCm) : '');
   const [birthDate, setBirthDate] = useState<string>(patient.birthDate || '');
+  const [bodyFat, setBodyFat] = useState<string>(patient.bodyFatPct != null ? String(patient.bodyFatPct) : '');
+  const [leanMass, setLeanMass] = useState<string>(patient.leanMassPct != null ? String(patient.leanMassPct) : '');
   const [restrictions, setRestrictions] = useState<string>(patient.dietaryRestrictions || '');
 
   const hasExternalPlan = Array.isArray(patient.mealPlans) && patient.mealPlans.length > 0;
@@ -52,9 +54,13 @@ export function MealPlanBubble({
     try {
       const w = parseFloat(weight.replace(',', '.'));
       const h = parseFloat(height.replace(',', '.'));
+      const bf = parseFloat(bodyFat.replace(',', '.'));
+      const lm = parseFloat(leanMass.replace(',', '.'));
       const changes: Partial<Patient> = {};
       if (!isNaN(w) && w > 0) changes.weightKg = w;
       if (!isNaN(h) && h > 0) changes.heightCm = h;
+      if (!isNaN(bf) && bf > 0 && bf < 100) changes.bodyFatPct = bf;
+      if (!isNaN(lm) && lm > 0 && lm < 100) changes.leanMassPct = lm;
       if (birthDate) changes.birthDate = birthDate;
       if (restrictions.trim()) changes.dietaryRestrictions = restrictions.trim();
       if (Object.keys(changes).length > 0) onUpdatePatient(changes);
@@ -62,6 +68,8 @@ export function MealPlanBubble({
       const anthropo: any = {};
       if (!isNaN(w) && w > 0) anthropo.weightKg = w;
       if (!isNaN(h) && h > 0) anthropo.heightCm = h;
+      if (!isNaN(bf) && bf > 0 && bf < 100) anthropo.bodyFatPct = bf;
+      if (!isNaN(lm) && lm > 0 && lm < 100) anthropo.leanMassPct = lm;
       const age = computeAge(birthDate);
       if (age) anthropo.age = age;
       if (restrictions.trim()) anthropo.dietaryRestrictions = restrictions.trim();
@@ -157,6 +165,26 @@ export function MealPlanBubble({
                       value={birthDate}
                       onChange={(e) => setBirthDate(e.target.value)}
                       title="Data de nascimento"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="% Gordura"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                      value={bodyFat}
+                      onChange={(e) => setBodyFat(e.target.value)}
+                      title="Percentual de gordura corporal"
+                    />
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="% Massa magra"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                      value={leanMass}
+                      onChange={(e) => setLeanMass(e.target.value)}
+                      title="Percentual de massa magra"
                     />
                   </div>
                   <input
