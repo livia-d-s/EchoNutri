@@ -577,15 +577,18 @@ const audioUpload = multer({
     },
   }),
   limits: {
-    fileSize: 200 * 1024 * 1024, // 200 MB — fits ~2:30h of compressed audio
+    // 800MB covers a Zoom/Meet MP4 of up to ~2:30h at typical quality. Most
+    // nutris won't bother extracting audio first; we accept the heavier
+    // video file and let Gemini pull the audio track.
+    fileSize: 800 * 1024 * 1024,
     files: 1,
   },
   fileFilter: (_req, file, cb) => {
     const ok =
       /^audio\//.test(file.mimetype) ||
       /^video\//.test(file.mimetype) || // mp4 from Zoom/Meet recordings
-      /\.(mp3|m4a|mp4|wav|webm|ogg|aac|flac)$/i.test(file.originalname || '');
-    if (!ok) return cb(new Error('Formato de áudio não suportado'));
+      /\.(mp3|m4a|mp4|mov|wav|webm|ogg|aac|flac|mkv)$/i.test(file.originalname || '');
+    if (!ok) return cb(new Error('Formato não suportado. Envie um arquivo de áudio ou vídeo (mp3, m4a, mp4, mov, webm, wav).'));
     cb(null, true);
   },
 });
@@ -628,7 +631,9 @@ async function processTranscriptionJob(jobId, file) {
     }
 
     // 3. Transcribe via generateContent referencing the file URI.
-    const transcribePrompt = `Transcreva o áudio em português brasileiro de forma fiel, preservando expressões coloquiais e mantendo a fala da paciente e da nutricionista.
+    // Works for audio-only (mp3/m4a) AND video files (mp4/mov from Zoom/Meet)
+    // — Gemini extracts the audio track automatically for video.
+    const transcribePrompt = `Transcreva a gravação (áudio ou trilha de áudio do vídeo) em português brasileiro de forma fiel, preservando expressões coloquiais e mantendo a fala da paciente e da nutricionista.
 
 REGRAS:
 - Não invente conteúdo. Se uma parte estiver inaudível, escreva [inaudível].
@@ -636,6 +641,7 @@ REGRAS:
 - Use pontuação natural (vírgula, ponto, interrogação) para facilitar leitura.
 - Não inclua marcações de tempo nem identificação de falante (ex: "[00:32]" ou "Nutri:") — apenas a fala corrida.
 - Corrija apenas erros óbvios de pronúncia (sem alterar o sentido).
+- Ignore qualquer conteúdo visual do vídeo — transcreva APENAS o que é falado.
 
 Responda APENAS com a transcrição (texto puro, sem JSON, sem markdown).`;
 
@@ -674,7 +680,7 @@ function handleAudioUploadErrors(err, _req, res, next) {
   if (!err) return next();
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({ error: 'Arquivo maior que 200MB. Comprima o áudio antes de enviar.' });
+      return res.status(413).json({ error: 'Arquivo maior que 800MB. Comprima o vídeo (ou exporte só o áudio) antes de enviar.' });
     }
     return res.status(400).json({ error: err.message });
   }

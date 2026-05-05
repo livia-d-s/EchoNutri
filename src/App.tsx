@@ -1607,8 +1607,8 @@ function TranscriptionView({
       alert('Informe o nome da paciente antes de carregar o áudio.');
       return;
     }
-    if (file.size > 200 * 1024 * 1024) {
-      setAudioUploadState({ kind: 'error', message: 'Arquivo maior que 200MB. Comprima o áudio antes de enviar.' });
+    if (file.size > 800 * 1024 * 1024) {
+      setAudioUploadState({ kind: 'error', message: 'Arquivo maior que 800MB. Comprima o vídeo (ou exporte só o áudio) antes de enviar.' });
       return;
     }
 
@@ -2277,14 +2277,14 @@ function TranscriptionView({
                 <button
                   onClick={() => audioInputRef.current?.click()}
                   className="flex items-center gap-2 md:gap-3 bg-white border-2 border-blue-200 text-blue-700 px-5 py-3 md:px-7 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-sm md:text-base hover:bg-blue-50 transition-all active:scale-95"
-                  title="Para consultas online: envie o áudio gravado (Zoom, Meet, gravador). Até 200MB / 2:30h."
+                  title="Para consultas online: envie a gravação (vídeo do Zoom/Meet ou áudio do gravador). Até 800MB / 2:30h."
                 >
-                  <Upload size={18} /> Carregar áudio
+                  <Upload size={18} /> Carregar gravação
                 </button>
                 <input
                   ref={audioInputRef}
                   type="file"
-                  accept="audio/*,video/mp4,video/webm,.m4a,.mp3,.mp4,.wav,.webm,.aac,.flac,.ogg"
+                  accept="audio/*,video/*,.m4a,.mp3,.mp4,.mov,.wav,.webm,.aac,.flac,.ogg,.mkv"
                   className="hidden"
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const f = e.target.files?.[0];
@@ -2303,7 +2303,7 @@ function TranscriptionView({
               <div className="flex-1 min-w-0">
                 {audioUploadState.kind === 'uploading' ? (
                   <>
-                    <div className="text-sm font-black text-blue-900 truncate">Enviando áudio… {audioUploadState.progress}%</div>
+                    <div className="text-sm font-black text-blue-900 truncate">Enviando gravação… {audioUploadState.progress}%</div>
                     <div className="h-1.5 bg-blue-100 rounded-full mt-1.5 overflow-hidden">
                       <div className="h-full bg-blue-600 transition-all" style={{ width: `${audioUploadState.progress}%` }} />
                     </div>
@@ -2311,7 +2311,7 @@ function TranscriptionView({
                   </>
                 ) : (
                   <>
-                    <div className="text-sm font-black text-blue-900">Transcrevendo áudio…</div>
+                    <div className="text-sm font-black text-blue-900">Transcrevendo a gravação…</div>
                     <div className="text-[11px] text-blue-700 mt-0.5">
                       Estimativa ~{Math.round(audioUploadState.estimateMs / 60_000)} min · Não feche esta aba
                     </div>
