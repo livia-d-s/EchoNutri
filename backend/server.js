@@ -1,7 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
-const { GoogleGenAI } = require('@google/genai');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const crypto = require('crypto');
+const { GoogleGenAI, createUserContent, createPartFromUri } = require('@google/genai');
 require('dotenv').config();
 
 // Initialize Firebase Admin SDK (for verifying user ID tokens)
@@ -531,6 +536,195 @@ Responda APENAS JSON puro neste schema (uma entrada por item, na mesma ordem):
   } catch (error) {
     console.error('Erro ao recalcular macros:', error);
     res.status(500).json({ error: 'Erro ao recalcular macros' });
+  }
+});
+
+// ====================================================================
+// Audio transcription (Phase 2 #6) — async job + polling pattern.
+// ====================================================================
+// Uploaded audio (Zoom/Meet/iPhone/Android recordings) is sent to Gemini's
+// File API, transcribed in Portuguese, and the resulting transcript flows
+// into the same downstream pipeline as live recording.
+//
+// Why async polling instead of synchronous: a 2:30h audio takes 5-15 min
+// to transcribe end-to-end. Holding an HTTP connection open that long is
+// unreliable across Render free + Cloudflare + browser timeouts. We
+// return a jobId immediately and the frontend polls.
+//
+// The job store is in-memory: if Render spins down, in-flight jobs are
+// lost. That's acceptable for MVP because the nutri waits on the page
+// during transcription — losing a job means re-uploading. A persistent
+// queue (Firestore + worker) is a post-launch upgrade.
+// ====================================================================
+
+const TRANSCRIPTION_JOBS = new Map();
+const JOB_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+// Periodic cleanup so the in-memory map doesn't grow forever.
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, job] of TRANSCRIPTION_JOBS) {
+    if (now - job.createdAt > JOB_TTL_MS) TRANSCRIPTION_JOBS.delete(id);
+  }
+}, 5 * 60 * 1000);
+
+const audioUpload = multer({
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname || '').slice(0, 8);
+      cb(null, `echomed_audio_${crypto.randomUUID()}${ext}`);
+    },
+  }),
+  limits: {
+    fileSize: 200 * 1024 * 1024, // 200 MB — fits ~2:30h of compressed audio
+    files: 1,
+  },
+  fileFilter: (_req, file, cb) => {
+    const ok =
+      /^audio\//.test(file.mimetype) ||
+      /^video\//.test(file.mimetype) || // mp4 from Zoom/Meet recordings
+      /\.(mp3|m4a|mp4|wav|webm|ogg|aac|flac)$/i.test(file.originalname || '');
+    if (!ok) return cb(new Error('Formato de áudio não suportado'));
+    cb(null, true);
+  },
+});
+
+// Lighter rate limit for audio uploads (heavier per-request, fewer per minute).
+const audioLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 4,
+  message: { error: 'Muitos uploads de áudio. Aguarde 1 minuto.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+async function processTranscriptionJob(jobId, file) {
+  const job = TRANSCRIPTION_JOBS.get(jobId);
+  if (!job) return;
+  try {
+    // 1. Upload to Gemini File API. The SDK handles the multipart upload
+    // and resumable protocol behind the scenes.
+    const uploaded = await genAI.files.upload({
+      file: file.path,
+      config: {
+        mimeType: file.mimetype || 'audio/mpeg',
+        displayName: file.originalname || 'echomed_audio',
+      },
+    });
+
+    // 2. Wait for the file to leave PROCESSING. Audio normally takes 2-15s
+    // to be ready depending on length.
+    let f = uploaded;
+    const pollDeadline = Date.now() + 5 * 60 * 1000; // 5 min cap on processing
+    while (f.state === 'PROCESSING') {
+      if (Date.now() > pollDeadline) throw new Error('Timeout aguardando processamento do arquivo no Gemini');
+      await new Promise((r) => setTimeout(r, 2000));
+      f = await genAI.files.get({ name: uploaded.name });
+    }
+    if (f.state !== 'ACTIVE') {
+      throw new Error(`Arquivo ficou em estado inválido: ${f.state}`);
+    }
+
+    // 3. Transcribe via generateContent referencing the file URI.
+    const transcribePrompt = `Transcreva o áudio em português brasileiro de forma fiel, preservando expressões coloquiais e mantendo a fala da paciente e da nutricionista.
+
+REGRAS:
+- Não invente conteúdo. Se uma parte estiver inaudível, escreva [inaudível].
+- Não resuma — transcreva o que foi dito.
+- Use pontuação natural (vírgula, ponto, interrogação) para facilitar leitura.
+- Não inclua marcações de tempo nem identificação de falante (ex: "[00:32]" ou "Nutri:") — apenas a fala corrida.
+- Corrija apenas erros óbvios de pronúncia (sem alterar o sentido).
+
+Responda APENAS com a transcrição (texto puro, sem JSON, sem markdown).`;
+
+    const result = await genAI.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: createUserContent([
+        createPartFromUri(f.uri, f.mimeType),
+        transcribePrompt,
+      ]),
+    });
+
+    const transcript = (result.text || result.response?.text() || '').trim();
+    if (!transcript) throw new Error('Gemini retornou transcrição vazia');
+
+    // 4. Clean up the Gemini file (don't pile up in storage).
+    try {
+      await genAI.files.delete({ name: uploaded.name });
+    } catch (cleanupErr) {
+      console.warn('[transcribe] Failed to delete Gemini file:', cleanupErr.message);
+    }
+
+    job.status = 'done';
+    job.transcript = transcript;
+  } catch (err) {
+    console.error('[transcribe] Job failed:', err);
+    job.status = 'failed';
+    job.error = err?.message || 'Erro ao transcrever áudio';
+  } finally {
+    // Always remove the local temp file
+    try { fs.unlinkSync(file.path); } catch { /* ignore */ }
+  }
+}
+
+// Multer error handler — turns Multer errors into JSON the frontend can parse.
+function handleAudioUploadErrors(err, _req, res, next) {
+  if (!err) return next();
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'Arquivo maior que 200MB. Comprima o áudio antes de enviar.' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+  return res.status(400).json({ error: err.message || 'Erro ao processar upload' });
+}
+
+// POST /api/transcribe-audio — start a transcription job.
+app.post(
+  '/api/transcribe-audio',
+  audioLimiter,
+  requireAuth,
+  (req, res, next) => {
+    audioUpload.single('audio')(req, res, (err) => {
+      if (err) return handleAudioUploadErrors(err, req, res, next);
+      next();
+    });
+  },
+  async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Arquivo de áudio ausente' });
+
+    const jobId = crypto.randomUUID();
+    TRANSCRIPTION_JOBS.set(jobId, {
+      status: 'processing',
+      uid: req.user?.uid,
+      createdAt: Date.now(),
+    });
+
+    // Fire-and-forget: the worker reports back into the in-memory job entry.
+    processTranscriptionJob(jobId, req.file).catch((err) => {
+      console.error('[transcribe] Unexpected worker crash:', err);
+    });
+
+    res.json({ jobId });
+  }
+);
+
+// GET /api/transcribe-audio/:jobId — poll for status.
+app.get('/api/transcribe-audio/:jobId', requireAuth, (req, res) => {
+  const job = TRANSCRIPTION_JOBS.get(req.params.jobId);
+  if (!job) return res.status(404).json({ error: 'Job não encontrado ou expirado' });
+  // Only the user who started the job can read it.
+  if (job.uid && job.uid !== req.user?.uid) return res.status(403).json({ error: 'Acesso negado' });
+
+  const payload = { status: job.status };
+  if (job.status === 'done') payload.transcript = job.transcript;
+  if (job.status === 'failed') payload.error = job.error;
+  res.json(payload);
+
+  // Once the client picked up the result, free the slot.
+  if (job.status === 'done' || job.status === 'failed') {
+    TRANSCRIPTION_JOBS.delete(req.params.jobId);
   }
 });
 

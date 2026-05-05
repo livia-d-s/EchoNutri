@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Mic, Square, Pause, Play, Activity, User, FileText,
+  Mic, Square, Pause, Play, Activity, User, FileText, Upload,
   ArrowLeft, Camera, Check, AlertTriangle, Loader2, Users, Pencil, Info, CheckCircle, Trash2,
   ClipboardCheck, TrendingUp, Brain, Stethoscope, TestTube, Utensils, ChevronDown, ChevronRight
 } from 'lucide-react';
@@ -95,8 +95,8 @@ const DEFAULT_PROFILE: DoctorProfileType = {
 };
 
 // Build a short list of "remember-this-patient" chips shown when the nutri
-// selects an existing patient. Up to 5 entries: training, goal, top 1-2
-// highlights, BMI summary if anthropometry is filled, prior consultations.
+// selects an existing patient. Up to 5 entries: training, goal, weight +
+// body-fat summary, top 1-2 highlights, prior consultations as fallback.
 function buildPatientQuickChips(p: any, events?: any[]): string[] {
   if (!p) return [];
   const chips: string[] = [];
@@ -104,7 +104,7 @@ function buildPatientQuickChips(p: any, events?: any[]): string[] {
   // 1. Training (first activity is usually the most relevant)
   const t = (p.trainingRoutine || [])[0];
   if (t?.type) {
-    chips.push(`🏋️ ${t.type}${t.frequency ? ` ${t.frequency}` : ''}`);
+    chips.push(`${t.type}${t.frequency ? ` ${t.frequency}` : ''}`);
   }
 
   // 2. Goal
@@ -114,31 +114,30 @@ function buildPatientQuickChips(p: any, events?: any[]): string[] {
       .map((g) => (g === 'outro' ? p.goalCustom : GOAL_LABELS[g]))
       .filter(Boolean)
       .join(' + ');
-    if (labels) chips.push(`🎯 ${labels}`);
+    if (labels) chips.push(labels);
   }
 
-  // 3. Anthropometry summary: prefer weight + body fat % (more useful for
-  // the nutri than BMI, which she can compute mentally if she needs it).
+  // 3. Weight + body-fat (more useful than BMI for the nutri).
   const w = Number(p.weightKg);
   const bf = Number(p.bodyFatPct);
   if (w > 0 && bf > 0) {
-    chips.push(`📊 ${w}kg • ${bf}% gord`);
+    chips.push(`${w}kg • ${bf}% gord`);
   } else if (w > 0) {
-    chips.push(`📊 ${w}kg`);
+    chips.push(`${w}kg`);
   } else if (bf > 0) {
-    chips.push(`📊 ${bf}% gord`);
+    chips.push(`${bf}% gord`);
   }
 
   // 4-5. Top highlights (slice 2 max so we don't crowd out other context)
   for (const h of (p.highlights || []).slice(0, 2)) {
     if (chips.length >= 5) break;
-    if (h && typeof h === 'string') chips.push(`✨ ${h}`);
+    if (h && typeof h === 'string') chips.push(h);
   }
 
   // Last resort: prior consultation count
   if (chips.length < 5 && Array.isArray(events)) {
     const count = events.filter((e: any) => e.patientId === p.id && e.type !== 'adjustment').length;
-    if (count > 0) chips.push(`📅 ${count} consulta${count > 1 ? 's' : ''} anterior${count > 1 ? 'es' : ''}`);
+    if (count > 0) chips.push(`${count} consulta${count > 1 ? 's' : ''} anterior${count > 1 ? 'es' : ''}`);
   }
 
   return chips.slice(0, 5);
@@ -252,15 +251,19 @@ export default function App() {
     if (!key || !userId) return;
     localStorage.setItem(key, JSON.stringify(doctorProfile));
     if (db) {
-      const { photo, ...profileWithoutPhoto } = doctorProfile;
-      // Firestore rejects single fields > ~1MB. If the cached logoUrl is too
-      // large (legacy uncompressed upload), drop it from the Firestore write so
-      // the rest of the profile still saves.
+      // Photo and logo are kept in the Firestore save so they survive hard
+      // refreshes and cross-device logins. Both go through canvas compression
+      // before being set, so they stay under Firestore's 1MB-per-field limit.
+      // Defensive drop only kicks in for legacy uncompressed uploads.
+      const profileToSave: any = { ...doctorProfile };
       const FIRESTORE_FIELD_LIMIT = 1_048_487;
-      if (profileWithoutPhoto.logoUrl && profileWithoutPhoto.logoUrl.length > FIRESTORE_FIELD_LIMIT) {
-        delete profileWithoutPhoto.logoUrl;
+      if (profileToSave.photo && profileToSave.photo.length > FIRESTORE_FIELD_LIMIT) {
+        delete profileToSave.photo;
       }
-      setDoc(doc(db, 'users', userId, 'appData', 'profile'), stripUndefinedDeep(profileWithoutPhoto), { merge: true })
+      if (profileToSave.logoUrl && profileToSave.logoUrl.length > FIRESTORE_FIELD_LIMIT) {
+        delete profileToSave.logoUrl;
+      }
+      setDoc(doc(db, 'users', userId, 'appData', 'profile'), stripUndefinedDeep(profileToSave), { merge: true })
         .catch(err => console.error('Failed to save profile to Firestore:', err));
     }
   }, [doctorProfile, userId]);
@@ -1133,17 +1136,39 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 5MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhoto(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5MB');
+      return;
     }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string;
+      // Resize to max 400x400 and re-encode as JPEG so the base64 stays well
+      // under Firestore's 1MB-per-field limit. Without this, the photo got
+      // stripped from the Firestore save and lost on hard refresh.
+      const img = new Image();
+      img.onload = () => {
+        const maxSide = 400;
+        let { width, height } = img;
+        if (width > maxSide) { height = height * (maxSide / width); width = maxSide; }
+        if (height > maxSide) { width = width * (maxSide / height); height = maxSide; }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(width);
+        canvas.height = Math.round(height);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { setPhoto(dataUrl); return; }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        let compressed = canvas.toDataURL('image/jpeg', 0.85);
+        if (compressed.length > 700_000) {
+          compressed = canvas.toDataURL('image/jpeg', 0.6);
+        }
+        setPhoto(compressed);
+      };
+      img.onerror = () => setPhoto(dataUrl);
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1566,6 +1591,102 @@ function TranscriptionView({
   const [tempRestrictions, setTempRestrictions] = useState<string>('');
   const [tempIsFirst, setTempIsFirst] = useState<boolean | null>(null);
   const [inlineTrainingText, setInlineTrainingText] = useState('');
+
+  // Audio upload state — for offline consultations recorded on Zoom/Meet/phone.
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const [audioUploadState, setAudioUploadState] = useState<
+    | { kind: 'idle' }
+    | { kind: 'uploading'; progress: number; fileName: string }
+    | { kind: 'transcribing'; fileName: string; estimateMs: number }
+    | { kind: 'error'; message: string }
+  >({ kind: 'idle' });
+
+  const handleAudioFileSelected = async (file: File) => {
+    if (!file) return;
+    if (!patientName.trim()) {
+      alert('Informe o nome da paciente antes de carregar o áudio.');
+      return;
+    }
+    if (file.size > 200 * 1024 * 1024) {
+      setAudioUploadState({ kind: 'error', message: 'Arquivo maior que 200MB. Comprima o áudio antes de enviar.' });
+      return;
+    }
+
+    const auth = (await import('firebase/auth')).getAuth();
+    const idToken = await auth.currentUser?.getIdToken();
+    if (!idToken) {
+      setAudioUploadState({ kind: 'error', message: 'Sessão expirada. Faça login novamente.' });
+      return;
+    }
+    const baseUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost')
+      ? 'https://echomed-p3tr.onrender.com'
+      : 'http://localhost:3001';
+
+    // Upload via XMLHttpRequest so we get progress events (fetch can't do that yet).
+    setAudioUploadState({ kind: 'uploading', progress: 0, fileName: file.name });
+    const formData = new FormData();
+    formData.append('audio', file);
+
+    let jobId: string;
+    try {
+      jobId = await new Promise<string>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${baseUrl}/api/transcribe-audio`);
+        xhr.setRequestHeader('Authorization', `Bearer ${idToken}`);
+        xhr.upload.onprogress = (e: ProgressEvent) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            setAudioUploadState((s: any) => (s.kind === 'uploading' ? { ...s, progress: pct } : s));
+          }
+        };
+        xhr.onload = () => {
+          try {
+            const data = JSON.parse(xhr.responseText || '{}');
+            if (xhr.status >= 200 && xhr.status < 300 && data.jobId) resolve(data.jobId);
+            else reject(new Error(data.error || `Erro ${xhr.status} ao enviar áudio`));
+          } catch {
+            reject(new Error('Resposta inválida do servidor'));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Falha na conexão com o servidor'));
+        xhr.ontimeout = () => reject(new Error('Tempo de upload excedido'));
+        xhr.send(formData);
+      });
+    } catch (err: any) {
+      setAudioUploadState({ kind: 'error', message: err?.message || 'Erro no upload' });
+      return;
+    }
+
+    // Switch to transcribing state with a rough time estimate (~1 min per 20 min audio).
+    // We don't know duration upfront, so estimate from file size as a proxy:
+    // ~1MB/min → 1 min processing per ~20MB.
+    const estimateMs = Math.max(60_000, Math.round((file.size / (20 * 1024 * 1024)) * 60_000));
+    setAudioUploadState({ kind: 'transcribing', fileName: file.name, estimateMs });
+
+    // Poll for the transcript.
+    const pollDeadline = Date.now() + 20 * 60 * 1000; // 20 min cap
+    while (Date.now() < pollDeadline) {
+      await new Promise((r) => setTimeout(r, 5000));
+      const r = await fetch(`${baseUrl}/api/transcribe-audio/${jobId}`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      if (!r.ok) {
+        setAudioUploadState({ kind: 'error', message: 'Erro ao consultar status da transcrição' });
+        return;
+      }
+      const data = await r.json();
+      if (data.status === 'done' && data.transcript) {
+        setTranscript((prev: string) => (prev ? prev + '\n\n' : '') + data.transcript);
+        setAudioUploadState({ kind: 'idle' });
+        return;
+      }
+      if (data.status === 'failed') {
+        setAudioUploadState({ kind: 'error', message: data.error || 'Falha na transcrição' });
+        return;
+      }
+    }
+    setAudioUploadState({ kind: 'error', message: 'Tempo de transcrição excedido. Tente um áudio menor.' });
+  };
 
   // Sync inlineTrainingText when patientTraining changes externally (e.g., selecting a patient)
   useEffect(() => {
@@ -2121,10 +2242,70 @@ function TranscriptionView({
         </div>
 
         <div className="p-4 md:p-8 bg-slate-50/50 border-t border-slate-100 flex justify-center gap-3 md:gap-4">
-          {status === AppStatus.IDLE && (
-            <button onClick={startRecording} className="flex items-center gap-2 md:gap-3 bg-blue-600 text-white px-6 py-3 md:px-10 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
-              <Mic size={20} /> Iniciar Consulta
-            </button>
+          {status === AppStatus.IDLE && audioUploadState.kind === 'idle' && (
+            <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
+              <button onClick={startRecording} className="flex items-center gap-2 md:gap-3 bg-blue-600 text-white px-6 py-3 md:px-10 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
+                <Mic size={20} /> Iniciar Consulta
+              </button>
+              <button
+                onClick={() => audioInputRef.current?.click()}
+                className="flex items-center gap-2 md:gap-3 bg-white border-2 border-blue-200 text-blue-700 px-5 py-3 md:px-7 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-sm md:text-base hover:bg-blue-50 transition-all active:scale-95"
+                title="Para consultas online: envie o áudio gravado (Zoom, Meet, gravador). Até 200MB / 2:30h."
+              >
+                <Upload size={18} /> Carregar áudio
+              </button>
+              <input
+                ref={audioInputRef}
+                type="file"
+                accept="audio/*,video/mp4,video/webm,.m4a,.mp3,.mp4,.wav,.webm,.aac,.flac,.ogg"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleAudioFileSelected(f);
+                  // Reset so the same file can be re-selected after a failure.
+                  e.target.value = '';
+                }}
+              />
+            </div>
+          )}
+
+          {(audioUploadState.kind === 'uploading' || audioUploadState.kind === 'transcribing') && (
+            <div className="flex items-center gap-3 px-5 py-3 md:px-7 md:py-4 bg-blue-50 border-2 border-blue-200 rounded-2xl md:rounded-[2rem] min-w-[280px] max-w-md">
+              <Loader2 size={20} className="animate-spin text-blue-600 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                {audioUploadState.kind === 'uploading' ? (
+                  <>
+                    <div className="text-sm font-black text-blue-900 truncate">Enviando áudio… {audioUploadState.progress}%</div>
+                    <div className="h-1.5 bg-blue-100 rounded-full mt-1.5 overflow-hidden">
+                      <div className="h-full bg-blue-600 transition-all" style={{ width: `${audioUploadState.progress}%` }} />
+                    </div>
+                    <div className="text-[10px] text-blue-700 mt-1 truncate">{audioUploadState.fileName}</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-sm font-black text-blue-900">Transcrevendo áudio…</div>
+                    <div className="text-[11px] text-blue-700 mt-0.5">
+                      Estimativa ~{Math.round(audioUploadState.estimateMs / 60_000)} min · Não feche esta aba
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {audioUploadState.kind === 'error' && (
+            <div className="flex items-center gap-3 px-5 py-3 bg-red-50 border-2 border-red-200 rounded-2xl">
+              <AlertTriangle size={18} className="text-red-600 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-red-700">{audioUploadState.message}</div>
+              </div>
+              <button
+                onClick={() => setAudioUploadState({ kind: 'idle' })}
+                className="text-xs font-bold text-red-700 hover:text-red-900 px-2 py-1 rounded-lg hover:bg-red-100"
+              >
+                OK
+              </button>
+            </div>
           )}
           {status === AppStatus.RECORDING && (
             <div className="flex gap-3 md:gap-4">
