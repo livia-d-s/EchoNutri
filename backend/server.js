@@ -614,12 +614,13 @@ async function processTranscriptionJob(jobId, file) {
     });
 
     // 2. Wait for the file to leave PROCESSING. Audio normally takes 2-15s
-    // to be ready depending on length.
+    // to be ready depending on length. Poll fast (500ms) — these calls are
+    // tiny and the user is waiting on the page.
     let f = uploaded;
     const pollDeadline = Date.now() + 5 * 60 * 1000; // 5 min cap on processing
     while (f.state === 'PROCESSING') {
       if (Date.now() > pollDeadline) throw new Error('Timeout aguardando processamento do arquivo no Gemini');
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 500));
       f = await genAI.files.get({ name: uploaded.name });
     }
     if (f.state !== 'ACTIVE') {
