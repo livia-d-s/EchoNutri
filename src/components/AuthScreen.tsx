@@ -24,7 +24,7 @@ const EchoNutriLogo = () => (
     </div>
     <div className="text-left">
       <div className="text-xl font-bold text-ink-primary tracking-tight leading-none">EchoNutri</div>
-      <div className="text-2xs text-ink-tertiary font-medium uppercase tracking-[0.18em] mt-0.5">Inteligência clínica</div>
+      <div className="text-2xs text-ink-tertiary font-medium uppercase tracking-[0.1em] mt-0.5">Inteligência clínica</div>
     </div>
   </div>
 );
@@ -214,7 +214,7 @@ const AuthScreen: React.FC = () => {
 
                   <div className="flex items-center gap-3 mb-5">
                     <div className="flex-1 h-px bg-line" />
-                    <span className="text-2xs text-ink-tertiary uppercase tracking-widest">ou</span>
+                    <span className="text-2xs text-ink-tertiary uppercase tracking-[0.1em]">ou</span>
                     <div className="flex-1 h-px bg-line" />
                   </div>
                 </>

@@ -94,7 +94,7 @@ export function PatientTimeline({ events, onEventClick, onDeleteEvent, onEditEve
       {/* Section Header */}
       <div className="flex items-center gap-2 mb-6">
         <div className="w-1 h-6 bg-blue-600 rounded-full" />
-        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">
+        <h3 className="text-xs font-black uppercase tracking-[0.1em] text-slate-500">
           Linha do Tempo
         </h3>
         <span className="text-xs text-slate-400 ml-2">

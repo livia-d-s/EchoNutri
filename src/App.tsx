@@ -920,7 +920,7 @@ export default function App() {
             <div className="bg-brand-700 p-2 rounded-md text-white shadow-xs"><Activity size={18} strokeWidth={2.25} /></div>
             <div>
               <h1 className="font-bold text-md md:text-lg tracking-tight leading-none text-ink-primary">EchoNutri</h1>
-              <span className="text-2xs text-ink-tertiary font-medium uppercase tracking-[0.18em] hidden sm:block mt-0.5">Inteligência clínica</span>
+              <span className="text-2xs text-ink-tertiary font-medium uppercase tracking-[0.1em] hidden sm:block mt-0.5">Inteligência clínica</span>
             </div>
           </div>
           <div className="flex items-center gap-3 md:gap-5">
@@ -1362,7 +1362,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
 
             {/* Preview */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pré-visualização do PDF</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] mb-3">Pré-visualização do PDF</p>
               <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-100">
                 <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: brandColor }}>
                   {logoUrl ? (
@@ -2019,11 +2019,11 @@ function TranscriptionView({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row gap-4 items-center">
         <div className="relative flex-1 w-full">
-            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={18} />
+            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-tertiary z-10" size={16} strokeWidth={2.25} />
             <input
-              placeholder="Nome Completo do Paciente..."
-              className={`w-full bg-white border rounded-2xl py-3 md:py-4 pl-10 md:pl-12 pr-4 md:pr-6 outline-none font-bold shadow-sm focus:ring-2 focus:ring-blue-100 transition-all text-sm md:text-base ${
-                nameWarning ? 'border-amber-300' : 'border-slate-200'
+              placeholder="Nome completo da paciente"
+              className={`w-full bg-surface border rounded-md py-3 pl-10 md:pl-11 pr-4 outline-none font-semibold text-ink-primary placeholder:text-ink-tertiary placeholder:font-normal shadow-xs focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all text-md ${
+                nameWarning ? 'border-amber-300' : 'border-line'
               }`}
               value={patientName}
               onChange={(e) => {
@@ -2237,7 +2237,7 @@ function TranscriptionView({
           style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}
         >
           {transcript || interim ? (
-            <p className="text-lg sm:text-xl md:text-2xl font-medium text-slate-800 leading-relaxed">{transcript}<span className="text-blue-400 animate-pulse">{interim}</span></p>
+            <p className="text-lg sm:text-xl md:text-2xl font-medium text-ink-primary leading-relaxed">{transcript}<span className="text-brand-700 animate-pulse">{interim}</span></p>
           ) : (
             <div className="h-full flex flex-col items-center justify-center opacity-20 space-y-4">
               <Mic size={40} />
@@ -2276,10 +2276,10 @@ function TranscriptionView({
                 </button>
                 <button
                   onClick={() => audioInputRef.current?.click()}
-                  className="flex items-center gap-2 md:gap-3 bg-white border-2 border-blue-200 text-blue-700 px-5 py-3 md:px-7 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-sm md:text-base hover:bg-blue-50 transition-all active:scale-95"
+                  className="flex items-center gap-2 md:gap-3 bg-surface border border-line text-ink-primary px-5 py-3 md:px-7 md:py-4 rounded-md font-semibold text-md hover:bg-subtle hover:border-brand-700 transition-colors active:scale-[0.98]"
                   title="Para consultas online: envie a gravação (vídeo do Zoom/Meet ou áudio do gravador). Até 800MB / 2:30h."
                 >
-                  <Upload size={18} /> Carregar gravação
+                  <Upload size={18} strokeWidth={2.25} className="text-brand-700" /> Carregar gravação
                 </button>
                 <input
                   ref={audioInputRef}
@@ -2298,21 +2298,21 @@ function TranscriptionView({
           )}
 
           {(audioUploadState.kind === 'uploading' || audioUploadState.kind === 'transcribing') && (
-            <div className="flex items-center gap-3 px-5 py-3 md:px-7 md:py-4 bg-blue-50 border-2 border-blue-200 rounded-2xl md:rounded-[2rem] min-w-[280px] max-w-md">
-              <Loader2 size={20} className="animate-spin text-blue-600 flex-shrink-0" />
+            <div className="flex items-center gap-3 px-5 py-3 bg-subtle border border-line rounded-md min-w-[280px] max-w-md">
+              <Loader2 size={18} className="animate-spin text-brand-700 flex-shrink-0" strokeWidth={2.25} />
               <div className="flex-1 min-w-0">
                 {audioUploadState.kind === 'uploading' ? (
                   <>
-                    <div className="text-sm font-black text-blue-900 truncate">Enviando gravação… {audioUploadState.progress}%</div>
-                    <div className="h-1.5 bg-blue-100 rounded-full mt-1.5 overflow-hidden">
-                      <div className="h-full bg-blue-600 transition-all" style={{ width: `${audioUploadState.progress}%` }} />
+                    <div className="text-sm font-semibold text-ink-primary truncate">Enviando gravação · {audioUploadState.progress}%</div>
+                    <div className="h-1 bg-line rounded-full mt-1.5 overflow-hidden">
+                      <div className="h-full bg-brand-700 transition-all" style={{ width: `${audioUploadState.progress}%` }} />
                     </div>
-                    <div className="text-[10px] text-blue-700 mt-1 truncate">{audioUploadState.fileName}</div>
+                    <div className="text-2xs text-ink-tertiary mt-1 truncate">{audioUploadState.fileName}</div>
                   </>
                 ) : (
                   <>
-                    <div className="text-sm font-black text-blue-900">Transcrevendo a gravação…</div>
-                    <div className="text-[11px] text-blue-700 mt-0.5">
+                    <div className="text-sm font-semibold text-ink-primary">Transcrevendo a gravação</div>
+                    <div className="text-2xs text-ink-secondary mt-0.5">
                       Estimativa ~{Math.round(audioUploadState.estimateMs / 60_000)} min · Não feche esta aba
                     </div>
                   </>
@@ -3080,7 +3080,7 @@ Análise prévia:
       {/* Racional Clínico */}
       <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-8 shadow-sm group relative">
         <div className={`flex items-center justify-between ${collapsedSections.has('rationale') ? '' : 'mb-4'}`}>
-          <h3 className="text-blue-700 font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2">
+          <h3 className="text-blue-700 font-black uppercase text-[10px] tracking-[0.1em] flex items-center gap-2">
             <Activity size={13} /> Racional Clínico
           </h3>
           <div className="flex items-center gap-0.5">
@@ -3094,7 +3094,7 @@ Análise prévia:
               <textarea
                 value={editedRationale}
                 onChange={(e) => setEditedRationale(e.target.value)}
-                className="w-full p-3 md:p-4 border border-slate-200 rounded-xl text-[15px] text-slate-700 leading-[1.75] resize-none focus:ring-2 focus:ring-blue-100 outline-none"
+                className="w-full p-3 md:p-4 border border-line rounded-md text-md text-ink-primary leading-[1.7] resize-none focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 outline-none"
                 rows={5}
               />
               <div className="flex gap-2 justify-end">
@@ -3103,7 +3103,7 @@ Análise prévia:
               </div>
             </div>
           ) : (
-            <p className="text-[15px] md:text-base text-slate-700 leading-[1.75] whitespace-pre-line">
+            <p className="text-md text-ink-primary leading-[1.7] whitespace-pre-line">
               {rationale}
             </p>
           )
@@ -3114,7 +3114,7 @@ Análise prévia:
       {prefs.showConduct && (
         <div className="bg-surface rounded-lg border border-line p-5 md:p-6 shadow-xs group relative">
           <div className={`flex items-center justify-between ${collapsedSections.has('conduct') ? '' : 'mb-5'}`}>
-            <h3 className="text-ink-secondary font-semibold uppercase text-2xs tracking-[0.18em] flex items-center gap-2">
+            <h3 className="text-ink-secondary font-semibold uppercase text-2xs tracking-[0.1em] flex items-center gap-2">
               <ClipboardCheck size={13} className="text-brand-700" /> Direcionamento clínico
             </h3>
             <div className="flex items-center gap-0.5">
@@ -3135,7 +3135,7 @@ Análise prévia:
               <textarea
                 value={editedConduct}
                 onChange={(e) => setEditedConduct(e.target.value)}
-                className="w-full p-3 md:p-4 bg-white border border-emerald-200 rounded-xl text-[15px] text-slate-800 leading-[1.75] resize-none focus:ring-2 focus:ring-emerald-100 outline-none"
+                className="w-full p-3 md:p-4 bg-surface border border-line rounded-md text-md text-ink-primary leading-[1.7] resize-none focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 outline-none"
                 rows={6}
                 placeholder="Separe os passos por ponto e vírgula (;) ou numere (1. 2. 3.)"
               />
@@ -3151,7 +3151,7 @@ Análise prévia:
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white border-2 border-emerald-400 flex items-center justify-center mt-0.5 shadow-sm">
                     <Check size={12} className="text-emerald-600" strokeWidth={3} />
                   </div>
-                  <p className="text-[15px] md:text-base leading-[1.65] text-slate-800 flex-1">
+                  <p className="text-md leading-[1.65] text-ink-primary flex-1">
                     {step.trim().replace(/\.$/, '')}
                   </p>
                 </li>
@@ -3185,7 +3185,7 @@ Análise prévia:
         {prefs.showExams && (exams.length > 0 || editingSection === 'exams') && (
           <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-6 shadow-sm group relative">
             <div className={`flex items-center justify-between ${collapsedSections.has('exams') ? '' : 'mb-4'}`}>
-              <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-sky-700 flex items-center gap-2">
+              <h3 className="font-black text-[10px] uppercase tracking-[0.1em] text-sky-700 flex items-center gap-2">
                 <TestTube size={13} /> Exames Sugeridos
               </h3>
               <div className="flex items-center gap-0.5">
@@ -3221,7 +3221,7 @@ Análise prévia:
                     <div key={i} className="flex items-start gap-3 p-3 bg-slate-50/70 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors group/item">
                       <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${p.dot}`} />
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-800 text-[13px] leading-snug">{e}</p>
+                        <p className="font-medium text-ink-primary text-sm leading-snug">{e}</p>
                         <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${p.badge}`}>
                           {p.label}
                         </span>
@@ -3246,7 +3246,7 @@ Análise prévia:
         {prefs.showAttention && (conditions.length > 0 || editingSection === 'conditions') && (
           <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-6 shadow-sm group relative">
             <div className={`flex items-center justify-between ${collapsedSections.has('conditions') ? '' : 'mb-4'}`}>
-              <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-amber-700 flex items-center gap-2">
+              <h3 className="font-black text-[10px] uppercase tracking-[0.1em] text-amber-700 flex items-center gap-2">
                 <AlertTriangle size={13} /> Pontos de Atenção
               </h3>
               <div className="flex items-center gap-0.5">

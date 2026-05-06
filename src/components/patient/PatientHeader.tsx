@@ -245,7 +245,7 @@ export function PatientHeader({
           <div className="mt-4 pt-4 border-t border-slate-100">
             <div className="flex items-center gap-2 mb-2.5">
               <Sparkles size={12} className="text-blue-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">
                 Marcadores clínicos <span className="text-slate-300 normal-case">(máx. {MAX_HIGHLIGHTS})</span>
                 <span className="ml-1 text-slate-300 normal-case">— {highlights.length}/{MAX_HIGHLIGHTS}</span>
               </span>

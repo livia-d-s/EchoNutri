@@ -140,7 +140,7 @@ export function MealPlanBubble({
                 </div>
               ) : (
                 <>
-                  <div className="text-2xs font-semibold uppercase tracking-[0.18em] text-ink-tertiary mb-2">
+                  <div className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-tertiary mb-2">
                     Composição corporal <span className="font-normal normal-case tracking-normal">(opcional — refina a prescrição)</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -196,7 +196,7 @@ export function MealPlanBubble({
                   />
 
                   <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 flex items-center gap-1">
+                    <div className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 mb-1.5 flex items-center gap-1">
                       <Sparkles size={10} className="text-emerald-600" /> A IA também usa
                     </div>
                     <ul className="text-xs text-slate-600 space-y-0.5 leading-relaxed">
