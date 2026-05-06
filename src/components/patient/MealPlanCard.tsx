@@ -121,7 +121,7 @@ export function MealPlanCard({
       <div className="flex items-center justify-between mb-2 flex-wrap gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <Utensils size={14} className="text-brand-700" strokeWidth={2.25} />
-          <h3 className="text-ink-secondary font-semibold uppercase text-2xs tracking-[0.18em]">
+          <h3 className="text-ink-secondary font-semibold uppercase text-2xs tracking-[0.1em]">
             Prescrição nutricional
             {objective && (
               <span className="text-ink-tertiary font-medium normal-case tracking-normal ml-1.5">
@@ -211,7 +211,7 @@ export function MealPlanCard({
       {/* Notes */}
       {plan.notes && (
         <div className="mt-4 p-3 bg-white rounded-xl border border-slate-100">
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">
+          <div className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 mb-1">
             Observações
           </div>
           <textarea
@@ -413,7 +413,7 @@ function MealItemRow({ item, onChange, onRemove }: MealItemRowProps) {
       {openSubs && hasSubs && (
         <div className="absolute left-4 top-full mt-1 z-20 w-64 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
           <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
-            <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+            <div className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-500">
               Substituições equivalentes
             </div>
           </div>

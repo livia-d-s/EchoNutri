@@ -101,7 +101,7 @@ export function PatientMealPlans({ patient, onUpdateMealPlans }: PatientMealPlan
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <FileText size={14} className="text-emerald-600" />
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">
             Plano alimentar
             <span className="ml-1 text-slate-300 normal-case">— {plans.length}</span>
           </h3>

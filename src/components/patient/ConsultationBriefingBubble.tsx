@@ -61,29 +61,29 @@ export function ConsultationBriefingBubble({
       {/* Panel (expanded) */}
       {open && (
         <div className="fixed bottom-24 right-4 md:right-6 z-50 w-[calc(100vw-2rem)] max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-blue-200 overflow-hidden">
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 px-4 py-3 flex items-center justify-between">
-              <div className="text-white min-w-0">
-                <h3 className="font-black text-sm flex items-center gap-1.5">
-                  <Sparkles size={14} /> Sugestões para essa consulta
+          <div className="bg-surface rounded-lg shadow-md border border-line overflow-hidden">
+            <div className="bg-surface border-b border-line px-4 py-3 flex items-center justify-between">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm text-ink-primary flex items-center gap-1.5">
+                  <Sparkles size={13} className="text-brand-700" strokeWidth={2.25} /> Pontos a investigar
                 </h3>
-                <p className="text-[10px] text-blue-100 flex items-center gap-1 mt-0.5">
-                  <Calendar size={10} /> Baseado na consulta de {formatDate(lastConsultation.date)}
+                <p className="text-2xs text-ink-tertiary flex items-center gap-1 mt-0.5">
+                  <Calendar size={10} strokeWidth={2.25} /> Da consulta de {formatDate(lastConsultation.date)}
                 </p>
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="p-1 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                className="p-1 text-ink-tertiary hover:text-ink-primary hover:bg-subtle rounded-md transition-colors flex-shrink-0"
                 title="Fechar"
               >
-                <X size={16} />
+                <X size={15} strokeWidth={2.25} />
               </button>
             </div>
             <div className="p-4 max-h-[60vh] overflow-y-auto">
               <ul className="space-y-3">
                 {suggestions.map((s, i) => (
-                  <li key={i} className="text-sm text-slate-700 leading-relaxed flex items-start gap-2.5">
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[11px] font-black mt-0.5">
+                  <li key={i} className="text-sm text-ink-primary leading-relaxed flex items-start gap-2.5">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-md bg-subtle border border-line text-ink-primary flex items-center justify-center text-2xs font-semibold mt-0.5">
                       {i + 1}
                     </span>
                     <span>{s}</span>
@@ -98,11 +98,11 @@ export function ConsultationBriefingBubble({
       {/* Floating bubble */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-4 md:right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-500/30 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center group"
-        title={`${suggestions.length} sugestão${suggestions.length > 1 ? 'ões' : ''} para essa consulta`}
+        className="fixed bottom-5 right-4 md:right-6 z-50 w-11 h-11 rounded-md bg-brand-700 text-white shadow-md hover:bg-brand-900 active:scale-95 transition-all flex items-center justify-center group"
+        title={`${suggestions.length} ponto${suggestions.length > 1 ? 's' : ''} a investigar nesta consulta`}
       >
-        <Sparkles size={18} />
-        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 border-2 border-white text-white text-[10px] font-black flex items-center justify-center">
+        <Sparkles size={17} strokeWidth={2.25} />
+        <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-caution border-2 border-base text-white text-2xs font-semibold flex items-center justify-center">
           {suggestions.length}
         </span>
       </button>

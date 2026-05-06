@@ -104,23 +104,23 @@ export function MealPlanBubble({
       {/* Panel (expanded) */}
       {open && (
         <div className="fixed bottom-24 right-4 md:right-6 z-50 w-[calc(100vw-2rem)] max-w-md animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-emerald-200 overflow-hidden max-h-[80vh] flex flex-col">
+          <div className="bg-surface rounded-lg shadow-md border border-line overflow-hidden max-h-[80vh] flex flex-col">
             {/* Header */}
-            <div className="bg-gradient-to-br from-emerald-600 to-teal-600 px-4 py-3 flex items-center justify-between">
-              <div className="text-white min-w-0">
-                <h3 className="font-semibold text-sm flex items-center gap-1.5">
-                  <Utensils size={14} strokeWidth={2.25} /> Prescrição nutricional
+            <div className="bg-surface border-b border-line px-4 py-3 flex items-center justify-between">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm text-ink-primary flex items-center gap-1.5">
+                  <Utensils size={14} strokeWidth={2.25} className="text-brand-700" /> Prescrição nutricional
                 </h3>
-                <p className="text-2xs text-white/80 mt-0.5 font-medium">
+                <p className="text-2xs text-ink-tertiary mt-0.5">
                   Composição corporal + análise da consulta
                 </p>
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="p-1 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                className="p-1 text-ink-tertiary hover:text-ink-primary hover:bg-subtle rounded-md transition-colors flex-shrink-0"
                 title="Fechar"
               >
-                <X size={16} />
+                <X size={15} strokeWidth={2.25} />
               </button>
             </div>
 
@@ -140,7 +140,7 @@ export function MealPlanBubble({
                 </div>
               ) : (
                 <>
-                  <div className="text-2xs font-semibold uppercase tracking-[0.18em] text-ink-tertiary mb-2">
+                  <div className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-tertiary mb-2">
                     Composição corporal <span className="font-normal normal-case tracking-normal">(opcional — refina a prescrição)</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -148,20 +148,20 @@ export function MealPlanBubble({
                       type="number"
                       step="0.1"
                       placeholder="Peso (kg)"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                      className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                       value={weight}
                       onChange={(e) => setWeight(e.target.value)}
                     />
                     <input
                       type="number"
                       placeholder="Altura (cm)"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                      className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                       value={height}
                       onChange={(e) => setHeight(e.target.value)}
                     />
                     <input
                       type="date"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                      className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                       value={birthDate}
                       onChange={(e) => setBirthDate(e.target.value)}
                       title="Data de nascimento"
@@ -172,7 +172,7 @@ export function MealPlanBubble({
                       type="number"
                       step="0.1"
                       placeholder="% Gordura"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                      className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                       value={bodyFat}
                       onChange={(e) => setBodyFat(e.target.value)}
                       title="Percentual de gordura corporal"
@@ -181,7 +181,7 @@ export function MealPlanBubble({
                       type="number"
                       step="0.1"
                       placeholder="% Massa magra"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                      className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                       value={leanMass}
                       onChange={(e) => setLeanMass(e.target.value)}
                       title="Percentual de massa magra"
@@ -190,25 +190,25 @@ export function MealPlanBubble({
                   <input
                     type="text"
                     placeholder="Restrições / preferências (ex: vegetariana, sem lactose)"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all mt-2"
+                    className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all mt-2"
                     value={restrictions}
                     onChange={(e) => setRestrictions(e.target.value)}
                   />
 
-                  <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 flex items-center gap-1">
-                      <Sparkles size={10} className="text-emerald-600" /> A IA também usa
+                  <div className="mt-4 p-3 bg-subtle rounded-md border border-line">
+                    <div className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary mb-1.5 flex items-center gap-1">
+                      <Sparkles size={10} className="text-brand-700" strokeWidth={2.25} /> A IA também usa
                     </div>
-                    <ul className="text-xs text-slate-600 space-y-0.5 leading-relaxed">
+                    <ul className="text-xs text-ink-secondary space-y-0.5 leading-relaxed">
                       <li>• Tudo o que foi dito na consulta</li>
-                      <li>• Objetivo e rotina de treino do paciente</li>
+                      <li>• Objetivo e rotina de treino da paciente</li>
                       <li>• Adesão e perfil comportamental detectados</li>
                       <li>• Exames anexados (se houver)</li>
                     </ul>
                   </div>
 
                   {error && (
-                    <div className="mt-3 px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700">
+                    <div className="mt-3 px-3 py-2 bg-red-50 border border-red-100 rounded-md text-xs text-critical">
                       {error}
                     </div>
                   )}
@@ -216,18 +216,18 @@ export function MealPlanBubble({
                   <button
                     onClick={handleGenerate}
                     disabled={generating || justGenerated}
-                    className={`mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 text-white text-sm font-bold rounded-xl shadow-sm transition-colors disabled:opacity-90 ${
-                      justGenerated ? 'bg-emerald-500' : 'bg-emerald-600 hover:bg-emerald-700'
+                    className={`mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-semibold rounded-md shadow-xs transition-colors disabled:opacity-90 ${
+                      justGenerated ? 'bg-positive' : 'bg-brand-700 hover:bg-brand-900'
                     }`}
                   >
                     {justGenerated ? (
-                      <><Check size={16} /> Plano gerado!</>
+                      <><Check size={15} strokeWidth={2.25} /> Prescrição gerada</>
                     ) : generating ? (
-                      <><Loader2 size={14} className="animate-spin" /> Gerando plano…</>
+                      <><Loader2 size={14} className="animate-spin" /> Gerando…</>
                     ) : generated ? (
-                      <><Sparkles size={14} /> Gerar plano novamente</>
+                      <><Sparkles size={14} strokeWidth={2.25} /> Gerar nova prescrição</>
                     ) : (
-                      <><Sparkles size={14} /> Gerar plano alimentar</>
+                      <><Sparkles size={14} strokeWidth={2.25} /> Gerar prescrição</>
                     )}
                   </button>
                 </>
@@ -240,13 +240,13 @@ export function MealPlanBubble({
       {/* Floating bubble */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-4 md:right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-xl shadow-emerald-500/30 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center group"
-        title="Plano alimentar — dados clínicos e geração"
-        style={{ right: 'calc(1rem + 60px)' }}
+        className="fixed bottom-5 right-4 md:right-6 z-50 w-11 h-11 rounded-md bg-brand-700 text-white shadow-md hover:bg-brand-900 active:scale-95 transition-all flex items-center justify-center group"
+        title="Prescrição nutricional — composição corporal e geração"
+        style={{ right: 'calc(1rem + 56px)' }}
       >
-        <Utensils size={18} />
+        <Utensils size={17} strokeWidth={2.25} />
         {generated && (
-          <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 border-2 border-white" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-positive border-2 border-base" />
         )}
       </button>
     </>
