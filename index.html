@@ -3,18 +3,109 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EchoMed - Seu Assistente Nutricional</title>
+    <title>EchoNutri — Inteligência clínica para nutrição</title>
+    <meta name="description" content="Sistema de inteligência clínica para nutricionistas. Avaliação, prescrição e acompanhamento da evolução do paciente em uma só ferramenta." />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/index.css">
+    <script>
+      // Design tokens — premium clinical, not generic SaaS.
+      // See memory/design_system.md for the full direction.
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              // Surface / text / border tokens
+              base:    '#FAFAFA',
+              surface: '#FFFFFF',
+              subtle:  '#F1F5F9',
+              ink: {
+                primary:   '#0F172A', // slate-900
+                secondary: '#475569', // slate-600
+                tertiary:  '#94A3B8', // slate-400
+              },
+              line: '#E2E8F0', // slate-200
+              // Single accent (cyan-700 family) — clinical/lab feel
+              brand: {
+                50:  '#ECFEFF',
+                100: '#CFFAFE',
+                200: '#A5F3FC',
+                300: '#67E8F9',
+                400: '#22D3EE',
+                500: '#06B6D4',
+                600: '#0891B2',
+                700: '#0E7490', // primary
+                800: '#155E75',
+                900: '#164E63',
+              },
+              positive: '#15803D', // green-700
+              caution:  '#B45309', // amber-700
+              critical: '#B91C1C', // red-700
+            },
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+            },
+            fontSize: {
+              // Clinical density — body is 14px, not 16
+              '2xs': ['11px', { lineHeight: '14px' }],
+              xs:    ['12px', { lineHeight: '16px' }],
+              sm:    ['13px', { lineHeight: '18px' }],
+              base:  ['14px', { lineHeight: '20px' }],
+              md:    ['15px', { lineHeight: '22px' }],
+              lg:    ['16px', { lineHeight: '24px' }],
+              xl:    ['18px', { lineHeight: '26px' }],
+              '2xl': ['22px', { lineHeight: '30px' }],
+              '3xl': ['28px', { lineHeight: '36px' }],
+              '4xl': ['32px', { lineHeight: '40px' }],
+            },
+            borderRadius: {
+              none:   '0',
+              xs:     '3px',
+              sm:     '4px',
+              DEFAULT:'6px',
+              md:     '6px',
+              lg:     '8px',
+              xl:     '10px',
+              '2xl':  '12px',
+              '3xl':  '16px',
+              full:   '9999px',
+            },
+            boxShadow: {
+              xs: '0 1px 2px 0 rgba(15, 23, 42, 0.04)',
+              sm: '0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px 0 rgba(15, 23, 42, 0.04)',
+              md: '0 4px 8px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.04)',
+              focus: '0 0 0 3px rgba(14, 116, 144, 0.12)', // brand-700 with alpha
+              none: 'none',
+            },
+          },
+        },
+      };
+    </script>
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #F8FAFC;
+        background-color: #FAFAFA;
+        color: #0F172A;
+        font-size: 14px;
+        line-height: 20px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-feature-settings: 'cv11', 'ss01', 'ss03';
+        font-variant-numeric: tabular-nums;
       }
-      /* Custom scrollbar for cleanliness */
+      .num, .tabular {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+      }
       ::-webkit-scrollbar {
         width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
         background: transparent;

@@ -5,7 +5,7 @@ import { StructuredMealPlan, StructuredMeal, StructuredMealItem } from '../../..
 interface MealPlanCardProps {
   plan: StructuredMealPlan;
   onChange: (next: StructuredMealPlan) => void;
-  onSavePlan?: () => Promise<void> | void;     // "Salvar como plano ativo"
+  onSavePlan?: () => Promise<void> | void;     // "Tornar prescrição vigente"
   saving?: boolean;
   onRecalculateMacros?: () => Promise<void>;
   objective?: string | null;       // e.g. "emagrecimento", "ganho muscular"
@@ -116,16 +116,16 @@ export function MealPlanCard({
   };
 
   return (
-    <div id="meal-plan-section" className="bg-gradient-to-br from-blue-50/40 to-indigo-50/40 border border-blue-100 rounded-2xl md:rounded-3xl p-5 md:p-6 shadow-sm scroll-mt-32">
+    <div id="meal-plan-section" className="bg-surface border border-line rounded-lg p-5 md:p-6 shadow-xs scroll-mt-32">
       {/* Header */}
       <div className="flex items-center justify-between mb-2 flex-wrap gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <Utensils size={14} className="text-blue-600" />
-          <h3 className="text-blue-700 font-black uppercase text-[10px] tracking-[0.2em]">
-            Plano Sugerido
+          <Utensils size={14} className="text-brand-700" strokeWidth={2.25} />
+          <h3 className="text-ink-secondary font-semibold uppercase text-2xs tracking-[0.18em]">
+            Prescrição nutricional
             {objective && (
-              <span className="text-blue-500/80 font-bold normal-case tracking-normal ml-1.5">
-                ({objective})
+              <span className="text-ink-tertiary font-medium normal-case tracking-normal ml-1.5">
+                · {objective}
               </span>
             )}
           </h3>
@@ -134,28 +134,28 @@ export function MealPlanCard({
           <button
             onClick={handleSave}
             disabled={saving || isAlreadySaved}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-bold rounded-lg transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-semibold rounded-md transition-colors ${
               isAlreadySaved
-                ? 'bg-emerald-600 cursor-default'
-                : 'bg-blue-600 hover:bg-blue-700 disabled:opacity-60'
+                ? 'bg-positive cursor-default'
+                : 'bg-brand-700 hover:bg-brand-900 disabled:opacity-60'
             }`}
-            title={isAlreadySaved ? 'Este plano já está salvo como ativo' : 'Salvar como plano ativo'}
+            title={isAlreadySaved ? 'Esta prescrição já está vigente' : 'Tornar prescrição vigente'}
           >
             {saving ? (
               <><Loader2 size={12} className="animate-spin" /> Salvando…</>
             ) : justSaved ? (
-              <><Check size={12} /> Salvo!</>
+              <><Check size={12} /> Vigente</>
             ) : isAlreadySaved ? (
-              <><Check size={12} /> Plano ativo</>
+              <><Check size={12} /> Prescrição vigente</>
             ) : (
-              <><Save size={12} /> Salvar como plano ativo</>
+              <><Save size={12} /> Tornar vigente</>
             )}
           </button>
         )}
       </div>
 
-      <p className="text-[11px] text-slate-500 mb-5">
-        💡 Sugestão da IA — revise antes de entregar à paciente. Clique em qualquer alimento para ver substituições.
+      <p className="text-2xs text-ink-tertiary mb-5">
+        Análise interpretativa — revise antes de entregar. Clique em qualquer item para ver substituições equivalentes.
       </p>
 
       {/* Macros */}

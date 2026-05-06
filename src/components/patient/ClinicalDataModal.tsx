@@ -39,21 +39,21 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in slide-in-from-bottom-4 duration-200"
+        className="bg-surface rounded-lg shadow-md border border-line w-full max-w-md overflow-hidden animate-in slide-in-from-bottom-4 duration-200"
       >
         {/* Header */}
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-600 px-5 py-4 flex items-center justify-between">
-          <div className="text-white">
-            <h3 className="font-black text-base flex items-center gap-2">
-              <Activity size={16} /> Dados clínicos
+        <div className="bg-surface border-b border-line px-5 py-4 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-md text-ink-primary flex items-center gap-2">
+              <Activity size={15} className="text-brand-700" strokeWidth={2.25} /> Composição corporal
             </h3>
-            <p className="text-[11px] text-emerald-100 mt-0.5">
-              Usados para gerar e ajustar o plano alimentar
+            <p className="text-2xs text-ink-tertiary mt-0.5">
+              Usado para gerar e ajustar a prescrição nutricional
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            className="p-1.5 text-ink-tertiary hover:text-ink-primary hover:bg-subtle rounded-md transition-colors"
             title="Fechar"
           >
             <X size={18} />
@@ -64,37 +64,37 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
         <div className="p-5 space-y-3">
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">
+              <label className="text-2xs font-semibold uppercase tracking-[0.16em] text-ink-tertiary mb-1 block">
                 Peso (kg)
               </label>
               <input
                 type="number"
                 step="0.1"
                 placeholder="Ex: 65"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all font-mono"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
               />
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">
+              <label className="text-2xs font-semibold uppercase tracking-[0.16em] text-ink-tertiary mb-1 block">
                 Altura (cm)
               </label>
               <input
                 type="number"
                 placeholder="Ex: 165"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all font-mono"
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
               />
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">
+              <label className="text-2xs font-semibold uppercase tracking-[0.16em] text-ink-tertiary mb-1 block">
                 Nascimento
               </label>
               <input
                 type="date"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
               />
@@ -103,27 +103,27 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">
+              <label className="text-2xs font-semibold uppercase tracking-[0.16em] text-ink-tertiary mb-1 block">
                 % Gordura
               </label>
               <input
                 type="number"
                 step="0.1"
                 placeholder="Ex: 22"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all font-mono"
                 value={bodyFat}
                 onChange={(e) => setBodyFat(e.target.value)}
               />
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">
+              <label className="text-2xs font-semibold uppercase tracking-[0.16em] text-ink-tertiary mb-1 block">
                 % Massa magra
               </label>
               <input
                 type="number"
                 step="0.1"
                 placeholder="Ex: 78"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+                className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all font-mono"
                 value={leanMass}
                 onChange={(e) => setLeanMass(e.target.value)}
               />
@@ -131,36 +131,36 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
           </div>
 
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">
+            <label className="text-2xs font-semibold uppercase tracking-[0.16em] text-ink-tertiary mb-1 block">
               Restrições / preferências
             </label>
             <input
               type="text"
               placeholder="Ex: vegetariana, sem lactose, alergia a amendoim"
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+              className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
               value={restrictions}
               onChange={(e) => setRestrictions(e.target.value)}
             />
           </div>
 
-          <p className="text-[11px] text-slate-500 leading-relaxed pt-1">
-            Esses dados ficam salvos na paciente e serão usados automaticamente sempre que você clicar em <span className="font-bold text-emerald-700">Gerar plano alimentar</span>.
+          <p className="text-2xs text-ink-tertiary leading-relaxed pt-1">
+            Os dados ficam salvos no perfil da paciente e são usados automaticamente em cada nova prescrição.
           </p>
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+        <div className="px-5 py-3 bg-subtle border-t border-line flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-semibold text-ink-secondary hover:bg-line rounded-md transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg shadow-sm transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 bg-brand-700 hover:bg-brand-900 text-white text-sm font-semibold rounded-md shadow-xs transition-colors"
           >
-            <Save size={14} /> Salvar
+            <Save size={14} strokeWidth={2.25} /> Salvar
           </button>
         </div>
       </div>

@@ -108,11 +108,11 @@ export function MealPlanBubble({
             {/* Header */}
             <div className="bg-gradient-to-br from-emerald-600 to-teal-600 px-4 py-3 flex items-center justify-between">
               <div className="text-white min-w-0">
-                <h3 className="font-black text-sm flex items-center gap-1.5">
-                  <Utensils size={14} /> Plano Alimentar
+                <h3 className="font-semibold text-sm flex items-center gap-1.5">
+                  <Utensils size={14} strokeWidth={2.25} /> Prescrição nutricional
                 </h3>
-                <p className="text-[10px] text-emerald-100 mt-0.5">
-                  Dados clínicos e geração baseada na consulta
+                <p className="text-2xs text-white/80 mt-0.5 font-medium">
+                  Composição corporal + análise da consulta
                 </p>
               </div>
               <button
@@ -140,8 +140,8 @@ export function MealPlanBubble({
                 </div>
               ) : (
                 <>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                    Dados clínicos <span className="font-normal normal-case">(opcionais — melhoram a sugestão)</span>
+                  <div className="text-2xs font-semibold uppercase tracking-[0.18em] text-ink-tertiary mb-2">
+                    Composição corporal <span className="font-normal normal-case tracking-normal">(opcional — refina a prescrição)</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <input

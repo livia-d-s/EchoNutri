@@ -67,7 +67,7 @@ export function PatientHeader({
   const addHighlight = () => {
     if (!newHighlight.trim() || !onUpdateHighlights) return;
     if (highlights.length >= MAX_HIGHLIGHTS) {
-      alert(`Limite de ${MAX_HIGHLIGHTS} destaques atingido. Remova algum para adicionar um novo.`);
+      alert(`Limite de ${MAX_HIGHLIGHTS} marcadores atingido. Remova um para adicionar outro.`);
       return;
     }
     onUpdateHighlights(patient.id, [...highlights, newHighlight.trim()]);
@@ -77,7 +77,7 @@ export function PatientHeader({
 
   const handleClickAdd = () => {
     if (highlights.length >= MAX_HIGHLIGHTS) {
-      alert(`Limite de ${MAX_HIGHLIGHTS} destaques atingido. Remova algum para adicionar um novo.`);
+      alert(`Limite de ${MAX_HIGHLIGHTS} marcadores atingido. Remova um para adicionar outro.`);
       return;
     }
     setIsAddingHighlight(true);
@@ -202,40 +202,38 @@ export function PatientHeader({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 sm:gap-3 flex-shrink-0 flex-wrap">
+          <div className="flex gap-2 flex-shrink-0 flex-wrap">
             <button
               onClick={onNewConsultation}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white
-                         rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors
-                         shadow-lg shadow-blue-200"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-700 text-white
+                         rounded-md font-semibold text-sm hover:bg-brand-900 transition-colors shadow-xs"
             >
-              <Plus size={16} />
-              <span className="hidden sm:inline">Nova Consulta</span>
+              <Plus size={15} strokeWidth={2.25} />
+              <span className="hidden sm:inline">Nova consulta</span>
               <span className="sm:hidden">Consulta</span>
             </button>
             <button
               onClick={onNewAdjustment}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200
-                         text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50
-                         transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-surface border border-line
+                         text-ink-primary rounded-md font-semibold text-sm hover:bg-subtle transition-colors"
             >
-              <Sliders size={16} />
-              <span className="hidden sm:inline">Observação</span>
-              <span className="sm:hidden">Obs.</span>
+              <Sliders size={15} strokeWidth={2.25} />
+              <span className="hidden sm:inline">Ajuste clínico</span>
+              <span className="sm:hidden">Ajuste</span>
             </button>
             {onUpdatePatient && (
               <button
                 onClick={() => setShowClinicalModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-emerald-200
-                           text-emerald-700 rounded-xl font-bold text-sm hover:bg-emerald-50
+                className="flex items-center gap-2 px-4 py-2 bg-surface border border-line
+                           text-ink-primary rounded-md font-semibold text-sm hover:bg-subtle
                            transition-colors relative"
-                title="Peso, altura, data de nascimento e restrições alimentares"
+                title="Peso, altura, data de nascimento, %gordura, %massa magra, restrições"
               >
-                <Activity size={16} />
-                <span className="hidden sm:inline">Dados clínicos</span>
-                <span className="sm:hidden">Dados</span>
+                <Activity size={15} strokeWidth={2.25} />
+                <span className="hidden sm:inline">Composição</span>
+                <span className="sm:hidden">Comp.</span>
                 {(patient.weightKg || patient.heightCm || patient.birthDate) && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-brand-700 border-2 border-surface" />
                 )}
               </button>
             )}
@@ -248,7 +246,7 @@ export function PatientHeader({
             <div className="flex items-center gap-2 mb-2.5">
               <Sparkles size={12} className="text-blue-500" />
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Destaques do paciente <span className="text-slate-300 normal-case">(máx. {MAX_HIGHLIGHTS})</span>
+                Marcadores clínicos <span className="text-slate-300 normal-case">(máx. {MAX_HIGHLIGHTS})</span>
                 <span className="ml-1 text-slate-300 normal-case">— {highlights.length}/{MAX_HIGHLIGHTS}</span>
               </span>
             </div>

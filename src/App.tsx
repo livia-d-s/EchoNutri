@@ -913,32 +913,32 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100">
-      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 sticky top-0 z-40">
+    <div className="min-h-screen bg-base font-sans text-ink-primary selection:bg-brand-100">
+      <nav className="bg-surface/95 backdrop-blur-md border-b border-line px-4 md:px-6 py-3 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2 md:gap-3 cursor-pointer" onClick={() => { setCurrentTranscript(''); setPatientName(''); setCurrentResult(null); setView('transcription'); }}>
-            <div className="bg-blue-600 p-2 md:p-2.5 rounded-xl text-white shadow-lg shadow-blue-200"><Activity size={20} /></div>
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => { setCurrentTranscript(''); setPatientName(''); setCurrentResult(null); setView('transcription'); }}>
+            <div className="bg-brand-700 p-2 rounded-md text-white shadow-xs"><Activity size={18} strokeWidth={2.25} /></div>
             <div>
-              <h1 className="font-black text-lg md:text-xl tracking-tight leading-none">EchoMed</h1>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest hidden sm:block">IA para Nutricionistas</span>
+              <h1 className="font-bold text-md md:text-lg tracking-tight leading-none text-ink-primary">EchoNutri</h1>
+              <span className="text-2xs text-ink-tertiary font-medium uppercase tracking-[0.18em] hidden sm:block mt-0.5">Inteligência clínica</span>
             </div>
           </div>
-          <div className="flex items-center gap-3 md:gap-6">
-            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-              <button onClick={() => { setCurrentTranscript(''); setPatientName(''); setCurrentResult(null); setSelectedEvent(null); setView('transcription'); }} className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${view === 'transcription' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}>Consulta</button>
-              <button onClick={() => { setView('patients'); setSelectedPatient(null); }} className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 ${view === 'patients' || view === 'patient' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}>
-                <Users size={14} /> <span className="hidden sm:inline">Pacientes</span><span className="sm:hidden">Pac.</span>
+          <div className="flex items-center gap-3 md:gap-5">
+            <div className="flex gap-0.5 bg-subtle p-0.5 rounded-md">
+              <button onClick={() => { setCurrentTranscript(''); setPatientName(''); setCurrentResult(null); setSelectedEvent(null); setView('transcription'); }} className={`px-3 md:px-4 py-1.5 rounded-sm text-sm font-semibold transition-colors ${view === 'transcription' ? 'bg-surface shadow-xs text-ink-primary' : 'text-ink-secondary hover:text-ink-primary'}`}>Consulta</button>
+              <button onClick={() => { setView('patients'); setSelectedPatient(null); }} className={`px-3 md:px-4 py-1.5 rounded-sm text-sm font-semibold transition-colors flex items-center gap-1.5 ${view === 'patients' || view === 'patient' ? 'bg-surface shadow-xs text-ink-primary' : 'text-ink-secondary hover:text-ink-primary'}`}>
+                <Users size={14} strokeWidth={2.25} /> <span className="hidden sm:inline">Pacientes</span><span className="sm:hidden">Pac.</span>
               </button>
             </div>
             {/* Profile Picture Button */}
             <button
               onClick={() => setShowProfilePopup(true)}
-              className="relative w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-slate-200 hover:border-blue-400 transition-colors cursor-pointer bg-slate-100 flex items-center justify-center"
+              className="relative w-9 h-9 rounded-full overflow-hidden border border-line hover:border-brand-700 transition-colors cursor-pointer bg-subtle flex items-center justify-center"
             >
               {doctorProfile.photo ? (
                 <img src={doctorProfile.photo} alt="Foto do perfil" className="w-full h-full object-cover" />
               ) : (
-                <User size={18} className="text-slate-400" />
+                <User size={16} className="text-ink-tertiary" />
               )}
             </button>
           </div>
@@ -1232,11 +1232,11 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 overflow-y-auto p-4"
       onClick={handleSave}
     >
       <div
-        className="bg-white rounded-2xl md:rounded-3xl p-5 sm:p-6 md:p-8 max-w-md w-full mx-4 shadow-2xl animate-in fade-in zoom-in-95 duration-300"
+        className="bg-white rounded-2xl md:rounded-3xl p-5 sm:p-6 md:p-8 max-w-md w-full max-h-[calc(100vh-2rem)] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center mb-4">
@@ -1399,7 +1399,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
                   <span className="text-xs text-slate-400">Sempre visível</span>
                 </div>
                 {[
-                  { key: 'showConduct', label: 'Conduta Nutricional' },
+                  { key: 'showConduct', label: 'Direcionamento clínico' },
                   { key: 'showAttention', label: 'Pontos de Atenção' },
                   { key: 'showExams', label: 'Exames Sugeridos' },
                 ].map(({ key, label }) => (
@@ -2272,7 +2272,7 @@ function TranscriptionView({
             ) : (
               <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
                 <button onClick={startRecording} className="flex items-center gap-2 md:gap-3 bg-blue-600 text-white px-6 py-3 md:px-10 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
-                  <Mic size={20} /> Iniciar Consulta
+                  <Mic size={20} /> Registrar Consulta
                 </button>
                 <button
                   onClick={() => audioInputRef.current?.click()}
@@ -2360,8 +2360,8 @@ function TranscriptionView({
         {status === AppStatus.PROCESSING && (
           <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center z-50">
             <Loader2 className="animate-spin text-blue-600 mb-4" size={48} />
-            <h2 className="text-xl md:text-2xl font-black">Inteligência EchoMed Ativa</h2>
-            <p className="text-slate-500 font-bold mt-2 text-sm md:text-base text-center px-4">Analisando perfil nutricional do paciente...</p>
+            <h2 className="text-xl md:text-2xl font-bold text-ink-primary">Analisando consulta</h2>
+            <p className="text-ink-secondary mt-2 text-sm text-center px-4">Avaliação clínica e prescrição em andamento</p>
           </div>
         )}
       </div>
@@ -3016,8 +3016,8 @@ Análise prévia:
                 >
                   <ClipboardCheck size={16} className="text-emerald-500 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="font-bold text-sm text-slate-800">Conduta Nutricional</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">Orientações para o paciente</div>
+                    <div className="font-semibold text-sm text-ink-primary">Direcionamento clínico</div>
+                    <div className="text-2xs text-ink-tertiary mt-0.5">Orientações para a paciente</div>
                   </div>
                 </button>
                 <button
@@ -3110,12 +3110,12 @@ Análise prévia:
         )}
       </div>
 
-      {/* Conduta Nutricional - light clinical checklist */}
+      {/* Direcionamento clínico — clinical checklist */}
       {prefs.showConduct && (
-        <div className="bg-gradient-to-br from-emerald-50/60 to-teal-50/40 rounded-2xl md:rounded-3xl border border-emerald-100 p-5 md:p-8 shadow-sm group relative">
+        <div className="bg-surface rounded-lg border border-line p-5 md:p-6 shadow-xs group relative">
           <div className={`flex items-center justify-between ${collapsedSections.has('conduct') ? '' : 'mb-5'}`}>
-            <h3 className="text-emerald-700 font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2">
-              <ClipboardCheck size={13} /> Conduta Nutricional
+            <h3 className="text-ink-secondary font-semibold uppercase text-2xs tracking-[0.18em] flex items-center gap-2">
+              <ClipboardCheck size={13} className="text-brand-700" /> Direcionamento clínico
             </h3>
             <div className="flex items-center gap-0.5">
               {editingSection !== 'conduct' && !collapsedSections.has('conduct') && (
