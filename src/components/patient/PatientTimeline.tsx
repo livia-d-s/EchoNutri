@@ -78,11 +78,11 @@ export function PatientTimeline({ events, onEventClick, onDeleteEvent, onEditEve
 
   if (events.length === 0) {
     return (
-      <div className="py-16 bg-white border-2 border-dashed border-slate-200
-                      rounded-[2rem] flex flex-col items-center justify-center text-slate-400">
-        <Clock size={40} className="mb-4 opacity-50" />
-        <p className="font-bold text-lg">Nenhum evento registrado</p>
-        <p className="text-sm mt-1">Inicie uma consulta para começar o histórico</p>
+      <div className="py-12 bg-surface border border-dashed border-line
+                      rounded-lg flex flex-col items-center justify-center text-ink-tertiary">
+        <Clock size={32} strokeWidth={1.75} className="mb-3 opacity-50" />
+        <p className="font-semibold text-md text-ink-secondary">Sem eventos registrados</p>
+        <p className="text-sm mt-1">Registre uma consulta para começar o histórico</p>
       </div>
     );
   }
@@ -92,12 +92,12 @@ export function PatientTimeline({ events, onEventClick, onDeleteEvent, onEditEve
   return (
     <div className="w-full">
       {/* Section Header */}
-      <div className="flex items-center gap-2 mb-6">
-        <div className="w-1 h-6 bg-blue-600 rounded-full" />
-        <h3 className="text-xs font-black uppercase tracking-[0.1em] text-slate-500">
-          Linha do Tempo
+      <div className="flex items-center gap-2 mb-5">
+        <div className="w-0.5 h-5 bg-brand-700 rounded-full" />
+        <h3 className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary">
+          Histórico clínico
         </h3>
-        <span className="text-xs text-slate-400 ml-2">
+        <span className="text-2xs text-ink-tertiary ml-1">
           {events.length} {events.length === 1 ? 'evento' : 'eventos'}
         </span>
       </div>
@@ -116,8 +116,8 @@ export function PatientTimeline({ events, onEventClick, onDeleteEvent, onEditEve
                     onClick={() => onEventClick(item.consultation)}
                   />
                 </div>
-                {/* Horizontal orange connector (desktop only) */}
-                <div className="hidden md:block h-0.5 w-4 bg-amber-400 flex-shrink-0" />
+                {/* Horizontal connector (desktop only) */}
+                <div className="hidden md:block h-px w-4 bg-line flex-shrink-0" />
                 <div className="md:basis-[30%] flex-shrink space-y-2 mt-2 md:mt-0">
                   {item.adjustments.map((adjustment) => (
                     <TimelineItem

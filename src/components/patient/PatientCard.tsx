@@ -33,29 +33,28 @@ export function PatientCard({ patient, eventCount, lastEventDate, onClick }: Pat
   return (
     <div
       onClick={onClick}
-      className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-blue-400
-                 hover:shadow-lg cursor-pointer transition-all group"
+      className="bg-surface p-4 rounded-md border border-line hover:border-brand-700
+                 hover:shadow-sm cursor-pointer transition-all group"
     >
       <div className="flex gap-4 items-center">
         {/* Avatar */}
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600
-                        flex items-center justify-center text-white text-xl font-black
-                        group-hover:scale-105 transition-transform flex-shrink-0">
+        <div className="w-11 h-11 rounded-md bg-brand-700 text-white text-md font-semibold
+                        flex items-center justify-center flex-shrink-0">
           {initial}
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <h4 className="font-black text-lg text-slate-900 truncate">
+          <h4 className="font-semibold text-md text-ink-primary truncate">
             {patient.name}
           </h4>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-xs font-bold text-slate-400">
+          <div className="flex items-center gap-3 mt-0.5">
+            <span className="text-xs font-medium text-ink-tertiary">
               {eventCount} {eventCount === 1 ? 'consulta' : 'consultas'}
             </span>
             {lastEventDate && (
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Calendar size={10} />
+              <span className="text-xs text-ink-tertiary flex items-center gap-1">
+                <Calendar size={10} strokeWidth={2.25} />
                 {formatDate(lastEventDate)}
               </span>
             )}
@@ -64,9 +63,10 @@ export function PatientCard({ patient, eventCount, lastEventDate, onClick }: Pat
 
         {/* Arrow */}
         <ChevronRight
-          className="text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1
+          className="text-ink-tertiary group-hover:text-brand-700 group-hover:translate-x-0.5
                      transition-all flex-shrink-0"
-          size={20}
+          size={18}
+          strokeWidth={2.25}
         />
       </div>
     </div>

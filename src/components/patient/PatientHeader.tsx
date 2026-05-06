@@ -102,34 +102,29 @@ export function PatientHeader({
     setEditHighlightText(highlights[index]);
   };
 
-  // Blue tones palette for chips
+  // Single-accent chip style — premium clinical, no rainbow
   const chipColors = [
-    'bg-blue-50 text-blue-700 border-blue-200',
-    'bg-sky-50 text-sky-700 border-sky-200',
-    'bg-indigo-50 text-indigo-700 border-indigo-200',
-    'bg-cyan-50 text-cyan-700 border-cyan-200',
-    'bg-blue-100 text-blue-800 border-blue-300',
+    'bg-subtle text-ink-primary border-line',
   ];
 
   return (
-    <div className="bg-white border-b border-slate-200 -mx-3 md:-mx-8 px-3 md:px-8 py-4 md:py-6 mb-4 md:mb-6
-                    sticky top-[57px] md:top-[73px] z-30 backdrop-blur-sm bg-white/95">
+    <div className="bg-surface border-b border-line -mx-3 md:-mx-8 px-3 md:px-8 py-4 md:py-5 mb-5
+                    sticky top-[57px] md:top-[73px] z-30 backdrop-blur-sm bg-surface/95">
       <div className="max-w-6xl mx-auto">
         {/* Back button */}
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-blue-600 font-bold text-sm mb-3
-                     hover:gap-3 transition-all"
+          className="flex items-center gap-1.5 text-brand-700 hover:text-brand-900 font-semibold text-sm mb-3 transition-colors"
         >
-          <ArrowLeft size={16} /> Voltar
+          <ArrowLeft size={15} strokeWidth={2.25} /> Pacientes
         </button>
 
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           {/* Patient Info */}
           <div className="flex gap-4 items-start group">
             {/* Avatar */}
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600
-                            flex items-center justify-center text-white text-2xl font-black
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-md bg-brand-700
+                            flex items-center justify-center text-white text-xl font-semibold
                             flex-shrink-0">
               {patient.name.charAt(0).toUpperCase()}
             </div>
@@ -141,49 +136,49 @@ export function PatientHeader({
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
-                    className="text-xl md:text-2xl font-black text-slate-900 leading-tight bg-slate-50 border border-slate-200 rounded-xl px-3 py-1 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+                    className="text-xl md:text-2xl font-bold text-ink-primary leading-tight bg-surface border border-line rounded-md px-3 py-1 outline-none focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700"
                     autoFocus
                   />
                   <button
                     onClick={handleSaveEdit}
-                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                    className="p-2 text-positive hover:bg-green-50 rounded-md transition-colors"
                     title="Salvar"
                   >
-                    <Check size={18} />
+                    <Check size={18} strokeWidth={2.25} />
                   </button>
                   <button
                     onClick={handleCancelEdit}
-                    className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="p-2 text-ink-tertiary hover:bg-subtle rounded-md transition-colors"
                     title="Cancelar"
                   >
-                    <X size={18} />
+                    <X size={18} strokeWidth={2.25} />
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">
+                  <h1 className="text-xl md:text-2xl font-bold text-ink-primary leading-tight tracking-tight">
                     {patient.name}
                   </h1>
                   {onEditPatient && (
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-ink-tertiary hover:text-brand-700 hover:bg-subtle rounded-md transition-all"
                       title="Editar nome"
                     >
-                      <Pencil size={14} />
+                      <Pencil size={14} strokeWidth={2.25} />
                     </button>
                   )}
                 </div>
               )}
-              <p className="text-slate-500 text-sm mt-0.5">
+              <p className="text-ink-tertiary text-sm mt-0.5">
                 Paciente desde {formatDate(patient.createdAt)}
               </p>
               {/* Goal and Training Display */}
               {Boolean(patient.goals?.length || patient.goal || patient.trainingRoutine?.length) && (
-                <div className="flex flex-wrap items-center gap-2 mt-2">
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
                   {(patient.goals?.length || patient.goal) && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                      <Target size={10} />
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-subtle text-ink-secondary border border-line">
+                      <Target size={10} strokeWidth={2.25} />
                       {patient.goals?.length
                         ? patient.goals.map(g => g === 'outro' ? patient.goalCustom : GOAL_LABELS[g]).join(' + ')
                         : (patient.goal === 'outro' ? patient.goalCustom : GOAL_LABELS[patient.goal!])
@@ -191,8 +186,8 @@ export function PatientHeader({
                     </span>
                   )}
                   {patient.trainingRoutine?.length ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                      <Dumbbell size={10} />
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-subtle text-ink-secondary border border-line">
+                      <Dumbbell size={10} strokeWidth={2.25} />
                       {patient.trainingRoutine.map(t => `${t.type}: ${t.frequency}`).join(', ')}
                     </span>
                   ) : null}
@@ -240,14 +235,14 @@ export function PatientHeader({
           </div>
         </div>
 
-        {/* Highlights section */}
+        {/* Marcadores clínicos */}
         {(highlights.length > 0 || onUpdateHighlights) && (
-          <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="mt-4 pt-4 border-t border-line">
             <div className="flex items-center gap-2 mb-2.5">
-              <Sparkles size={12} className="text-blue-500" />
-              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">
-                Marcadores clínicos <span className="text-slate-300 normal-case">(máx. {MAX_HIGHLIGHTS})</span>
-                <span className="ml-1 text-slate-300 normal-case">— {highlights.length}/{MAX_HIGHLIGHTS}</span>
+              <Sparkles size={11} className="text-brand-700" strokeWidth={2.25} />
+              <span className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary">
+                Marcadores clínicos
+                <span className="ml-1.5 text-ink-tertiary normal-case font-normal">{highlights.length}/{MAX_HIGHLIGHTS}</span>
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -262,19 +257,19 @@ export function PatientHeader({
                           if (e.key === 'Enter') saveEditHighlight(i);
                           if (e.key === 'Escape') setEditingHighlightIndex(null);
                         }}
-                        className="text-xs px-2 py-1 border border-blue-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 w-40"
+                        className="text-xs px-2 py-1 border border-line rounded-md outline-none focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 w-40 text-ink-primary"
                         autoFocus
                       />
-                      <button onClick={() => saveEditHighlight(i)} className="p-0.5 text-green-600 hover:bg-green-50 rounded">
-                        <Check size={12} />
+                      <button onClick={() => saveEditHighlight(i)} className="p-0.5 text-positive hover:bg-green-50 rounded-sm">
+                        <Check size={12} strokeWidth={2.25} />
                       </button>
-                      <button onClick={() => setEditingHighlightIndex(null)} className="p-0.5 text-slate-400 hover:bg-slate-100 rounded">
-                        <X size={12} />
+                      <button onClick={() => setEditingHighlightIndex(null)} className="p-0.5 text-ink-tertiary hover:bg-subtle rounded-sm">
+                        <X size={12} strokeWidth={2.25} />
                       </button>
                     </div>
                   ) : (
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border cursor-default
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium border cursor-default
                                   ${chipColors[i % chipColors.length]}`}
                     >
                       {h}
@@ -282,17 +277,17 @@ export function PatientHeader({
                         <span className="hidden group-hover/chip:inline-flex items-center gap-0.5 ml-1">
                           <button
                             onClick={() => startEditHighlight(i)}
-                            className="p-0.5 hover:bg-blue-200/50 rounded transition-colors"
+                            className="p-0.5 hover:bg-line rounded-sm transition-colors"
                             title="Editar"
                           >
-                            <Pencil size={9} />
+                            <Pencil size={9} strokeWidth={2.25} />
                           </button>
                           <button
                             onClick={() => removeHighlight(i)}
-                            className="p-0.5 hover:bg-red-200/50 rounded transition-colors text-red-400"
+                            className="p-0.5 hover:bg-red-50 rounded-sm transition-colors text-critical"
                             title="Remover"
                           >
-                            <X size={9} />
+                            <X size={9} strokeWidth={2.25} />
                           </button>
                         </span>
                       )}
@@ -312,25 +307,25 @@ export function PatientHeader({
                         if (e.key === 'Enter') addHighlight();
                         if (e.key === 'Escape') { setIsAddingHighlight(false); setNewHighlight(''); }
                       }}
-                      placeholder="Ex: Intolerante à lactose"
-                      className="text-xs px-2 py-1 border border-blue-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 w-44"
+                      placeholder="Ex: intolerante à lactose"
+                      className="text-xs px-2 py-1 border border-line rounded-md outline-none focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 w-44 text-ink-primary placeholder:text-ink-tertiary"
                       autoFocus
                     />
-                    <button onClick={addHighlight} className="p-0.5 text-green-600 hover:bg-green-50 rounded">
-                      <Check size={12} />
+                    <button onClick={addHighlight} className="p-0.5 text-positive hover:bg-green-50 rounded-sm">
+                      <Check size={12} strokeWidth={2.25} />
                     </button>
-                    <button onClick={() => { setIsAddingHighlight(false); setNewHighlight(''); }} className="p-0.5 text-slate-400 hover:bg-slate-100 rounded">
-                      <X size={12} />
+                    <button onClick={() => { setIsAddingHighlight(false); setNewHighlight(''); }} className="p-0.5 text-ink-tertiary hover:bg-subtle rounded-sm">
+                      <X size={12} strokeWidth={2.25} />
                     </button>
                   </div>
                 ) : (
                   <button
                     onClick={handleClickAdd}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold
-                               border border-dashed border-slate-300 text-slate-400
-                               hover:border-blue-400 hover:text-blue-500 transition-colors"
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium
+                               border border-dashed border-line text-ink-tertiary
+                               hover:border-brand-700 hover:text-brand-700 transition-colors"
                   >
-                    <Plus size={10} /> Adicionar
+                    <Plus size={10} strokeWidth={2.25} /> Adicionar
                   </button>
                 )
               )}

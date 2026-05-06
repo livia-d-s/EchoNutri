@@ -39,25 +39,25 @@ export function AdjustmentModal({ patientName, consultations, onSave, onClose }:
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 max-w-lg w-full shadow-2xl
-                      animate-in fade-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-surface rounded-lg p-5 sm:p-6 max-w-lg w-full shadow-md border border-line
+                      animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100vh-2rem)] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex items-start justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-              <Sliders size={24} className="text-amber-600" />
+            <div className="w-10 h-10 bg-subtle border border-line rounded-md flex items-center justify-center">
+              <Sliders size={18} className="text-brand-700" strokeWidth={2.25} />
             </div>
             <div>
-              <h3 className="text-xl font-black text-slate-900">Observação</h3>
-              <p className="text-slate-500 text-sm">{patientName}</p>
+              <h3 className="text-md font-semibold text-ink-primary">Ajuste clínico</h3>
+              <p className="text-ink-tertiary text-sm">{patientName}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+            className="p-1.5 hover:bg-subtle rounded-md transition-colors"
           >
-            <X size={20} className="text-slate-400" />
+            <X size={18} className="text-ink-tertiary" strokeWidth={2.25} />
           </button>
         </div>
 
@@ -66,16 +66,16 @@ export function AdjustmentModal({ patientName, consultations, onSave, onClose }:
           {/* Consultation selector */}
           {consultations.length > 0 && (
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+              <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-1.5">
                 Consulta referente
               </label>
               <div className="relative">
                 <select
                   value={selectedConsultationId}
                   onChange={(e) => setSelectedConsultationId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 pr-10
-                             outline-none font-medium focus:ring-2 focus:ring-amber-100
-                             focus:border-amber-300 transition-all appearance-none cursor-pointer"
+                  className="w-full bg-surface border border-line rounded-md py-2 px-3 pr-9
+                             outline-none text-md text-ink-primary focus:ring-2 focus:ring-brand-700/20
+                             focus:border-brand-700 transition-all appearance-none cursor-pointer"
                 >
                   {consultations.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -83,49 +83,50 @@ export function AdjustmentModal({ patientName, consultations, onSave, onClose }:
                     </option>
                   ))}
                 </select>
-                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-tertiary pointer-events-none" strokeWidth={2.25} />
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Descrição da Observação
+            <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-1.5">
+              Descrição do ajuste
             </label>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Ex: Aumentar proteína de 1.2g para 1.5g/kg devido à boa adesão e resultados positivos..."
+              placeholder="Ex: aumentar proteína de 1.2g para 1.5g/kg devido à boa adesão e progresso..."
               rows={4}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4
-                         outline-none font-medium focus:ring-2 focus:ring-amber-100
-                         focus:border-amber-300 transition-all resize-none"
+              className="w-full bg-surface border border-line rounded-md py-2 px-3
+                         outline-none text-md text-ink-primary placeholder:text-ink-tertiary
+                         focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700
+                         transition-all resize-none"
               autoFocus
             />
           </div>
 
-          <p className="text-xs text-slate-400">
-            Descreva as alterações ou observações sobre esta consulta do paciente.
+          <p className="text-2xs text-ink-tertiary">
+            Registre alterações de conduta, observações de evolução ou orientações entre consultas.
           </p>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 mt-6">
+        <div className="flex gap-2 mt-5">
           <button
             onClick={onClose}
-            className="flex-1 py-4 rounded-xl font-bold text-slate-600 bg-slate-100
-                       hover:bg-slate-200 transition-colors"
+            className="flex-1 py-2.5 rounded-md font-semibold text-sm text-ink-secondary bg-subtle
+                       hover:bg-line transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={!note.trim()}
-            className="flex-1 py-4 rounded-xl font-bold text-white bg-amber-500
-                       hover:bg-amber-600 transition-colors disabled:opacity-50
-                       disabled:cursor-not-allowed"
+            className="flex-1 py-2.5 rounded-md font-semibold text-sm text-white bg-brand-700
+                       hover:bg-brand-900 transition-colors disabled:opacity-50
+                       disabled:cursor-not-allowed shadow-xs"
           >
-            Salvar Observação
+            Salvar ajuste
           </button>
         </div>
       </div>

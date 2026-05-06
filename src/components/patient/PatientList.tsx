@@ -70,62 +70,62 @@ export function PatientList({ patients, events, onSelectPatient }: PatientListPr
   }, [filteredPatients, events]);
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-black tracking-tight">Meus Pacientes</h2>
-          <p className="text-slate-500 text-sm mt-1">
+          <h2 className="text-2xl font-bold text-ink-primary tracking-tight">Pacientes</h2>
+          <p className="text-ink-tertiary text-sm mt-1">
             {filteredPatients.length} de {patients.length} {patients.length === 1 ? 'paciente' : 'pacientes'}
           </p>
         </div>
       </div>
 
       {/* Search with mode toggle */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="bg-surface p-4 rounded-lg border border-line shadow-xs">
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Search Mode Toggle */}
-          <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+          <div className="flex gap-0.5 bg-subtle p-0.5 rounded-md">
             <button
               onClick={() => { setSearchMode('name'); setDateFilter(''); }}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2
-                ${searchMode === 'name' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`px-3 py-1.5 rounded-sm text-sm font-semibold transition-colors flex items-center gap-1.5
+                ${searchMode === 'name' ? 'bg-surface shadow-xs text-ink-primary' : 'text-ink-secondary hover:text-ink-primary'}`}
             >
-              <Search size={14} /> Nome
+              <Search size={14} strokeWidth={2.25} /> Nome
             </button>
             <button
               onClick={() => { setSearchMode('date'); setSearch(''); }}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2
-                ${searchMode === 'date' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`px-3 py-1.5 rounded-sm text-sm font-semibold transition-colors flex items-center gap-1.5
+                ${searchMode === 'date' ? 'bg-surface shadow-xs text-ink-primary' : 'text-ink-secondary hover:text-ink-primary'}`}
             >
-              <Calendar size={14} /> Data
+              <Calendar size={14} strokeWidth={2.25} /> Data
             </button>
           </div>
 
           {/* Search Input */}
           {searchMode === 'name' ? (
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-tertiary" size={16} strokeWidth={2.25} />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por nome..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4
-                           outline-none font-medium focus:ring-2 focus:ring-blue-100
-                           focus:border-blue-300 transition-all"
+                placeholder="Buscar paciente por nome"
+                className="w-full bg-surface border border-line rounded-md py-2 pl-9 pr-4
+                           outline-none text-md text-ink-primary placeholder:text-ink-tertiary
+                           focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
               />
             </div>
           ) : (
             <div className="relative flex-1">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-tertiary" size={16} strokeWidth={2.25} />
               <input
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4
-                           outline-none font-medium focus:ring-2 focus:ring-blue-100
-                           focus:border-blue-300 transition-all"
+                className="w-full bg-surface border border-line rounded-md py-2 pl-9 pr-4
+                           outline-none text-md text-ink-primary
+                           focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
               />
             </div>
           )}
@@ -134,8 +134,8 @@ export function PatientList({ patients, events, onSelectPatient }: PatientListPr
           {(search || dateFilter) && (
             <button
               onClick={() => { setSearch(''); setDateFilter(''); }}
-              className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700
-                         hover:bg-slate-100 rounded-xl transition-colors"
+              className="px-3 py-2 text-sm font-semibold text-ink-secondary hover:text-ink-primary
+                         hover:bg-subtle rounded-md transition-colors"
             >
               Limpar
             </button>
@@ -144,7 +144,7 @@ export function PatientList({ patients, events, onSelectPatient }: PatientListPr
       </div>
 
       {/* Patient List */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {sortedPatients.length > 0 ? (
           sortedPatients.map(patient => {
             const stats = getPatientStats(patient.id);
@@ -159,17 +159,17 @@ export function PatientList({ patients, events, onSelectPatient }: PatientListPr
             );
           })
         ) : (
-          <div className="py-20 bg-white border-2 border-dashed border-slate-200
-                          rounded-[2rem] flex flex-col items-center justify-center text-slate-400">
-            <Users size={48} className="mb-4 opacity-50" />
-            <p className="font-bold text-lg">
+          <div className="py-16 bg-surface border border-dashed border-line
+                          rounded-lg flex flex-col items-center justify-center text-ink-tertiary">
+            <Users size={36} strokeWidth={1.75} className="mb-3 opacity-50" />
+            <p className="font-semibold text-md text-ink-secondary">
               {patients.length === 0
-                ? 'Nenhum paciente cadastrado'
-                : 'Nenhum paciente encontrado'}
+                ? 'Nenhuma paciente cadastrada'
+                : 'Nenhuma paciente encontrada'}
             </p>
             <p className="text-sm mt-1">
               {patients.length === 0
-                ? 'Inicie uma consulta para adicionar pacientes'
+                ? 'Registre uma consulta para começar'
                 : 'Tente buscar por outro nome'}
             </p>
           </div>

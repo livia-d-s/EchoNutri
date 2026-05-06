@@ -3052,23 +3052,23 @@ Análise prévia:
         </div>
       </div>
 
-      {/* Elegant header */}
-      <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-6 shadow-sm">
+      {/* Patient header on the analysis screen */}
+      <div className="bg-surface rounded-lg border border-line p-5 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-slate-700 font-black uppercase text-sm tracking-[0.15em]">
-            <User size={14} className="text-slate-400" /> <span>{patientName}</span>
+          <div className="flex items-center gap-2 text-ink-primary font-semibold text-md">
+            <User size={15} className="text-ink-tertiary" strokeWidth={2.25} /> <span>{patientName}</span>
           </div>
           {(adherence || behavior) && (
             <div className="flex flex-wrap gap-2">
               {adherence && (
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${adherenceStyle}`}>
-                  <TrendingUp size={11} />
-                  Adesão provável: <span className="capitalize">{adherence}</span>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-2xs font-medium border ${adherenceStyle}`}>
+                  <TrendingUp size={11} strokeWidth={2.25} />
+                  Adesão: <span className="capitalize">{adherence}</span>
                 </span>
               )}
               {behavior && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border bg-slate-50 text-slate-700 border-slate-200">
-                  <Brain size={11} />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-2xs font-medium border bg-subtle text-ink-secondary border-line">
+                  <Brain size={11} strokeWidth={2.25} />
                   Perfil: <span className="capitalize">{behavior}</span>
                 </span>
               )}
@@ -3077,11 +3077,11 @@ Análise prévia:
         </div>
       </div>
 
-      {/* Racional Clínico */}
-      <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-8 shadow-sm group relative">
+      {/* Avaliação clínica — interpretação e racional */}
+      <div className="bg-surface rounded-lg border border-line p-5 md:p-6 shadow-xs group relative">
         <div className={`flex items-center justify-between ${collapsedSections.has('rationale') ? '' : 'mb-4'}`}>
-          <h3 className="text-blue-700 font-black uppercase text-[10px] tracking-[0.1em] flex items-center gap-2">
-            <Activity size={13} /> Racional Clínico
+          <h3 className="text-ink-secondary font-semibold uppercase text-2xs tracking-[0.1em] flex items-center gap-2">
+            <Activity size={13} className="text-brand-700" strokeWidth={2.25} /> Avaliação clínica
           </h3>
           <div className="flex items-center gap-0.5">
             {editingSection !== 'rationale' && !collapsedSections.has('rationale') && <EditButton section="rationale" />}
@@ -3181,12 +3181,12 @@ Análise prévia:
 
       {/* Bottom grid: Exams + Attention */}
       <div className="grid sm:grid-cols-2 gap-4 md:gap-5">
-        {/* Exames Sugeridos — elegant priority cards */}
+        {/* Exames sugeridos */}
         {prefs.showExams && (exams.length > 0 || editingSection === 'exams') && (
-          <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-6 shadow-sm group relative">
+          <div className="bg-surface rounded-lg border border-line p-5 shadow-xs group relative">
             <div className={`flex items-center justify-between ${collapsedSections.has('exams') ? '' : 'mb-4'}`}>
-              <h3 className="font-black text-[10px] uppercase tracking-[0.1em] text-sky-700 flex items-center gap-2">
-                <TestTube size={13} /> Exames Sugeridos
+              <h3 className="font-semibold text-2xs uppercase tracking-[0.1em] text-ink-secondary flex items-center gap-2">
+                <TestTube size={13} className="text-brand-700" strokeWidth={2.25} /> Exames sugeridos
               </h3>
               <div className="flex items-center gap-0.5">
                 {editingSection !== 'exams' && !collapsedSections.has('exams') && <EditButton section="exams" />}
@@ -3218,11 +3218,11 @@ Análise prévia:
                 {exams.map((e: string, i: number) => {
                   const p = priorityStyle(i);
                   return (
-                    <div key={i} className="flex items-start gap-3 p-3 bg-slate-50/70 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors group/item">
-                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${p.dot}`} />
+                    <div key={i} className="flex items-start gap-3 p-3 bg-subtle rounded-md border border-line hover:border-ink-tertiary transition-colors group/item">
+                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${p.dot}`} />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-ink-primary text-sm leading-snug">{e}</p>
-                        <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${p.badge}`}>
+                        <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-md text-2xs font-medium uppercase tracking-[0.08em] border ${p.badge}`}>
                           {p.label}
                         </span>
                       </div>
@@ -3242,12 +3242,12 @@ Análise prévia:
           </div>
         )}
 
-        {/* Pontos de Atenção — clinical tags */}
+        {/* Pontos de atenção */}
         {prefs.showAttention && (conditions.length > 0 || editingSection === 'conditions') && (
-          <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-6 shadow-sm group relative">
+          <div className="bg-surface rounded-lg border border-line p-5 shadow-xs group relative">
             <div className={`flex items-center justify-between ${collapsedSections.has('conditions') ? '' : 'mb-4'}`}>
-              <h3 className="font-black text-[10px] uppercase tracking-[0.1em] text-amber-700 flex items-center gap-2">
-                <AlertTriangle size={13} /> Pontos de Atenção
+              <h3 className="font-semibold text-2xs uppercase tracking-[0.1em] text-ink-secondary flex items-center gap-2">
+                <AlertTriangle size={13} className="text-caution" strokeWidth={2.25} /> Pontos de atenção
               </h3>
               <div className="flex items-center gap-0.5">
                 {editingSection !== 'conditions' && !collapsedSections.has('conditions') && <EditButton section="conditions" />}
