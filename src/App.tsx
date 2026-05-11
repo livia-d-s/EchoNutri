@@ -10,6 +10,7 @@ import { ExamUploader } from './components/patient/ExamUploader';
 import { ConsultationBriefingBubble } from './components/patient/ConsultationBriefingBubble';
 import { MealPlanCard, planSignature } from './components/patient/MealPlanCard';
 import { MealPlanBubble } from './components/patient/MealPlanBubble';
+import { LegalOverlay } from './components/legal/LegalOverlay';
 
 // Firebase Imports
 import {
@@ -1105,6 +1106,69 @@ export default function App() {
               console.error("Logout error:", err);
             }
           }}
+          // LGPD art. 18 — direito de acesso/portabilidade: dump everything we hold
+          // about the nutri (profile + patients + events + history) as JSON.
+          onExportData={() => {
+            const payload = {
+              exportedAt: new Date().toISOString(),
+              exportVersion: 1,
+              user: { uid: user?.uid, email: user?.email },
+              doctorProfile,
+              patients,
+              events,
+              history,
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const stamp = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `echonutri_meus_dados_${stamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Arquivo exportado');
+          }}
+          // LGPD — direito ao apagamento. Apaga Firestore docs do usuário,
+          // limpa localStorage, deleta Firebase Auth user, e desloga.
+          onDeleteAccount={async () => {
+            if (!user || !userId) return;
+            try {
+              const { deleteDoc, doc: fsDoc } = await import('firebase/firestore');
+              if (db) {
+                await Promise.all([
+                  deleteDoc(fsDoc(db, 'users', userId, 'appData', 'patients')).catch(() => {}),
+                  deleteDoc(fsDoc(db, 'users', userId, 'appData', 'events')).catch(() => {}),
+                  deleteDoc(fsDoc(db, 'users', userId, 'appData', 'profile')).catch(() => {}),
+                  deleteDoc(fsDoc(db, 'users', userId)).catch(() => {}),
+                  deleteDoc(fsDoc(db, 'doctors', userId)).catch(() => {}),
+                ]);
+              }
+              // Wipe local cache
+              for (const key of Object.keys(localStorage)) {
+                if (key.startsWith(`echomed_${userId}_`)) localStorage.removeItem(key);
+              }
+              // Delete the Firebase Auth user. Requires recent login —
+              // if it fails for that reason, fall back to logout + ask
+              // the user to log in again before retrying.
+              try {
+                await user.delete();
+              } catch (err: any) {
+                if (err?.code === 'auth/requires-recent-login') {
+                  alert('Por segurança, é necessário entrar novamente antes de excluir a conta. Vamos deslogar — entre de novo e repita o pedido.');
+                  await logout();
+                  setShowProfilePopup(false);
+                  return;
+                }
+                throw err;
+              }
+              setShowProfilePopup(false);
+            } catch (err: any) {
+              console.error('Account deletion error:', err);
+              alert(`Não foi possível excluir a conta: ${err?.message || 'erro desconhecido'}`);
+            }
+          }}
         />
       )}
 
@@ -1121,7 +1185,9 @@ export default function App() {
   );
 }
 
-function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
+function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout, onExportData, onDeleteAccount }: any) {
+  const [showLegal, setShowLegal] = useState<null | 'terms' | 'privacy'>(null);
+  const [confirmDelete, setConfirmDelete] = useState<0 | 1 | 2>(0);
   const [name, setName] = useState(profile.name || '');
   const [specialty, setSpecialty] = useState(profile.specialty || '');
   const [crn, setCrn] = useState(profile.crm || '');
@@ -1553,14 +1619,114 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
             {onLogout && (
               <button
                 onClick={onLogout}
-                className="w-full py-2 rounded-md font-semibold text-sm text-critical hover:bg-red-50 transition-colors border border-line"
+                className="w-full py-2 rounded-md font-semibold text-sm text-ink-secondary hover:bg-subtle transition-colors border border-line"
               >
                 Sair da conta
               </button>
             )}
           </div>
         )}
+
+        {/* Privacy + data rights (LGPD) — only shown when callbacks are wired */}
+        {(onExportData || onDeleteAccount) && (
+          <div className="mt-4 pt-4 border-t border-line">
+            <div className="text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-2">
+              Privacidade e dados
+            </div>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setShowLegal('terms')}
+                className="w-full text-left text-xs font-medium text-ink-secondary hover:text-ink-primary transition-colors px-2 py-1"
+              >
+                Termos de Uso
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowLegal('privacy')}
+                className="w-full text-left text-xs font-medium text-ink-secondary hover:text-ink-primary transition-colors px-2 py-1"
+              >
+                Política de Privacidade
+              </button>
+              {onExportData && (
+                <button
+                  type="button"
+                  onClick={() => { onExportData(); }}
+                  className="w-full text-left text-xs font-medium text-ink-primary hover:bg-subtle transition-colors px-2 py-1.5 rounded-sm flex items-center justify-between"
+                >
+                  <span>Baixar meus dados (JSON)</span>
+                  <span className="text-2xs text-ink-tertiary">LGPD art. 18</span>
+                </button>
+              )}
+              {onDeleteAccount && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(1)}
+                  className="w-full text-left text-xs font-medium text-critical hover:bg-red-50 transition-colors px-2 py-1.5 rounded-sm"
+                >
+                  Excluir minha conta
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Legal pages overlay */}
+      {showLegal && (
+        <LegalOverlay
+          initialTab={showLegal}
+          onClose={() => setShowLegal(null)}
+        />
+      )}
+
+      {/* Delete account double-confirm */}
+      {confirmDelete > 0 && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setConfirmDelete(0)}
+        >
+          <div
+            className="bg-surface rounded-lg p-5 max-w-sm w-full mx-4 shadow-md border border-line animate-in fade-in zoom-in-95"
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          >
+            <div className="text-center mb-4">
+              <div className="w-11 h-11 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Trash2 size={20} className="text-critical" strokeWidth={2.25} />
+              </div>
+              <h3 className="text-md font-semibold text-ink-primary">
+                {confirmDelete === 1 ? 'Excluir conta?' : 'Confirmar exclusão definitiva?'}
+              </h3>
+              <p className="text-ink-secondary text-sm mt-1.5 leading-relaxed">
+                {confirmDelete === 1
+                  ? 'Esta ação remove sua conta e todos os dados associados (perfil, pacientes, consultas, prescrições). Após 30 dias do cancelamento, os dados são apagados em definitivo do servidor.'
+                  : 'Última confirmação. Após clicar em "Excluir", não há como recuperar.'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(0)}
+                className="flex-1 py-2 rounded-md font-semibold text-sm text-ink-secondary bg-subtle hover:bg-line transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (confirmDelete === 1) {
+                    setConfirmDelete(2);
+                  } else if (onDeleteAccount) {
+                    setConfirmDelete(0);
+                    onDeleteAccount();
+                  }
+                }}
+                className="flex-1 py-2 rounded-md font-semibold text-sm text-white bg-critical hover:bg-red-700 transition-colors"
+              >
+                {confirmDelete === 1 ? 'Continuar' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

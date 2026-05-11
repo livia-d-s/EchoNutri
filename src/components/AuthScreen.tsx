@@ -16,6 +16,7 @@ import { sendPasswordResetEmail, AuthError } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import { useAuth } from '../context/AuthContext';
+import { LegalOverlay, LegalTab } from './legal/LegalOverlay';
 
 const EchoNutriLogo = () => (
   <div className="flex items-center gap-2.5 mb-1">
@@ -51,6 +52,8 @@ const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [crm, setCrm] = useState('');
+  const [legalConsent, setLegalConsent] = useState(false);
+  const [legalOverlay, setLegalOverlay] = useState<LegalTab | null>(null);
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
@@ -68,6 +71,11 @@ const AuthScreen: React.FC = () => {
 
   const handleGoogleSignIn = async () => {
     setError(null);
+    // On signup mode, require explicit consent before sending the user to Google.
+    if (!isLogin && !legalConsent) {
+      setError("Para criar conta, é necessário aceitar os Termos de Uso e a Política de Privacidade.");
+      return;
+    }
     setIsLoading(true);
     try {
       await loginWithGoogle();
@@ -115,6 +123,7 @@ const AuthScreen: React.FC = () => {
       } else {
         if (!fullName.trim()) throw new Error("Informe seu nome completo.");
         if (!crm.trim()) throw new Error("Informe seu CRN.");
+        if (!legalConsent) throw new Error("Para criar conta, é necessário aceitar os Termos de Uso e a Política de Privacidade.");
 
         const user = await registerWithEmail(email, password, fullName);
         await setDoc(doc(db, "doctors", user.uid), {
@@ -125,6 +134,12 @@ const AuthScreen: React.FC = () => {
           specialty: 'Nutricionista',
           createdAt: new Date().toISOString(),
           role: 'nutritionist',
+          // LGPD: persist consent timestamp + version for audit trail.
+          legalConsent: {
+            acceptedAt: new Date().toISOString(),
+            termsVersion: '2026-05-05',
+            privacyVersion: '2026-05-05',
+          },
         });
       }
     } catch (err: any) {
@@ -303,9 +318,38 @@ const AuthScreen: React.FC = () => {
                   </div>
                 )}
 
+                {!isLogin && !isForgotPassword && (
+                  <label className="flex items-start gap-2.5 text-sm text-ink-secondary leading-snug cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={legalConsent}
+                      onChange={(e) => setLegalConsent(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-brand-700 flex-shrink-0"
+                    />
+                    <span>
+                      Li e aceito os{' '}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setLegalOverlay('terms'); }}
+                        className="text-brand-700 hover:text-brand-900 font-semibold underline underline-offset-2"
+                      >
+                        Termos de Uso
+                      </button>
+                      {' '}e a{' '}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setLegalOverlay('privacy'); }}
+                        className="text-brand-700 hover:text-brand-900 font-semibold underline underline-offset-2"
+                      >
+                        Política de Privacidade
+                      </button>.
+                    </span>
+                  </label>
+                )}
+
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || (!isLogin && !isForgotPassword && !legalConsent)}
                   className="w-full flex justify-center items-center py-2.5 px-4 rounded-md text-sm font-semibold text-white bg-brand-700 hover:bg-brand-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-700/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-xs"
                 >
                   {isLoading ? (
@@ -348,7 +392,33 @@ const AuthScreen: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Persistent legal footer — always reachable */}
+        <div className="px-7 py-3 border-t border-line bg-subtle flex items-center justify-center gap-4 text-2xs text-ink-tertiary">
+          <button
+            type="button"
+            onClick={() => setLegalOverlay('terms')}
+            className="hover:text-ink-primary font-medium transition-colors"
+          >
+            Termos de Uso
+          </button>
+          <span className="text-ink-tertiary">·</span>
+          <button
+            type="button"
+            onClick={() => setLegalOverlay('privacy')}
+            className="hover:text-ink-primary font-medium transition-colors"
+          >
+            Política de Privacidade
+          </button>
+        </div>
       </div>
+
+      {legalOverlay && (
+        <LegalOverlay
+          initialTab={legalOverlay}
+          onClose={() => setLegalOverlay(null)}
+        />
+      )}
     </div>
   );
 };
