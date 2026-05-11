@@ -41,11 +41,11 @@ export function ExamUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const accent = buttonColor === 'emerald'
-    ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
-    : 'text-blue-600 bg-blue-50 hover:bg-blue-100';
-  const iconColor = buttonColor === 'emerald' ? 'text-emerald-600' : 'text-blue-600';
+  // Single-accent rebrand — both variants flatten to the same brand-700 treatment.
+  const accent = 'text-ink-primary bg-surface border border-line hover:bg-subtle hover:border-brand-700';
+  const iconColor = 'text-brand-700';
   void compact;
+  void buttonColor;
 
   const handleFile = async (file: File) => {
     setError(null);
@@ -94,14 +94,14 @@ export function ExamUploader({
   return (
     <div className={compact ? '' : ''}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-          {label} {exams.length > 0 && <span className="text-slate-400 normal-case">({exams.length})</span>}
+        <span className="text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em]">
+          {label} {exams.length > 0 && <span className="text-ink-tertiary normal-case font-normal">· {exams.length}</span>}
         </span>
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors disabled:opacity-50 ${accent}`}
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-colors disabled:opacity-50 ${accent}`}
         >
           {isUploading ? (
             <>
@@ -109,7 +109,7 @@ export function ExamUploader({
             </>
           ) : (
             <>
-              <Plus size={11} /> Anexar PDF
+              <Plus size={11} strokeWidth={2.25} className="text-brand-700" /> Anexar PDF
             </>
           )}
         </button>
@@ -123,14 +123,14 @@ export function ExamUploader({
       </div>
 
       {error && (
-        <div className="mb-2 flex items-start gap-2 p-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700">
+        <div className="mb-2 flex items-start gap-2 p-2 bg-red-50 border border-red-100 rounded-md text-xs text-critical">
           <AlertCircle size={11} className="flex-shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
 
       {exams.length === 0 ? (
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-ink-tertiary">
           {emptyMessage}
         </p>
       ) : (
@@ -138,23 +138,23 @@ export function ExamUploader({
           {exams.map((exam) => (
             <div
               key={exam.id}
-              className="flex items-center gap-2.5 p-2 bg-slate-50 rounded-lg border border-slate-100 group"
+              className="flex items-center gap-2.5 p-2 bg-subtle rounded-md border border-line group"
             >
-              <FileText size={13} className={`${iconColor} flex-shrink-0`} />
+              <FileText size={13} className={`${iconColor} flex-shrink-0`} strokeWidth={2.25} />
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-slate-700 truncate">{exam.fileName}</p>
-                <p className="text-[10px] text-slate-400">
+                <p className="text-xs font-medium text-ink-primary truncate">{exam.fileName}</p>
+                <p className="text-2xs text-ink-tertiary">
                   {formatDate(exam.uploadedAt)}
-                  {exam.sizeBytes ? ` • ${formatFileSize(exam.sizeBytes)}` : ''}
+                  {exam.sizeBytes ? ` · ${formatFileSize(exam.sizeBytes)}` : ''}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => removeExam(exam.id)}
-                className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                className="p-1 text-ink-tertiary hover:text-critical hover:bg-red-50 rounded-sm transition-colors"
                 title="Remover"
               >
-                <X size={12} />
+                <X size={12} strokeWidth={2.25} />
               </button>
             </div>
           ))}

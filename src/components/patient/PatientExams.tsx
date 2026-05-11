@@ -23,7 +23,7 @@ export function PatientExams({ patient, onUpdateExams }: PatientExamsProps) {
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl md:rounded-3xl p-4 md:p-5 mb-4 md:mb-6">
+    <div className="bg-surface border border-line rounded-lg p-4 md:p-5 mb-4 md:mb-5">
       <ExamUploader exams={exams} onChange={confirmedChange} />
     </div>
   );
