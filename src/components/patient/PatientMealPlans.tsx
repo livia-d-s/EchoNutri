@@ -97,24 +97,24 @@ export function PatientMealPlans({ patient, onUpdateMealPlans }: PatientMealPlan
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl md:rounded-3xl p-4 md:p-5 mb-4 md:mb-6">
+    <div className="bg-surface border border-line rounded-lg p-4 md:p-5 mb-4 md:mb-5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <FileText size={14} className="text-emerald-600" />
-          <h3 className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">
-            Plano alimentar
-            <span className="ml-1 text-slate-300 normal-case">— {plans.length}</span>
+          <FileText size={13} className="text-brand-700" strokeWidth={2.25} />
+          <h3 className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary">
+            Prescrição vigente
+            <span className="ml-1.5 text-ink-tertiary normal-case font-normal">{plans.length}</span>
           </h3>
         </div>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-ink-primary bg-surface border border-line hover:bg-subtle hover:border-brand-700 rounded-md transition-colors disabled:opacity-50"
         >
           {isUploading ? (
             <><Loader2 size={12} className="animate-spin" /> Processando</>
           ) : (
-            <><Plus size={12} /> Anexar PDF</>
+            <><Plus size={12} strokeWidth={2.25} className="text-brand-700" /> Anexar PDF</>
           )}
         </button>
         <input
@@ -127,15 +127,15 @@ export function PatientMealPlans({ patient, onUpdateMealPlans }: PatientMealPlan
       </div>
 
       {error && (
-        <div className="mb-3 flex items-start gap-2 p-2.5 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700">
+        <div className="mb-3 flex items-start gap-2 p-2.5 bg-red-50 border border-red-100 rounded-md text-xs text-critical">
           <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
 
       {plans.length === 0 ? (
-        <p className="text-xs text-slate-400 py-2">
-          Nenhum plano anexado. Importe um PDF de plano alimentar para a IA sugerir ajustes baseados no plano atual.
+        <p className="text-xs text-ink-tertiary py-1">
+          Nenhuma prescrição anexada. Importe um PDF para a IA usar como referência ao sugerir ajustes.
         </p>
       ) : (
         <div className="space-y-2">
@@ -144,37 +144,37 @@ export function PatientMealPlans({ patient, onUpdateMealPlans }: PatientMealPlan
             return (
               <div
                 key={plan.id}
-                className={`flex items-center gap-3 p-2.5 rounded-xl border group transition-colors ${
+                className={`flex items-center gap-3 p-2.5 rounded-md border group transition-colors ${
                   isActive
-                    ? 'bg-emerald-50 border-emerald-200'
-                    : 'bg-slate-50 border-slate-100 opacity-75'
+                    ? 'bg-surface border-brand-700'
+                    : 'bg-subtle border-line opacity-75'
                 }`}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  isActive ? 'bg-emerald-100' : 'bg-slate-100'
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
+                  isActive ? 'bg-brand-700/10' : 'bg-subtle'
                 }`}>
-                  <FileText size={14} className={isActive ? 'text-emerald-600' : 'text-slate-400'} />
+                  <FileText size={14} className={isActive ? 'text-brand-700' : 'text-ink-tertiary'} strokeWidth={2.25} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-slate-700 truncate">{plan.fileName}</p>
+                    <p className="text-sm font-medium text-ink-primary truncate">{plan.fileName}</p>
                     {isActive && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-600 text-white">
-                        <Check size={8} /> Atual
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-2xs font-semibold uppercase tracking-[0.08em] bg-brand-700 text-white">
+                        <Check size={8} strokeWidth={2.5} /> Vigente
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-2xs text-ink-tertiary">
                     Anexado em {formatDate(plan.uploadedAt)}
-                    {plan.sizeBytes ? ` • ${formatFileSize(plan.sizeBytes)}` : ''}
+                    {plan.sizeBytes ? ` · ${formatFileSize(plan.sizeBytes)}` : ''}
                   </p>
                 </div>
                 <button
                   onClick={() => removePlan(plan.id)}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1.5 text-ink-tertiary hover:text-critical hover:bg-red-50 rounded-md transition-all"
                   title="Remover"
                 >
-                  <X size={14} />
+                  <X size={13} strokeWidth={2.25} />
                 </button>
               </div>
             );

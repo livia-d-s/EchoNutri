@@ -1111,8 +1111,8 @@ export default function App() {
       {/* Toast Notification */}
       {toast.visible && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="flex items-center gap-3 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl">
-            <CheckCircle size={18} className="text-green-400" />
+          <div className="flex items-center gap-3 bg-ink-primary text-white px-4 py-2.5 rounded-md shadow-md border border-ink-primary">
+            <CheckCircle size={16} className="text-positive" strokeWidth={2.25} />
             <span className="font-medium text-sm">{toast.message}</span>
           </div>
         </div>
@@ -1236,42 +1236,42 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
       onClick={handleSave}
     >
       <div
-        className="bg-white rounded-2xl md:rounded-3xl p-5 sm:p-6 md:p-8 max-w-md w-full max-h-[calc(100vh-2rem)] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-300"
+        className="bg-surface rounded-lg p-5 sm:p-6 max-w-md w-full max-h-[calc(100vh-2rem)] overflow-y-auto shadow-md border border-line animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center mb-4">
-          <h3 className="text-2xl font-black text-slate-900">
-            {tab === 'profile' ? 'Meu Perfil' : tab === 'preferences' ? 'Preferências' : 'Identidade Visual'}
+          <h3 className="text-xl font-bold text-ink-primary tracking-tight">
+            {tab === 'profile' ? 'Perfil' : tab === 'preferences' ? 'Preferências' : 'Identidade visual'}
           </h3>
-          <p className="text-slate-500 mt-1 text-sm">
-            {tab === 'profile' ? 'Configure sua foto e informações'
-              : tab === 'preferences' ? 'Como a análise aparece para você'
+          <p className="text-ink-secondary mt-1 text-sm">
+            {tab === 'profile' ? 'Foto e informações exibidas nos PDFs gerados'
+              : tab === 'preferences' ? 'Como a análise aparece na tela'
               : 'Logo e cor que aparecem nos PDFs gerados'}
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl mb-5">
+        <div className="flex gap-0.5 bg-subtle p-0.5 rounded-md mb-5">
           <button
             onClick={() => setTab('profile')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-              tab === 'profile' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
+            className={`flex-1 py-1.5 rounded-sm text-sm font-semibold transition-colors ${
+              tab === 'profile' ? 'bg-surface shadow-xs text-ink-primary' : 'text-ink-secondary hover:text-ink-primary'
             }`}
           >
             Perfil
           </button>
           <button
             onClick={() => setTab('preferences')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-              tab === 'preferences' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
+            className={`flex-1 py-1.5 rounded-sm text-sm font-semibold transition-colors ${
+              tab === 'preferences' ? 'bg-surface shadow-xs text-ink-primary' : 'text-ink-secondary hover:text-ink-primary'
             }`}
           >
             Preferências
           </button>
           <button
             onClick={() => setTab('brand')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-              tab === 'brand' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
+            className={`flex-1 py-1.5 rounded-sm text-sm font-semibold transition-colors ${
+              tab === 'brand' ? 'bg-surface shadow-xs text-ink-primary' : 'text-ink-secondary hover:text-ink-primary'
             }`}
           >
             Visual
@@ -1282,22 +1282,22 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
           <div className="space-y-5">
             {/* Logo upload */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+              <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-2">
                 Logo (aparece no topo dos PDFs)
               </label>
               <div className="flex items-center gap-4">
-                <div className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <div className="w-24 h-24 rounded-md border border-dashed border-line bg-subtle flex items-center justify-center overflow-hidden flex-shrink-0">
                   {logoUrl ? (
                     <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
                   ) : (
-                    <span className="text-[10px] text-slate-400 text-center px-2">Sem logo</span>
+                    <span className="text-2xs text-ink-tertiary text-center px-2">Sem logo</span>
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <button
                     type="button"
                     onClick={() => logoInputRef.current?.click()}
-                    className="px-3 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                    className="px-3 py-1.5 text-xs font-semibold text-ink-primary bg-surface border border-line hover:border-brand-700 hover:bg-subtle rounded-md transition-colors"
                   >
                     {logoUrl ? 'Trocar logo' : 'Enviar logo'}
                   </button>
@@ -1305,7 +1305,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
                     <button
                       type="button"
                       onClick={() => setLogoUrl(null)}
-                      className="px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="px-3 py-1.5 text-xs font-semibold text-critical hover:bg-red-50 rounded-md transition-colors"
                     >
                       Remover
                     </button>
@@ -1319,14 +1319,14 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
                   />
                 </div>
               </div>
-              <p className="text-[11px] text-slate-400 mt-2">
+              <p className="text-2xs text-ink-tertiary mt-2">
                 Recomendado: PNG com fundo transparente, máx 1MB.
               </p>
             </div>
 
             {/* Brand color */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+              <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-2">
                 Cor primária (títulos e detalhes nos PDFs)
               </label>
               <div className="flex items-center gap-3">
@@ -1334,23 +1334,23 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
                   type="color"
                   value={brandColor}
                   onChange={(e) => setBrandColor(e.target.value)}
-                  className="w-14 h-14 rounded-xl border border-slate-200 cursor-pointer bg-white"
+                  className="w-12 h-12 rounded-md border border-line cursor-pointer bg-surface"
                 />
                 <div className="flex-1">
                   <input
                     type="text"
                     value={brandColor}
                     onChange={(e) => setBrandColor(e.target.value)}
-                    placeholder="#2563EB"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 outline-none font-mono text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+                    placeholder="#0E7490"
+                    className="w-full bg-surface border border-line rounded-md py-2 px-3 outline-none font-mono text-sm text-ink-primary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                   />
                   <div className="flex gap-1.5 mt-2">
-                    {['#2563EB', '#10B981', '#7C3AED', '#DB2777', '#F59E0B', '#0F172A'].map((c) => (
+                    {['#0E7490', '#1E40AF', '#15803D', '#7C3AED', '#B45309', '#0F172A'].map((c) => (
                       <button
                         key={c}
                         type="button"
                         onClick={() => setBrandColor(c)}
-                        className={`w-6 h-6 rounded-full border-2 transition-transform ${brandColor === c ? 'border-slate-900 scale-110' : 'border-white hover:scale-105'}`}
+                        className={`w-6 h-6 rounded-md border-2 transition-transform ${brandColor === c ? 'border-ink-primary scale-110' : 'border-surface hover:scale-105'}`}
                         style={{ backgroundColor: c }}
                         title={c}
                       />
@@ -1361,27 +1361,27 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
             </div>
 
             {/* Preview */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] mb-3">Pré-visualização do PDF</p>
-              <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-100">
+            <div className="bg-subtle border border-line rounded-md p-4">
+              <p className="text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-3">Pré-visualização do PDF</p>
+              <div className="bg-surface rounded-md shadow-xs p-4 border border-line">
                 <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: brandColor }}>
                   {logoUrl ? (
                     <img src={logoUrl} alt="Logo" className="h-10 object-contain" />
                   ) : (
-                    <div className="text-sm font-black" style={{ color: brandColor }}>
+                    <div className="text-sm font-semibold" style={{ color: brandColor }}>
                       {name || 'Nutricionista'}
                     </div>
                   )}
                   <div className="ml-auto text-right">
-                    <div className="text-[10px] font-bold text-slate-700">{name || 'Nutricionista'}</div>
-                    <div className="text-[9px] text-slate-400">{specialty} {crn && `• CRN ${crn}`}</div>
+                    <div className="text-2xs font-semibold text-ink-primary">{name || 'Nutricionista'}</div>
+                    <div className="text-2xs text-ink-tertiary">{specialty} {crn && `· CRN ${crn}`}</div>
                   </div>
                 </div>
                 <div className="mt-3">
-                  <div className="text-xs font-black uppercase tracking-wider mb-1" style={{ color: brandColor }}>
-                    Pedido de Exames
+                  <div className="text-xs font-semibold uppercase tracking-[0.1em] mb-1" style={{ color: brandColor }}>
+                    Pedido de exames
                   </div>
-                  <div className="text-[10px] text-slate-500">Exemplo de cabeçalho...</div>
+                  <div className="text-2xs text-ink-tertiary">Exemplo de cabeçalho…</div>
                 </div>
               </div>
             </div>
@@ -1390,26 +1390,26 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
           <div className="space-y-5">
             {/* Sections to show */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+              <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-3">
                 Seções na análise
               </label>
               <div className="space-y-2">
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl opacity-60">
-                  <span className="text-sm font-medium text-slate-700">Racional Clínico</span>
-                  <span className="text-xs text-slate-400">Sempre visível</span>
+                <div className="flex items-center justify-between px-3 py-2.5 bg-subtle border border-line rounded-md opacity-60">
+                  <span className="text-sm font-medium text-ink-primary">Avaliação clínica</span>
+                  <span className="text-2xs text-ink-tertiary">Sempre visível</span>
                 </div>
                 {[
                   { key: 'showConduct', label: 'Direcionamento clínico' },
-                  { key: 'showAttention', label: 'Pontos de Atenção' },
-                  { key: 'showExams', label: 'Exames Sugeridos' },
+                  { key: 'showAttention', label: 'Pontos de atenção' },
+                  { key: 'showExams', label: 'Exames sugeridos' },
                 ].map(({ key, label }) => (
-                  <label key={key} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
-                    <span className="text-sm font-medium text-slate-700">{label}</span>
+                  <label key={key} className="flex items-center justify-between px-3 py-2.5 bg-surface border border-line rounded-md cursor-pointer hover:bg-subtle transition-colors">
+                    <span className="text-sm font-medium text-ink-primary">{label}</span>
                     <input
                       type="checkbox"
                       checked={!!prefs[key as 'showConduct' | 'showAttention' | 'showExams']}
                       onChange={() => togglePref(key as 'showConduct' | 'showAttention' | 'showExams')}
-                      className="w-5 h-5 rounded cursor-pointer accent-blue-600"
+                      className="w-4 h-4 rounded cursor-pointer accent-brand-700"
                     />
                   </label>
                 ))}
@@ -1418,7 +1418,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
 
             {/* Tone */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+              <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-3">
                 Tom da análise
               </label>
               <div className="space-y-2">
@@ -1427,21 +1427,21 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
                   { value: 'sistemico', label: 'Sistêmico / Integrativo', desc: 'Conexões biopsicossociais' },
                   { value: 'direto', label: 'Direto', desc: 'Objetivo e prático' },
                 ].map(({ value, label, desc }) => (
-                  <label key={value} className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer border-2 transition-all ${
+                  <label key={value} className={`flex items-start gap-3 p-3 rounded-md cursor-pointer border transition-colors ${
                     prefs.tone === value
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+                      ? 'border-brand-700 bg-surface'
+                      : 'border-line bg-surface hover:bg-subtle'
                   }`}>
                     <input
                       type="radio"
                       name="tone"
                       checked={prefs.tone === value}
                       onChange={() => setPrefs({ ...prefs, tone: value })}
-                      className="mt-0.5 accent-blue-600"
+                      className="mt-0.5 accent-brand-700"
                     />
                     <div>
-                      <div className="text-sm font-bold text-slate-800">{label}</div>
-                      <div className="text-xs text-slate-500">{desc}</div>
+                      <div className="text-sm font-semibold text-ink-primary">{label}</div>
+                      <div className="text-xs text-ink-secondary">{desc}</div>
                     </div>
                   </label>
                 ))}
@@ -1451,23 +1451,23 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
         ) : (<>
 
         {/* Photo Upload */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-5">
           <div className="relative">
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-200 hover:border-blue-400 transition-colors cursor-pointer bg-slate-100 flex items-center justify-center"
+              className="w-20 h-20 rounded-full overflow-hidden border-2 border-line hover:border-brand-700 transition-colors cursor-pointer bg-subtle flex items-center justify-center"
             >
               {photo ? (
                 <img src={photo} alt="Foto do perfil" className="w-full h-full object-cover" />
               ) : (
-                <User size={40} className="text-slate-400" />
+                <User size={32} className="text-ink-tertiary" strokeWidth={1.75} />
               )}
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-700 transition-colors"
+              className="absolute bottom-0 right-0 w-7 h-7 bg-brand-700 rounded-full flex items-center justify-center text-white shadow-xs hover:bg-brand-900 transition-colors"
             >
-              <Camera size={16} />
+              <Camera size={13} strokeWidth={2.25} />
             </button>
             <input
               ref={fileInputRef}
@@ -1480,36 +1480,36 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
         </div>
 
         {/* Name Input */}
-        <div className="mb-4">
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nome</label>
+        <div className="mb-3">
+          <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-1.5">Nome</label>
           <input
             type="text"
-            placeholder="Seu nome..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+            placeholder="Seu nome"
+            className="w-full bg-surface border border-line rounded-md py-2 px-3 outline-none text-md text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </div>
 
         {/* Specialty Input */}
-        <div className="mb-4">
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Especialidade</label>
+        <div className="mb-3">
+          <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-1.5">Especialidade</label>
           <input
             type="text"
-            placeholder="Sua especialidade..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+            placeholder="Ex: Nutrição clínica"
+            className="w-full bg-surface border border-line rounded-md py-2 px-3 outline-none text-md text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
             value={specialty}
             onChange={(e) => setSpecialty(e.target.value)}
           />
         </div>
 
         {/* CRN Input */}
-        <div className="mb-6">
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">CRN</label>
+        <div className="mb-5">
+          <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-1.5">CRN</label>
           <input
             type="text"
             placeholder="Ex: 12345/SP"
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+            className="w-full bg-surface border border-line rounded-md py-2 px-3 outline-none text-md text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
             value={crn}
             onChange={(e) => setCrn(e.target.value)}
           />
@@ -1519,7 +1519,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
         {photo && (
           <button
             onClick={() => setPhoto(null)}
-            className="w-full py-2 mb-4 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="w-full py-2 mb-3 text-sm font-semibold text-critical hover:bg-red-50 rounded-md transition-colors"
           >
             Remover foto
           </button>
@@ -1527,16 +1527,16 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
         </>)}
 
         {/* Action Buttons */}
-        <div className="flex gap-3 mt-5">
+        <div className="flex gap-2 mt-4">
           <button
             onClick={onClose}
-            className="flex-1 py-4 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+            className="flex-1 py-2.5 rounded-md font-semibold text-sm text-ink-secondary bg-subtle hover:bg-line transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 py-4 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            className="flex-1 py-2.5 rounded-md font-semibold text-sm text-white bg-brand-700 hover:bg-brand-900 transition-colors shadow-xs"
           >
             Salvar
           </button>
@@ -1544,16 +1544,16 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout }: any) {
 
         {/* Account Info & Logout */}
         {(userEmail || onLogout) && (
-          <div className="mt-6 pt-6 border-t border-slate-200">
+          <div className="mt-5 pt-5 border-t border-line">
             {userEmail && (
-              <p className="text-xs text-slate-400 text-center mb-3">
-                Conectado como <span className="font-semibold text-slate-600">{userEmail}</span>
+              <p className="text-2xs text-ink-tertiary text-center mb-3">
+                Conectada como <span className="font-medium text-ink-secondary">{userEmail}</span>
               </p>
             )}
             {onLogout && (
               <button
                 onClick={onLogout}
-                className="w-full py-3 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                className="w-full py-2 rounded-md font-semibold text-sm text-critical hover:bg-red-50 transition-colors border border-line"
               >
                 Sair da conta
               </button>
@@ -2051,12 +2051,12 @@ function TranscriptionView({
             )}
             {/* Autocomplete suggestions */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden z-20">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-line rounded-md shadow-md overflow-hidden z-20">
                 {suggestions.map((p: any) => (
                   <button
                     key={p.id}
                     type="button"
-                    className="w-full px-4 py-3 text-left hover:bg-blue-50 flex items-center gap-3 transition-colors"
+                    className="w-full px-3 py-2.5 text-left hover:bg-subtle flex items-center gap-3 transition-colors"
                     onMouseDown={() => {
                       setPatientName(p.name);
                       setShowSuggestions(false);
@@ -2066,13 +2066,13 @@ function TranscriptionView({
                       if (p.mealPlans?.length) setPendingMealPlans(p.mealPlans);
                     }}
                   >
-                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                    <div className="w-7 h-7 rounded-md bg-brand-700 text-white font-semibold text-sm flex items-center justify-center">
                       {p.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="font-medium text-slate-700 block">{p.name}</span>
+                      <span className="font-medium text-sm text-ink-primary block">{p.name}</span>
                       {p.lastVisit && (
-                        <span className="text-xs text-slate-400">Última consulta: {formatDate(p.lastVisit)}</span>
+                        <span className="text-2xs text-ink-tertiary">Última consulta · {formatDate(p.lastVisit)}</span>
                       )}
                     </div>
                   </button>
@@ -2082,18 +2082,18 @@ function TranscriptionView({
         </div>
         <div className="flex items-center gap-2">
           {autoSaveIndicator && (
-            <span className="text-xs text-green-600 font-medium animate-in fade-in duration-300">Salvo</span>
+            <span className="text-xs text-positive font-medium animate-in fade-in duration-300">Salvo</span>
           )}
           {status === AppStatus.RECORDING && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-xl border border-red-200">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-lg font-black text-red-600 tabular-nums">{formatElapsedTime(elapsedTime)}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 rounded-md border border-red-100">
+              <div className="w-2 h-2 rounded-full bg-critical animate-pulse" />
+              <span className="text-lg font-semibold text-critical font-mono tabular-nums">{formatElapsedTime(elapsedTime)}</span>
             </div>
           )}
           {status === AppStatus.PAUSED && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-xl border border-amber-200">
-              <Pause size={14} className="text-amber-600" />
-              <span className="text-lg font-black text-amber-600 tabular-nums">{formatElapsedTime(elapsedTime)}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-md border border-amber-100">
+              <Pause size={13} className="text-caution" strokeWidth={2.25} />
+              <span className="text-lg font-semibold text-caution font-mono tabular-nums">{formatElapsedTime(elapsedTime)}</span>
             </div>
           )}
         </div>
@@ -2106,7 +2106,7 @@ function TranscriptionView({
           {matchedExistingChips.map((c, i) => (
             <span
               key={i}
-              className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100"
+              className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-subtle text-ink-primary border border-line"
             >
               {c}
             </span>
@@ -2116,18 +2116,18 @@ function TranscriptionView({
 
       {/* Inline Patient Context Inputs - show only for NEW patients (not in history) */}
       {patientName.trim() && status === AppStatus.IDLE && !isExistingPatient && suggestions.length === 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 -mt-2 space-y-3 animate-in fade-in duration-200">
+        <div className="bg-surface rounded-md border border-line p-4 -mt-2 space-y-3 animate-in fade-in duration-200">
           {/* First Consultation Toggle */}
           <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider w-28 flex-shrink-0">Consulta:</span>
-            <div className="flex gap-2">
+            <span className="text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] w-28 flex-shrink-0">Consulta</span>
+            <div className="flex gap-1.5">
               <button
                 type="button"
                 onClick={() => setIsFirstConsultation(true)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors border ${
                   isFirstConsultation === true
-                    ? 'bg-green-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-brand-700 text-white border-brand-700'
+                    : 'bg-surface text-ink-secondary border-line hover:bg-subtle hover:border-brand-700'
                 }`}
               >
                 Primeira
@@ -2135,10 +2135,10 @@ function TranscriptionView({
               <button
                 type="button"
                 onClick={() => setIsFirstConsultation(false)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors border ${
                   isFirstConsultation === false
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-brand-700 text-white border-brand-700'
+                    : 'bg-surface text-ink-secondary border-line hover:bg-subtle hover:border-brand-700'
                 }`}
               >
                 Retorno
@@ -2148,8 +2148,8 @@ function TranscriptionView({
 
           {/* Goal Selection (optional, max 2) */}
           <div className="flex items-start gap-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider w-28 flex-shrink-0 pt-1">
-              Objetivo <span className="text-slate-300 font-normal normal-case">(opcional)</span>:
+            <span className="text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] w-28 flex-shrink-0 pt-1">
+              Objetivo <span className="text-ink-tertiary font-normal normal-case tracking-normal">opcional</span>
             </span>
             <div className="flex flex-wrap gap-1.5">
               {(['ganho_muscular', 'perda_gordura', 'manutencao', 'performance', 'forca', 'recuperacao', 'saude_geral'] as PatientGoal[]).map((goal) => (
@@ -2158,12 +2158,12 @@ function TranscriptionView({
                   type="button"
                   onClick={() => toggleGoal(goal, false)}
                   disabled={!patientGoals?.includes(goal) && (patientGoals?.length || 0) >= 2}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors border ${
                     patientGoals?.includes(goal)
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-brand-700 text-white border-brand-700'
                       : (patientGoals?.length || 0) >= 2
-                        ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        ? 'bg-surface text-ink-tertiary border-line cursor-not-allowed'
+                        : 'bg-surface text-ink-secondary border-line hover:bg-subtle hover:border-brand-700'
                   }`}
                 >
                   {GOAL_LABELS[goal]}
@@ -2174,13 +2174,13 @@ function TranscriptionView({
 
           {/* Training Routine */}
           <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider w-28 flex-shrink-0">
-              Treino <span className="text-slate-300 font-normal">(opcional)</span>:
+            <span className="text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] w-28 flex-shrink-0">
+              Treino <span className="text-ink-tertiary font-normal normal-case tracking-normal">opcional</span>
             </span>
             <input
               type="text"
-              placeholder="Ex: Musculação 3x, Natação 1x"
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-3 outline-none text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+              placeholder="Ex: musculação 3x, natação 1x"
+              className="flex-1 bg-surface border border-line rounded-md py-1.5 px-3 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
               value={inlineTrainingText}
               onChange={(e) => setInlineTrainingText(e.target.value)}
               onBlur={() => setPatientTraining(parseTraining(inlineTrainingText))}
@@ -2198,10 +2198,9 @@ function TranscriptionView({
               exams={pendingMealPlans || []}
               onChange={setPendingMealPlans}
               compact
-              label="Plano alimentar"
-              emptyMessage="Nenhum plano. Anexe o plano atual (importar de outro app ou plano vigente)."
+              label="Prescrição vigente"
+              emptyMessage="Nenhuma prescrição anexada. Importe a vigente (de outro app ou PDF da nutri anterior)."
               idPrefix="plan"
-              buttonColor="emerald"
             />
           </div>
         </div>
@@ -2209,28 +2208,26 @@ function TranscriptionView({
 
       {/* Patient Context Display (when recording/paused) */}
       {(patientGoals?.length > 0 || patientTraining?.length > 0 || isFirstConsultation !== null) && status !== AppStatus.IDLE && (
-        <div className="flex flex-wrap items-center gap-2 -mt-2">
+        <div className="flex flex-wrap items-center gap-1.5 -mt-2">
           {isFirstConsultation !== null && (
-            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-              isFirstConsultation ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-            }`}>
-              {isFirstConsultation ? 'Primeira Consulta' : 'Retorno'}
+            <span className="px-2 py-0.5 rounded-md text-2xs font-medium bg-subtle text-ink-primary border border-line">
+              {isFirstConsultation ? 'Primeira consulta' : 'Retorno'}
             </span>
           )}
           {patientGoals?.length > 0 && (
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
+            <span className="px-2 py-0.5 rounded-md text-2xs font-medium bg-subtle text-ink-primary border border-line">
               {patientGoals.map((g: PatientGoal) => g === 'outro' ? patientGoalCustom : GOAL_LABELS[g]).join(' + ')}
             </span>
           )}
           {patientTraining?.length > 0 && (
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+            <span className="px-2 py-0.5 rounded-md text-2xs font-medium bg-subtle text-ink-primary border border-line">
               {formatTraining(patientTraining)}
             </span>
           )}
         </div>
       )}
 
-      <div className="bg-white rounded-2xl md:rounded-[2.5rem] border border-slate-200 shadow-xl h-[320px] sm:h-[380px] md:h-[450px] flex flex-col relative overflow-hidden">
+      <div className="bg-surface rounded-lg border border-line shadow-sm h-[320px] sm:h-[380px] md:h-[440px] flex flex-col relative overflow-hidden">
         <div
           ref={transcriptContainerRef}
           className="flex-1 p-4 sm:p-6 md:p-12 overflow-y-auto scroll-smooth"
@@ -2254,7 +2251,7 @@ function TranscriptionView({
               <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
                 <button
                   onClick={handleFinalize}
-                  className="flex items-center gap-2 md:gap-3 bg-blue-600 text-white px-6 py-3 md:px-10 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
+                  className="flex items-center gap-2 bg-brand-700 text-white px-6 py-2.5 md:px-8 md:py-3 rounded-md font-semibold text-md shadow-xs hover:bg-brand-900 transition-colors active:scale-[0.98]"
                 >
                   <CheckCircle size={20} /> Analisar Consulta
                 </button>
@@ -2271,8 +2268,8 @@ function TranscriptionView({
               </div>
             ) : (
               <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
-                <button onClick={startRecording} className="flex items-center gap-2 md:gap-3 bg-blue-600 text-white px-6 py-3 md:px-10 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
-                  <Mic size={20} /> Registrar Consulta
+                <button onClick={startRecording} className="flex items-center gap-2 bg-brand-700 text-white px-6 py-2.5 md:px-8 md:py-3 rounded-md font-semibold text-md shadow-xs hover:bg-brand-900 transition-colors active:scale-[0.98]">
+                  <Mic size={18} strokeWidth={2.25} /> Registrar consulta
                 </button>
                 <button
                   onClick={() => audioInputRef.current?.click()}
@@ -2336,30 +2333,30 @@ function TranscriptionView({
             </div>
           )}
           {status === AppStatus.RECORDING && (
-            <div className="flex gap-3 md:gap-4">
-              <button onClick={pauseRecording} className="flex items-center gap-2 md:gap-3 bg-amber-500 text-white px-4 py-3 md:px-6 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-lg shadow-amber-200 hover:bg-amber-600 active:scale-95 transition-all">
-                <Pause size={20} /> Pausar
+            <div className="flex gap-2.5">
+              <button onClick={pauseRecording} className="flex items-center gap-2 bg-caution text-white px-5 py-2.5 md:px-6 md:py-3 rounded-md font-semibold text-md shadow-xs hover:opacity-90 active:scale-[0.98] transition-all">
+                <Pause size={17} strokeWidth={2.25} /> Pausar
               </button>
-              <button onClick={handleFinalize} className="flex items-center gap-2 md:gap-3 bg-slate-900 text-white px-5 py-3 md:px-8 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-xl active:scale-95 transition-all">
-                <Square size={16} fill="currentColor" /> Finalizar
+              <button onClick={handleFinalize} className="flex items-center gap-2 bg-ink-primary text-white px-5 py-2.5 md:px-6 md:py-3 rounded-md font-semibold text-md shadow-xs hover:opacity-90 active:scale-[0.98] transition-all">
+                <Square size={15} fill="currentColor" /> Finalizar
               </button>
             </div>
           )}
           {status === AppStatus.PAUSED && (
-            <div className="flex gap-3 md:gap-4">
-              <button onClick={resumeRecording} className="flex items-center gap-2 md:gap-3 bg-green-500 text-white px-4 py-3 md:px-6 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-lg shadow-green-200 hover:bg-green-600 active:scale-95 transition-all">
-                <Play size={20} fill="currentColor" /> Retomar
+            <div className="flex gap-2.5">
+              <button onClick={resumeRecording} className="flex items-center gap-2 bg-positive text-white px-5 py-2.5 md:px-6 md:py-3 rounded-md font-semibold text-md shadow-xs hover:opacity-90 active:scale-[0.98] transition-all">
+                <Play size={17} fill="currentColor" /> Retomar
               </button>
-              <button onClick={handleFinalize} className="flex items-center gap-2 md:gap-3 bg-slate-900 text-white px-5 py-3 md:px-8 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-base md:text-lg shadow-xl active:scale-95 transition-all">
-                <Square size={16} fill="currentColor" /> Finalizar
+              <button onClick={handleFinalize} className="flex items-center gap-2 bg-ink-primary text-white px-5 py-2.5 md:px-6 md:py-3 rounded-md font-semibold text-md shadow-xs hover:opacity-90 active:scale-[0.98] transition-all">
+                <Square size={15} fill="currentColor" /> Finalizar
               </button>
             </div>
           )}
         </div>
 
         {status === AppStatus.PROCESSING && (
-          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center z-50">
-            <Loader2 className="animate-spin text-blue-600 mb-4" size={48} />
+          <div className="absolute inset-0 bg-surface/95 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+            <Loader2 className="animate-spin text-brand-700 mb-4" size={42} strokeWidth={2.25} />
             <h2 className="text-xl md:text-2xl font-bold text-ink-primary">Analisando consulta</h2>
             <p className="text-ink-secondary mt-2 text-sm text-center px-4">Avaliação clínica e prescrição em andamento</p>
           </div>
@@ -2368,23 +2365,23 @@ function TranscriptionView({
 
       {/* Patient Pre-Consultation Popup */}
       {showNamePopup && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-surface rounded-lg p-5 sm:p-6 max-w-lg w-full shadow-md border border-line animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100vh-2rem)] overflow-y-auto">
             <div className="text-center mb-5">
-              <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <User size={28} className="text-blue-600" />
+              <div className="w-12 h-12 bg-subtle border border-line rounded-md flex items-center justify-center mx-auto mb-3">
+                <User size={22} className="text-brand-700" strokeWidth={2.25} />
               </div>
-              <h3 className="text-xl font-black text-slate-900">Dados do Paciente</h3>
-              <p className="text-slate-400 text-sm mt-1">Preencha rapidamente antes de iniciar</p>
+              <h3 className="text-md font-semibold text-ink-primary">Antes de começar</h3>
+              <p className="text-ink-tertiary text-sm mt-0.5">Identifique a paciente e o contexto da consulta</p>
             </div>
 
             {/* Patient Name */}
             <div className="mb-4 relative">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nome Completo</label>
+              <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-1.5">Nome completo</label>
               <input
                 type="text"
                 placeholder="Ex: Maria Silva Santos"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none font-bold focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+                className="w-full bg-surface border border-line rounded-md py-2 px-3 outline-none font-semibold text-ink-primary placeholder:text-ink-tertiary placeholder:font-normal focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                 value={tempName}
                 onChange={(e) => { setTempName(e.target.value); setShowPopupSuggestions(true); }}
                 onFocus={() => setShowPopupSuggestions(true)}
@@ -2430,10 +2427,10 @@ function TranscriptionView({
                           setShowPopupSuggestions(false);
                         }}
                       >
-                        <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                        <div className="w-7 h-7 rounded-md bg-brand-700 text-white font-semibold text-xs flex items-center justify-center">
                           {p.name.charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-medium text-slate-700 text-sm truncate">{p.name}</span>
+                        <span className="font-medium text-ink-primary text-sm truncate">{p.name}</span>
                       </button>
                     ))}
                   </div>
@@ -2455,7 +2452,7 @@ function TranscriptionView({
                   {chips.map((c, i) => (
                     <span
                       key={i}
-                      className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100"
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-subtle text-ink-primary border border-line"
                     >
                       {c}
                     </span>
@@ -2466,15 +2463,15 @@ function TranscriptionView({
 
             {/* First Consultation Toggle */}
             <div className="mb-4">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Primeira Consulta?</label>
+              <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-1.5">Primeira consulta?</label>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setTempIsFirst(true)}
-                  className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  className={`flex-1 py-2 rounded-md font-semibold text-sm transition-colors border ${
                     tempIsFirst === true
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'bg-brand-700 text-white border-brand-700 shadow-xs'
+                      : 'bg-surface text-ink-secondary border-line hover:bg-subtle hover:border-brand-700'
                   }`}
                 >
                   Sim
@@ -2482,10 +2479,10 @@ function TranscriptionView({
                 <button
                   type="button"
                   onClick={() => setTempIsFirst(false)}
-                  className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  className={`flex-1 py-2 rounded-md font-semibold text-sm transition-colors border ${
                     tempIsFirst === false
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'bg-brand-700 text-white border-brand-700 shadow-xs'
+                      : 'bg-surface text-ink-secondary border-line hover:bg-subtle hover:border-brand-700'
                   }`}
                 >
                   Retorno
@@ -2495,8 +2492,8 @@ function TranscriptionView({
 
             {/* Goal Quick Select (optional, max 2) */}
             <div className="mb-4">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Objetivo <span className="text-slate-300 font-normal normal-case">(opcional)</span>
+              <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-1.5">
+                Objetivo <span className="text-ink-tertiary font-normal normal-case tracking-normal">opcional</span>
               </label>
               <div className="flex flex-wrap gap-1.5">
                 {(['ganho_muscular', 'perda_gordura', 'manutencao', 'performance', 'forca', 'recuperacao', 'saude_geral'] as PatientGoal[]).map((goal) => (
@@ -2505,12 +2502,12 @@ function TranscriptionView({
                     type="button"
                     onClick={() => toggleGoal(goal, true)}
                     disabled={!tempGoals.includes(goal) && tempGoals.length >= 2}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors border ${
                       tempGoals.includes(goal)
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-brand-700 text-white border-brand-700'
                         : tempGoals.length >= 2
-                          ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          ? 'bg-surface text-ink-tertiary border-line cursor-not-allowed'
+                          : 'bg-surface text-ink-secondary border-line hover:bg-subtle hover:border-brand-700'
                     }`}
                   >
                     {GOAL_LABELS[goal]}
@@ -2521,13 +2518,13 @@ function TranscriptionView({
 
             {/* Training Routine (Optional) */}
             <div className="mb-4">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Rotina de Treino <span className="text-slate-300 font-normal">(opcional)</span>
+              <label className="block text-2xs font-semibold text-ink-secondary uppercase tracking-[0.1em] mb-1.5">
+                Rotina de treino <span className="text-ink-tertiary font-normal normal-case tracking-normal">opcional</span>
               </label>
               <input
                 type="text"
-                placeholder="Ex: Musculação 3x, Natação 1x"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+                placeholder="Ex: musculação 3x, natação 1x"
+                className="w-full bg-surface border border-line rounded-md py-2 px-3 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                 value={tempTraining}
                 onChange={(e) => setTempTraining(e.target.value)}
               />
@@ -2544,25 +2541,24 @@ function TranscriptionView({
                 exams={pendingMealPlans}
                 onChange={setPendingMealPlans}
                 compact
-                label="Plano alimentar"
-                emptyMessage="Nenhum plano. Anexe o plano atual da paciente (importar de outro app ou plano vigente)."
+                label="Prescrição vigente"
+                emptyMessage="Nenhuma prescrição anexada. Importe a vigente (de outro app ou PDF da nutri anterior)."
                 idPrefix="plan"
-                buttonColor="emerald"
               />
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <button
                 onClick={() => { setShowNamePopup(false); setPendingAction(null); }}
-                className="flex-1 py-3.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                className="flex-1 py-2.5 rounded-md font-semibold text-sm text-ink-secondary bg-subtle hover:bg-line transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleNameSubmit}
                 disabled={!tempName.trim()}
-                className="flex-1 py-3.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-2.5 rounded-md font-semibold text-sm text-white bg-brand-700 hover:bg-brand-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
               >
                 Iniciar
               </button>
@@ -2603,20 +2599,15 @@ function DiagnosisView({ result, patientName, eventId, onSaveResult, onBack, pre
   };
   const CollapseToggle = ({ section, hoverColor = 'slate' }: { section: string; hoverColor?: string }) => {
     const collapsed = collapsedSections.has(section);
-    const hoverClass: Record<string, string> = {
-      slate: 'hover:text-slate-700 hover:bg-slate-100',
-      emerald: 'hover:text-emerald-600 hover:bg-emerald-100/50',
-      sky: 'hover:text-sky-600 hover:bg-sky-100/50',
-      amber: 'hover:text-amber-600 hover:bg-amber-100/50',
-      blue: 'hover:text-blue-600 hover:bg-blue-50',
-    };
+    // Single-accent: all collapse toggles share the same brand hover.
+    void hoverColor;
     return (
       <button
         onClick={() => toggleCollapse(section)}
-        className={`p-1.5 text-slate-400 ${hoverClass[hoverColor] || hoverClass.slate} rounded-lg transition-all`}
+        className="p-1.5 text-ink-tertiary hover:text-brand-700 hover:bg-subtle rounded-md transition-all"
         title={collapsed ? 'Expandir' : 'Recolher'}
       >
-        {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+        {collapsed ? <ChevronRight size={14} strokeWidth={2.25} /> : <ChevronDown size={14} strokeWidth={2.25} />}
       </button>
     );
   };
@@ -2939,11 +2930,11 @@ Análise prévia:
   const EditButton = ({ section }: { section: string }) => (
     <button
       onClick={() => startEditing(section)}
-      className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-blue-600
-                 hover:bg-blue-50 rounded-lg transition-all"
+      className="opacity-0 group-hover:opacity-100 p-1.5 text-ink-tertiary hover:text-brand-700
+                 hover:bg-subtle rounded-md transition-all"
       title="Editar"
     >
-      <Pencil size={12} />
+      <Pencil size={12} strokeWidth={2.25} />
     </button>
   );
 
@@ -2951,11 +2942,11 @@ Análise prévia:
   const adherence: string = (result.adherenceProbability || '').toString().toLowerCase();
   const behavior: string = (result.behavioralProfile || '').toString();
   const adherenceStyle = {
-    alta: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    'média': 'bg-amber-50 text-amber-800 border-amber-200',
-    media: 'bg-amber-50 text-amber-800 border-amber-200',
-    baixa: 'bg-rose-50 text-rose-800 border-rose-200',
-  }[adherence] || 'bg-slate-50 text-slate-700 border-slate-200';
+    alta: 'bg-subtle text-positive border-line',
+    'média': 'bg-subtle text-caution border-line',
+    media: 'bg-subtle text-caution border-line',
+    baixa: 'bg-subtle text-critical border-line',
+  }[adherence] || 'bg-subtle text-ink-secondary border-line';
 
   // Exam priority (preserved from original)
   const priorityStyle = (index: number): { label: string; dot: string; badge: string } => {
@@ -2980,41 +2971,41 @@ Análise prévia:
     <div className="space-y-5 pb-20 animate-in fade-in zoom-in-95 duration-500">
       {/* Top bar: back + download */}
       <div className="flex items-center justify-between gap-3">
-        <button onClick={onBack} className="flex items-center gap-2 text-blue-600 font-bold text-sm hover:gap-3 transition-all">
-          <ArrowLeft size={16} /> Voltar
+        <button onClick={onBack} className="flex items-center gap-1.5 text-brand-700 hover:text-brand-900 font-semibold text-sm transition-colors">
+          <ArrowLeft size={15} strokeWidth={2.25} /> Voltar
         </button>
         {/* Download dropdown */}
         <div className="relative">
           <button
             onClick={() => setDownloadOpen((v) => !v)}
             disabled={!!generatingPdf}
-            className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.5 px-3 py-2 bg-brand-700 hover:bg-brand-900 text-white text-sm font-semibold rounded-md shadow-xs transition-colors disabled:opacity-60"
           >
             {generatingPdf ? (
               <><Loader2 size={14} className="animate-spin" /> Gerando…</>
             ) : (
-              <><FileText size={14} /> Baixar PDF</>
+              <><FileText size={14} strokeWidth={2.25} /> Documentos</>
             )}
           </button>
           {downloadOpen && !generatingPdf && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setDownloadOpen(false)} />
-              <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl border border-slate-200 shadow-xl z-40 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 top-full mt-1.5 w-64 bg-surface rounded-md border border-line shadow-md z-40 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                 <button
                   onClick={() => handleDownload('exams')}
-                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-100"
+                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-subtle transition-colors text-left border-b border-line"
                 >
-                  <TestTube size={16} className="text-rose-500 mt-0.5 flex-shrink-0" />
+                  <TestTube size={15} className="text-brand-700 mt-0.5 flex-shrink-0" strokeWidth={2.25} />
                   <div>
-                    <div className="font-bold text-sm text-slate-800">Pedido de Exames</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">Solicitação para o laboratório</div>
+                    <div className="font-semibold text-sm text-ink-primary">Pedido de exames</div>
+                    <div className="text-2xs text-ink-tertiary mt-0.5">Solicitação para o laboratório</div>
                   </div>
                 </button>
                 <button
                   onClick={() => handleDownload('conduct')}
-                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-100"
+                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-subtle transition-colors text-left border-b border-line"
                 >
-                  <ClipboardCheck size={16} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <ClipboardCheck size={15} className="text-brand-700 mt-0.5 flex-shrink-0" strokeWidth={2.25} />
                   <div>
                     <div className="font-semibold text-sm text-ink-primary">Direcionamento clínico</div>
                     <div className="text-2xs text-ink-tertiary mt-0.5">Orientações para a paciente</div>
@@ -3022,27 +3013,27 @@ Análise prévia:
                 </button>
                 <button
                   onClick={() => handleDownload('referral')}
-                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-100"
+                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-subtle transition-colors text-left border-b border-line"
                 >
-                  <Stethoscope size={16} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+                  <Stethoscope size={15} className="text-brand-700 mt-0.5 flex-shrink-0" strokeWidth={2.25} />
                   <div>
-                    <div className="font-bold text-sm text-slate-800">Encaminhamento Médico</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">Resumo clínico para o médico</div>
+                    <div className="font-semibold text-sm text-ink-primary">Encaminhamento clínico</div>
+                    <div className="text-2xs text-ink-tertiary mt-0.5">Resumo técnico para o médico</div>
                   </div>
                 </button>
                 <button
                   onClick={() => handleDownload('plan')}
                   disabled={!mealPlan && !result?.structuredMealPlan}
-                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!mealPlan && !result?.structuredMealPlan ? 'Gere um plano alimentar primeiro' : ''}
+                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-subtle transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!mealPlan && !result?.structuredMealPlan ? 'Gere uma prescrição primeiro' : ''}
                 >
-                  <Utensils size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                  <Utensils size={15} className="text-brand-700 mt-0.5 flex-shrink-0" strokeWidth={2.25} />
                   <div>
-                    <div className="font-bold text-sm text-slate-800">Plano Alimentar</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">
+                    <div className="font-semibold text-sm text-ink-primary">Prescrição nutricional</div>
+                    <div className="text-2xs text-ink-tertiary mt-0.5">
                       {mealPlan || result?.structuredMealPlan
                         ? 'Refeições com substituições'
-                        : 'Gere um plano primeiro'}
+                        : 'Gere uma prescrição primeiro'}
                     </div>
                   </div>
                 </button>
@@ -3098,8 +3089,8 @@ Análise prévia:
                 rows={5}
               />
               <div className="flex gap-2 justify-end">
-                <button onClick={cancelEditing} className="px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 rounded-lg">Cancelar</button>
-                <button onClick={saveEditing} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+                <button onClick={cancelEditing} className="px-3 py-1 text-sm text-ink-secondary hover:bg-subtle rounded-md font-semibold">Cancelar</button>
+                <button onClick={saveEditing} className="px-3 py-1 text-sm bg-brand-700 hover:bg-brand-900 text-white rounded-md font-semibold shadow-xs">Salvar</button>
               </div>
             </div>
           ) : (
@@ -3121,7 +3112,7 @@ Análise prévia:
               {editingSection !== 'conduct' && !collapsedSections.has('conduct') && (
                 <button
                   onClick={() => startEditing('conduct')}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-100/50 rounded-lg transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1.5 text-ink-tertiary hover:text-brand-700 hover:bg-subtle rounded-md transition-all"
                 >
                   <Pencil size={12} />
                 </button>
@@ -3140,8 +3131,8 @@ Análise prévia:
                 placeholder="Separe os passos por ponto e vírgula (;) ou numere (1. 2. 3.)"
               />
               <div className="flex gap-2 justify-end">
-                <button onClick={cancelEditing} className="px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 rounded-lg">Cancelar</button>
-                <button onClick={saveEditing} className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Salvar</button>
+                <button onClick={cancelEditing} className="px-3 py-1 text-sm text-ink-secondary hover:bg-subtle rounded-md font-semibold">Cancelar</button>
+                <button onClick={saveEditing} className="px-3 py-1 text-sm bg-brand-700 hover:bg-brand-900 text-white rounded-md font-semibold shadow-xs">Salvar</button>
               </div>
             </div>
           ) : (
@@ -3209,8 +3200,8 @@ Análise prévia:
                   />
                 ))}
                 <div className="flex gap-2 justify-end mt-3">
-                  <button onClick={cancelEditing} className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100 rounded-lg">Cancelar</button>
-                  <button onClick={saveEditing} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+                  <button onClick={cancelEditing} className="px-3 py-1 text-xs text-ink-secondary hover:bg-subtle rounded-md font-semibold">Cancelar</button>
+                  <button onClick={saveEditing} className="px-3 py-1 text-xs bg-brand-700 hover:bg-brand-900 text-white rounded-md font-semibold shadow-xs">Salvar</button>
                 </div>
               </div>
             ) : (
@@ -3270,7 +3261,7 @@ Análise prévia:
                   />
                 ))}
                 <div className="flex gap-2 justify-end mt-3">
-                  <button onClick={cancelEditing} className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                  <button onClick={cancelEditing} className="px-3 py-1 text-xs text-ink-secondary hover:bg-subtle rounded-md font-semibold">Cancelar</button>
                   <button onClick={saveEditing} className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600">Salvar</button>
                 </div>
               </div>
@@ -3312,28 +3303,28 @@ Análise prévia:
           onClick={() => setDeleteConfirm(null)}
         >
           <div
-            className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl animate-in fade-in zoom-in-95"
+            className="bg-surface rounded-lg p-5 max-w-sm w-full mx-4 shadow-md border border-line animate-in fade-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Trash2 size={24} className="text-red-500" />
+              <div className="w-11 h-11 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Trash2 size={20} className="text-critical" strokeWidth={2.25} />
               </div>
-              <h3 className="text-lg font-black text-slate-900">Confirmar exclusão</h3>
-              <p className="text-slate-500 text-sm mt-2">
-                Tem certeza que quer deletar este {deleteConfirm.type === 'condition' ? 'item de atenção' : 'exame'}? Não é possível recuperar depois.
+              <h3 className="text-md font-semibold text-ink-primary">Confirmar exclusão</h3>
+              <p className="text-ink-secondary text-sm mt-1.5">
+                Remover este {deleteConfirm.type === 'condition' ? 'ponto de atenção' : 'exame'}? Esta ação não pode ser desfeita.
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                className="flex-1 py-2 rounded-md font-semibold text-sm text-ink-secondary bg-subtle hover:bg-line transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={confirmDeleteItem}
-                className="flex-1 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
+                className="flex-1 py-2 rounded-md font-semibold text-sm text-white bg-critical hover:bg-red-700 transition-colors"
               >
                 Excluir
               </button>

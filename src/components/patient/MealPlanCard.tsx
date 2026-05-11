@@ -160,7 +160,7 @@ export function MealPlanCard({
 
       {/* Macros */}
       {plan.macroEstimate && (
-        <div className="relative mb-5 bg-white rounded-xl border border-slate-100 p-3">
+        <div className="relative mb-5 bg-subtle/40 rounded-md border border-line p-3">
           <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 transition-opacity ${
             recalculating ? 'opacity-50' : ''
           }`}>
@@ -178,9 +178,9 @@ export function MealPlanCard({
             )}
           </div>
           {recalculating && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/60 rounded-xl">
-              <div className="flex items-center gap-1.5 text-[11px] text-blue-700 font-bold bg-white px-3 py-1.5 rounded-lg shadow-sm border border-blue-100">
-                <Loader2 size={12} className="animate-spin" /> Atualizando macros…
+            <div className="absolute inset-0 flex items-center justify-center bg-surface/70 rounded-md">
+              <div className="flex items-center gap-1.5 text-2xs text-ink-primary font-semibold bg-surface px-3 py-1.5 rounded-md shadow-xs border border-line">
+                <Loader2 size={12} className="animate-spin text-brand-700" /> Atualizando valores nutricionais
               </div>
             </div>
           )}
@@ -202,16 +202,16 @@ export function MealPlanCard({
       <div className="flex gap-2 mt-3">
         <button
           onClick={addMeal}
-          className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-blue-50 text-blue-600 text-xs font-bold rounded-lg border border-dashed border-blue-300 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-surface hover:bg-subtle text-ink-primary text-xs font-semibold rounded-md border border-dashed border-line hover:border-brand-700 transition-colors"
         >
-          <Plus size={12} /> Adicionar refeição
+          <Plus size={12} strokeWidth={2.25} className="text-brand-700" /> Adicionar refeição
         </button>
       </div>
 
       {/* Notes */}
       {plan.notes && (
         <div className="mt-4 p-3 bg-white rounded-xl border border-slate-100">
-          <div className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 mb-1">
+          <div className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary mb-1">
             Observações
           </div>
           <textarea
@@ -229,7 +229,7 @@ export function MealPlanCard({
 function MacroCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="text-center">
-      <div className="text-[9px] font-black uppercase tracking-wider text-slate-400">{label}</div>
+      <div className="text-2xs font-semibold uppercase tracking-[0.08em] text-ink-tertiary">{label}</div>
       <div className="text-sm font-bold text-slate-800">{value}</div>
     </div>
   );
@@ -263,7 +263,7 @@ function MealSection({ meal, onChange, onRemove }: MealSectionProps) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 group">
+    <div className="bg-subtle/40 rounded-md border border-line p-4 group">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {editingName ? (
@@ -282,30 +282,30 @@ function MealSection({ meal, onChange, onRemove }: MealSectionProps) {
                   }
                 }}
                 autoFocus
-                className="text-sm font-black text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-100 flex-1"
+                className="text-sm font-semibold text-ink-primary bg-surface border border-line rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 flex-1"
               />
-              <button onClick={() => { onChange({ ...meal, name: nameValue.trim() || meal.name }); setEditingName(false); }} className="p-1 text-green-600 hover:bg-green-50 rounded">
-                <Check size={12} />
+              <button onClick={() => { onChange({ ...meal, name: nameValue.trim() || meal.name }); setEditingName(false); }} className="p-1 text-positive hover:bg-green-50 rounded-sm">
+                <Check size={12} strokeWidth={2.25} />
               </button>
             </div>
           ) : (
             <>
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">
+              <h4 className="text-sm font-semibold text-ink-primary uppercase tracking-[0.08em]">
                 {meal.name}
               </h4>
               {meal.time && (
-                <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 font-bold">
-                  <Clock size={10} /> {meal.time}
+                <span className="inline-flex items-center gap-1 text-2xs text-ink-tertiary font-medium font-mono">
+                  <Clock size={10} strokeWidth={2.25} /> {meal.time}
                 </span>
               )}
-              <button onClick={() => { setNameValue(meal.name); setEditingName(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded transition-all">
-                <Pencil size={11} />
+              <button onClick={() => { setNameValue(meal.name); setEditingName(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-ink-tertiary hover:text-brand-700 hover:bg-subtle rounded-sm transition-all">
+                <Pencil size={11} strokeWidth={2.25} />
               </button>
             </>
           )}
         </div>
-        <button onClick={onRemove} className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded transition-all">
-          <X size={14} />
+        <button onClick={onRemove} className="opacity-0 group-hover:opacity-100 p-1 text-ink-tertiary hover:text-critical hover:bg-red-50 rounded-sm transition-all">
+          <X size={14} strokeWidth={2.25} />
         </button>
       </div>
 
@@ -322,9 +322,9 @@ function MealSection({ meal, onChange, onRemove }: MealSectionProps) {
 
       <button
         onClick={addItem}
-        className="mt-2.5 flex items-center gap-1.5 text-[11px] font-bold text-blue-600 hover:text-blue-700"
+        className="mt-2.5 flex items-center gap-1.5 text-2xs font-semibold text-brand-700 hover:text-brand-900"
       >
-        <Plus size={11} /> Adicionar item
+        <Plus size={11} strokeWidth={2.25} /> Adicionar item
       </button>
     </div>
   );
@@ -360,7 +360,7 @@ function MealItemRow({ item, onChange, onRemove }: MealItemRowProps) {
   return (
     <li ref={ref} className="relative group/item">
       <div className="flex items-start gap-2">
-        <span className="text-blue-400 mt-1.5 text-[10px]">•</span>
+        <span className="text-ink-tertiary mt-1.5 text-2xs">•</span>
         <div className="flex-1 min-w-0">
           {editing ? (
             <div className="flex items-center gap-1">
@@ -378,31 +378,31 @@ function MealItemRow({ item, onChange, onRemove }: MealItemRowProps) {
                   }
                 }}
                 autoFocus
-                className="flex-1 text-sm bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-100"
+                className="flex-1 text-sm bg-surface text-ink-primary border border-line rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700"
               />
-              <button onClick={() => { onChange({ ...item, food: text.trim() || item.food }); setEditing(false); }} className="p-1 text-green-600 hover:bg-green-50 rounded">
-                <Check size={12} />
+              <button onClick={() => { onChange({ ...item, food: text.trim() || item.food }); setEditing(false); }} className="p-1 text-positive hover:bg-green-50 rounded-sm">
+                <Check size={12} strokeWidth={2.25} />
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => hasSubs && setOpenSubs((v) => !v)}
-                className={`text-sm text-slate-800 text-left ${hasSubs ? 'underline decoration-dotted decoration-blue-300 underline-offset-4 hover:decoration-blue-500 cursor-pointer' : ''}`}
+                className={`text-sm text-ink-primary text-left ${hasSubs ? 'underline decoration-dotted decoration-brand-700/40 underline-offset-4 hover:decoration-brand-700 cursor-pointer' : ''}`}
                 title={hasSubs ? 'Ver substituições' : ''}
               >
                 {item.food}
               </button>
               {hasSubs && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-blue-500 px-1.5 py-0.5 bg-blue-50 rounded-full">
-                  <Repeat size={9} /> {subs.length}
+                <span className="inline-flex items-center gap-0.5 text-2xs font-semibold text-brand-700 px-1.5 py-0.5 bg-subtle border border-line rounded-md">
+                  <Repeat size={9} strokeWidth={2.25} /> {subs.length}
                 </span>
               )}
-              <button onClick={() => { setText(item.food); setEditing(true); }} className="opacity-0 group-hover/item:opacity-100 p-0.5 text-slate-300 hover:text-blue-600 transition-all">
-                <Pencil size={11} />
+              <button onClick={() => { setText(item.food); setEditing(true); }} className="opacity-0 group-hover/item:opacity-100 p-0.5 text-ink-tertiary hover:text-brand-700 transition-all">
+                <Pencil size={11} strokeWidth={2.25} />
               </button>
-              <button onClick={onRemove} className="opacity-0 group-hover/item:opacity-100 p-0.5 text-slate-300 hover:text-red-500 transition-all">
-                <X size={11} />
+              <button onClick={onRemove} className="opacity-0 group-hover/item:opacity-100 p-0.5 text-ink-tertiary hover:text-critical transition-all">
+                <X size={11} strokeWidth={2.25} />
               </button>
             </div>
           )}
@@ -411,9 +411,9 @@ function MealItemRow({ item, onChange, onRemove }: MealItemRowProps) {
 
       {/* Substitution dropdown */}
       {openSubs && hasSubs && (
-        <div className="absolute left-4 top-full mt-1 z-20 w-64 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
-          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
-            <div className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-500">
+        <div className="absolute left-4 top-full mt-1 z-20 w-64 bg-surface border border-line rounded-md shadow-md overflow-hidden">
+          <div className="px-3 py-2 bg-subtle border-b border-line">
+            <div className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary">
               Substituições equivalentes
             </div>
           </div>
@@ -427,7 +427,7 @@ function MealItemRow({ item, onChange, onRemove }: MealItemRowProps) {
                     onChange({ ...item, food: sub, substitutions: newSubs });
                     setOpenSubs(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm text-ink-primary hover:bg-subtle transition-colors"
                 >
                   {sub}
                 </button>
