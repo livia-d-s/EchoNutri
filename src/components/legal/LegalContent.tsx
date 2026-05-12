@@ -13,11 +13,11 @@ import React from 'react';
 // ============================================================
 export const LEGAL_META = {
   productName: 'EchoNutri',
-  legalEntity: 'Lívia da Silva [CNPJ a confirmar com consultoria legal]',
+  legalEntity: 'Lívia da Silva — MEI · CNPJ 63.383.704/0001-00',
   contactEmail: 'c.echomed@gmail.com', // migrar para contato@echonutri.com.br após domínio
   jurisdiction: 'Brasil',
   effectiveDate: '01/07/2026',
-  lastUpdate: '05/05/2026',
+  lastUpdate: '12/05/2026',
 };
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
