@@ -53,8 +53,16 @@ export function validateCrn(input: string): CrnValidationResult {
   // Normalize: uppercase, collapse whitespace, allow common separators.
   const normalized = raw.toUpperCase().replace(/\s+/g, ' ').trim();
 
+  // Mínimo de 4 dígitos: CRNs com menos do que isso são extremamente raros
+  // (apenas registros muito antigos da década de 70/80) e quase sempre
+  // indicam dado fake ou digitado errado. Limite máximo 6 cobre o intervalo
+  // atual do CRN-3 (~80.000 inscritos).
+  const MIN_DIGITS = 4;
+  const MAX_DIGITS = 6;
+  const NUMBER = `\\d{${MIN_DIGITS},${MAX_DIGITS}}`;
+
   // Pattern A: "NNNNN/UF" or "NNNNN-UF" or "NNNNN UF"
-  let m = normalized.match(/^(\d{2,6})\s*[\/\-\s]\s*([A-Z]{2})$/);
+  let m = normalized.match(new RegExp(`^(${NUMBER})\\s*[\\/\\-\\s]\\s*([A-Z]{2})$`));
   if (m) {
     const [, number, uf] = m;
     if (!UF_CODES.has(uf)) {
@@ -66,7 +74,7 @@ export function validateCrn(input: string): CrnValidationResult {
   // Pattern B: "CRN-N NNNNN" or "CRN N/NNNNN" — region without explicit UF.
   // We accept it but flag that we couldn't infer UF — the canonical form
   // will be "CRN-N NNNNN" rather than "NNNNN/UF".
-  m = normalized.match(/^CRN[\s\-]?(\d{1,2})[\s\-\/]+(\d{2,6})$/);
+  m = normalized.match(new RegExp(`^CRN[\\s\\-]?(\\d{1,2})[\\s\\-\\/]+(${NUMBER})$`));
   if (m) {
     const [, region, number] = m;
     if (!CRN_REGIONS[region]) {
@@ -86,7 +94,7 @@ export function validateCrn(input: string): CrnValidationResult {
   }
 
   // Pattern C: "CRN-N NNNNN/UF" — fully qualified.
-  m = normalized.match(/^CRN[\s\-]?(\d{1,2})[\s\-\/]+(\d{2,6})\s*[\/\-\s]\s*([A-Z]{2})$/);
+  m = normalized.match(new RegExp(`^CRN[\\s\\-]?(\\d{1,2})[\\s\\-\\/]+(${NUMBER})\\s*[\\/\\-\\s]\\s*([A-Z]{2})$`));
   if (m) {
     const [, region, number, uf] = m;
     if (!CRN_REGIONS[region]) {
@@ -102,6 +110,16 @@ export function validateCrn(input: string): CrnValidationResult {
       };
     }
     return { valid: true, canonical: `${number}/${uf}`, number, uf };
+  }
+
+  // Mensagem de erro mais específica quando o número parece ser muito curto
+  // (3 dígitos) — ajuda a nutri a perceber que faltou um dígito.
+  const tooShort = normalized.match(/^(\d{1,3})\s*[\/\-\s]\s*[A-Z]{2}$/);
+  if (tooShort) {
+    return {
+      valid: false,
+      error: `Número de CRN parece curto (${tooShort[1].length} dígitos). CRNs reais têm pelo menos ${MIN_DIGITS} dígitos.`,
+    };
   }
 
   return {
