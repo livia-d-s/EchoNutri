@@ -62,6 +62,44 @@ export const GOAL_LABELS: Record<PatientGoal, string> = {
   outro: 'Outro'
 };
 
+// ============ SUBSCRIPTION ============
+// Modelado pensando na futura integração com Stripe (Semana 4 do plano).
+// Os campos stripeCustomerId / stripeSubscriptionId ficam vazios até o
+// checkout entrar — o resto do app já lê/escreve nessa estrutura agora.
+
+export type SubscriptionStatus =
+  | 'trialing'        // dentro do trial de 14 dias, ainda não cobrou
+  | 'active'          // pagamento em dia
+  | 'past_due'        // cobrança falhou, em retry
+  | 'canceled'        // cancelada (acesso até currentPeriodEnd)
+  | 'incomplete';     // checkout iniciado mas não confirmado
+
+export type SubscriptionPlan = 'pro';
+
+export interface Subscription {
+  status: SubscriptionStatus;
+  plan: SubscriptionPlan;
+  startedAt: string;          // ISO — quando a conta foi criada
+  trialEnd?: string;          // ISO — fim do trial gratuito (se status === 'trialing')
+  currentPeriodEnd?: string;  // ISO — próxima cobrança / fim do acesso pago
+  cancelAtPeriodEnd?: boolean;
+  // Stripe IDs (preenchidos quando o checkout for integrado)
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+}
+
+export const TRIAL_LENGTH_DAYS = 14;
+
+export function createInitialSubscription(now: Date = new Date()): Subscription {
+  const trialEnd = new Date(now.getTime() + TRIAL_LENGTH_DAYS * 24 * 60 * 60 * 1000);
+  return {
+    status: 'trialing',
+    plan: 'pro',
+    startedAt: now.toISOString(),
+    trialEnd: trialEnd.toISOString(),
+  };
+}
+
 export interface Patient {
   id: string;
   name: string;

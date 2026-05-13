@@ -11,6 +11,11 @@ import { ConsultationBriefingBubble } from './components/patient/ConsultationBri
 import { MealPlanCard, planSignature } from './components/patient/MealPlanCard';
 import { MealPlanBubble } from './components/patient/MealPlanBubble';
 import { LegalOverlay } from './components/legal/LegalOverlay';
+import { TrialBadge } from './components/subscription/TrialBadge';
+import { TrialExpiredGate } from './components/subscription/TrialExpiredGate';
+import { CheckoutPlaceholder } from './components/subscription/CheckoutPlaceholder';
+import { Subscription, createInitialSubscription } from '../types';
+import { deriveSubscriptionState, hasActiveAccess } from './utils/subscription';
 
 // Firebase Imports
 import {
@@ -191,6 +196,8 @@ export default function App() {
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [doctorProfile, setDoctorProfile] = useState<DoctorProfileType>(DEFAULT_PROFILE);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [showCheckoutPlaceholder, setShowCheckoutPlaceholder] = useState(false);
   // Exams uploaded in popup/transcription — applied to the patient on finalize
   const [pendingExams, setPendingExams] = useState<any[]>([]);
   const [pendingMealPlans, setPendingMealPlans] = useState<any[]>([]);
@@ -238,6 +245,23 @@ export default function App() {
           const profile = { ...DEFAULT_PROFILE, ...data };
           setDoctorProfile(profile);
           localStorage.setItem(`echomed_${userId}_doctor_profile`, JSON.stringify(profile));
+        }
+        // Load subscription from doctors/{uid}. Lazy-create a trial for users
+        // who predate the subscription model (Google signups or accounts created
+        // before this feature shipped).
+        try {
+          const doctorSnap = await getDoc(doc(db, 'users', userId));
+          void doctorSnap;
+          const docDoc = await getDoc(doc(db, 'doctors', userId));
+          if (docDoc.exists() && docDoc.data().subscription) {
+            setSubscription(docDoc.data().subscription as Subscription);
+          } else {
+            const fresh = createInitialSubscription();
+            await setDoc(doc(db, 'doctors', userId), { subscription: fresh, uid: userId }, { merge: true });
+            setSubscription(fresh);
+          }
+        } catch (subErr) {
+          console.error('Failed to load/create subscription:', subErr);
         }
       } catch (err) {
         console.error('Failed to load from Firestore (using localStorage cache):', err);
@@ -924,13 +948,18 @@ export default function App() {
               <span className="text-2xs text-ink-tertiary font-medium uppercase tracking-[0.1em] hidden sm:block mt-0.5">Inteligência clínica</span>
             </div>
           </div>
-          <div className="flex items-center gap-3 md:gap-5">
+          <div className="flex items-center gap-3 md:gap-4">
             <div className="flex gap-0.5 bg-subtle p-0.5 rounded-md">
               <button onClick={() => { setCurrentTranscript(''); setPatientName(''); setCurrentResult(null); setSelectedEvent(null); setView('transcription'); }} className={`px-3 md:px-4 py-1.5 rounded-sm text-sm font-semibold transition-colors ${view === 'transcription' ? 'bg-surface shadow-xs text-ink-primary' : 'text-ink-secondary hover:text-ink-primary'}`}>Consulta</button>
               <button onClick={() => { setView('patients'); setSelectedPatient(null); }} className={`px-3 md:px-4 py-1.5 rounded-sm text-sm font-semibold transition-colors flex items-center gap-1.5 ${view === 'patients' || view === 'patient' ? 'bg-surface shadow-xs text-ink-primary' : 'text-ink-secondary hover:text-ink-primary'}`}>
                 <Users size={14} strokeWidth={2.25} /> <span className="hidden sm:inline">Pacientes</span><span className="sm:hidden">Pac.</span>
               </button>
             </div>
+            {/* Trial / subscription status badge */}
+            <TrialBadge
+              state={deriveSubscriptionState(subscription, user?.email)}
+              onClick={() => setShowProfilePopup(true)}
+            />
             {/* Profile Picture Button */}
             <button
               onClick={() => setShowProfilePopup(true)}
@@ -1106,6 +1135,9 @@ export default function App() {
               console.error("Logout error:", err);
             }
           }}
+          subscription={subscription}
+          subscriptionState={deriveSubscriptionState(subscription, user?.email)}
+          onSubscribe={() => { setShowProfilePopup(false); setShowCheckoutPlaceholder(true); }}
           // LGPD art. 18 — direito de acesso/portabilidade: dump everything we hold
           // about the nutri (profile + patients + events + history) as JSON.
           onExportData={() => {
@@ -1181,11 +1213,31 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Trial expired / past_due gate — bloqueia uso do app quando o
+          acesso não está ativo. Só renderiza depois que a subscription
+          foi carregada (senão flasha o gate no primeiro paint). */}
+      {subscription && (() => {
+        const state = deriveSubscriptionState(subscription, user?.email);
+        if (hasActiveAccess(state)) return null;
+        return (
+          <TrialExpiredGate
+            state={state}
+            onSubscribe={() => setShowCheckoutPlaceholder(true)}
+            onLogout={async () => { try { await logout(); } catch (err) { console.error(err); } }}
+          />
+        );
+      })()}
+
+      {showCheckoutPlaceholder && (
+        <CheckoutPlaceholder onClose={() => setShowCheckoutPlaceholder(false)} />
+      )}
     </div>
   );
 }
 
-function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout, onExportData, onDeleteAccount }: any) {
+function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout, onExportData, onDeleteAccount, subscription, subscriptionState, onSubscribe }: any) {
+  void subscription;
   const [showLegal, setShowLegal] = useState<null | 'terms' | 'privacy'>(null);
   const [confirmDelete, setConfirmDelete] = useState<0 | 1 | 2>(0);
   const [name, setName] = useState(profile.name || '');
@@ -1515,6 +1567,56 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout, onExportD
             </div>
           </div>
         ) : (<>
+
+        {/* Subscription summary card — top of Perfil tab. */}
+        {subscriptionState && subscriptionState.kind !== 'admin' && (
+          <div className="mb-5 p-4 bg-subtle border border-line rounded-md">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary">
+                Assinatura
+              </div>
+              {subscriptionState.kind === 'trialing' && (
+                <span className="text-2xs font-medium px-2 py-0.5 rounded-md bg-surface border border-line text-ink-primary">
+                  Trial · {subscriptionState.daysLeft} {subscriptionState.daysLeft === 1 ? 'dia' : 'dias'}
+                </span>
+              )}
+              {subscriptionState.kind === 'active' && (
+                <span className="text-2xs font-medium px-2 py-0.5 rounded-md bg-surface border border-line text-positive">Ativa</span>
+              )}
+              {subscriptionState.kind === 'trial_expired' && (
+                <span className="text-2xs font-medium px-2 py-0.5 rounded-md bg-red-50 border border-red-100 text-critical">Trial expirado</span>
+              )}
+              {subscriptionState.kind === 'past_due' && (
+                <span className="text-2xs font-medium px-2 py-0.5 rounded-md bg-amber-50 border border-amber-100 text-caution">Pagamento pendente</span>
+              )}
+              {subscriptionState.kind === 'canceled' && (
+                <span className="text-2xs font-medium px-2 py-0.5 rounded-md bg-surface border border-line text-ink-secondary">Cancelada</span>
+              )}
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg font-bold text-ink-primary tracking-tight">Pro</span>
+              <span className="text-sm text-ink-tertiary">· R$ 97/mês</span>
+            </div>
+            {subscriptionState.kind === 'trialing' && (
+              <p className="text-2xs text-ink-tertiary mt-1.5">
+                Trial encerra em {subscriptionState.trialEnd.toLocaleDateString('pt-BR')}. Ative a assinatura antes pra não perder acesso.
+              </p>
+            )}
+            {subscriptionState.kind === 'active' && subscriptionState.currentPeriodEnd && (
+              <p className="text-2xs text-ink-tertiary mt-1.5">
+                Próxima cobrança em {subscriptionState.currentPeriodEnd.toLocaleDateString('pt-BR')}.
+              </p>
+            )}
+            {(subscriptionState.kind === 'trialing' || subscriptionState.kind === 'trial_expired' || subscriptionState.kind === 'past_due') && onSubscribe && (
+              <button
+                onClick={onSubscribe}
+                className="mt-3 w-full py-2 rounded-md font-semibold text-sm text-white bg-brand-700 hover:bg-brand-900 transition-colors shadow-xs"
+              >
+                {subscriptionState.kind === 'past_due' ? 'Atualizar pagamento' : 'Ativar assinatura'}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Photo Upload */}
         <div className="flex justify-center mb-5">
