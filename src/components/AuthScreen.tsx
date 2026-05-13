@@ -296,8 +296,12 @@ const AuthScreen: React.FC = () => {
                           }`}
                         />
                       </div>
-                      {crmError && (
+                      {crmError ? (
                         <p className="text-2xs text-critical mt-1 ml-1">{crmError}</p>
+                      ) : (
+                        <p className="text-2xs text-ink-tertiary mt-1 ml-1 leading-snug">
+                          Validamos apenas o formato. Você é responsável por declarar um CRN ativo, conforme nossos Termos de Uso.
+                        </p>
                       )}
                     </div>
                   </>
