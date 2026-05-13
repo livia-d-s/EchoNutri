@@ -17,6 +17,8 @@ import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import { useAuth } from '../context/AuthContext';
 import { LegalOverlay, LegalTab } from './legal/LegalOverlay';
+import { validateCrn } from '../utils/crnValidation';
+import { validateEmail } from '../utils/emailValidation';
 
 const EchoNutriLogo = () => (
   <div className="flex items-center gap-2.5 mb-1">
@@ -54,6 +56,8 @@ const AuthScreen: React.FC = () => {
   const [crm, setCrm] = useState('');
   const [legalConsent, setLegalConsent] = useState(false);
   const [legalOverlay, setLegalOverlay] = useState<LegalTab | null>(null);
+  const [crmError, setCrmError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
@@ -92,14 +96,16 @@ const AuthScreen: React.FC = () => {
     setError(null);
     setIsLoading(true);
 
-    if (!email) {
-      setError("Informe seu e-mail.");
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.valid) {
+      setEmailError(emailCheck.error);
+      setError(emailCheck.error);
       setIsLoading(false);
       return;
     }
 
     try {
-      await sendPasswordResetEmail(auth, email);
+      await sendPasswordResetEmail(auth, emailCheck.canonical);
       setResetSent(true);
     } catch (err: any) {
       const errorCode = (err as AuthError).code;
@@ -118,27 +124,39 @@ const AuthScreen: React.FC = () => {
     setIsLoading(true);
 
     try {
+      const emailCheck = validateEmail(email);
+      if (!emailCheck.valid) {
+        setEmailError(emailCheck.error);
+        throw new Error(emailCheck.error);
+      }
+
       if (isLogin) {
-        await loginWithEmail(email, password);
+        await loginWithEmail(emailCheck.canonical, password);
       } else {
         if (!fullName.trim()) throw new Error("Informe seu nome completo.");
-        if (!crm.trim()) throw new Error("Informe seu CRN.");
+        const crnCheck = validateCrn(crm);
+        if (!crnCheck.valid) {
+          setCrmError(crnCheck.error);
+          throw new Error(crnCheck.error);
+        }
         if (!legalConsent) throw new Error("Para criar conta, é necessário aceitar os Termos de Uso e a Política de Privacidade.");
 
-        const user = await registerWithEmail(email, password, fullName);
+        const user = await registerWithEmail(emailCheck.canonical, password, fullName);
         await setDoc(doc(db, "doctors", user.uid), {
           uid: user.uid,
           fullName,
-          email,
-          crn: crm,
+          email: emailCheck.canonical,
+          crn: crnCheck.canonical, // formato padronizado "NNNNN/UF"
+          crnNumber: crnCheck.number,
+          crnUf: crnCheck.uf,
           specialty: 'Nutricionista',
           createdAt: new Date().toISOString(),
           role: 'nutritionist',
           // LGPD: persist consent timestamp + version for audit trail.
           legalConsent: {
             acceptedAt: new Date().toISOString(),
-            termsVersion: '2026-05-05',
-            privacyVersion: '2026-05-05',
+            termsVersion: '2026-05-12',
+            privacyVersion: '2026-05-12',
           },
         });
       }
@@ -252,34 +270,68 @@ const AuthScreen: React.FC = () => {
                       />
                     </div>
 
-                    <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FileBadge className="h-4 w-4 text-ink-tertiary group-focus-within:text-brand-700 transition-colors" />
+                    <div>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FileBadge className={`h-4 w-4 transition-colors ${crmError ? 'text-critical' : 'text-ink-tertiary group-focus-within:text-brand-700'}`} />
+                        </div>
+                        <input
+                          type="text"
+                          required
+                          placeholder="CRN (ex: 12345/SP)"
+                          value={crm}
+                          onChange={(e) => { setCrm(e.target.value); if (crmError) setCrmError(null); }}
+                          onBlur={() => {
+                            if (!crm.trim()) { setCrmError(null); return; }
+                            const r = validateCrn(crm);
+                            if (r.valid) {
+                              setCrm(r.canonical);
+                              setCrmError(null);
+                            } else {
+                              setCrmError(r.error);
+                            }
+                          }}
+                          className={`block w-full pl-10 pr-3 py-2.5 border rounded-md focus:ring-2 outline-none transition-all placeholder:text-ink-tertiary text-ink-primary bg-surface text-sm ${
+                            crmError ? 'border-critical focus:ring-critical/20 focus:border-critical' : 'border-line focus:ring-brand-700/20 focus:border-brand-700'
+                          }`}
+                        />
                       </div>
-                      <input
-                        type="text"
-                        required
-                        placeholder="CRN (ex: 12345/SP)"
-                        value={crm}
-                        onChange={(e) => setCrm(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-2.5 border border-line rounded-md focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 outline-none transition-all placeholder:text-ink-tertiary text-ink-primary bg-surface text-sm"
-                      />
+                      {crmError && (
+                        <p className="text-2xs text-critical mt-1 ml-1">{crmError}</p>
+                      )}
                     </div>
                   </>
                 )}
 
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-4 w-4 text-ink-tertiary group-focus-within:text-brand-700 transition-colors" />
+                <div>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className={`h-4 w-4 transition-colors ${emailError ? 'text-critical' : 'text-ink-tertiary group-focus-within:text-brand-700'}`} />
+                    </div>
+                    <input
+                      type="email"
+                      required
+                      placeholder="E-mail profissional"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
+                      onBlur={() => {
+                        if (!email.trim()) { setEmailError(null); return; }
+                        const r = validateEmail(email);
+                        if (r.valid) {
+                          setEmail(r.canonical);
+                          setEmailError(null);
+                        } else {
+                          setEmailError(r.error);
+                        }
+                      }}
+                      className={`block w-full pl-10 pr-3 py-2.5 border rounded-md focus:ring-2 outline-none transition-all placeholder:text-ink-tertiary text-ink-primary bg-surface text-sm ${
+                        emailError ? 'border-critical focus:ring-critical/20 focus:border-critical' : 'border-line focus:ring-brand-700/20 focus:border-brand-700'
+                      }`}
+                    />
                   </div>
-                  <input
-                    type="email"
-                    required
-                    placeholder="E-mail profissional"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 border border-line rounded-md focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 outline-none transition-all placeholder:text-ink-tertiary text-ink-primary bg-surface text-sm"
-                  />
+                  {emailError && (
+                    <p className="text-2xs text-critical mt-1 ml-1">{emailError}</p>
+                  )}
                 </div>
 
                 {!isForgotPassword && (
