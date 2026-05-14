@@ -19,6 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import { LegalOverlay, LegalTab } from './legal/LegalOverlay';
 import { validateCrn } from '../utils/crnValidation';
 import { validateEmail } from '../utils/emailValidation';
+import { createInitialSubscription } from '../../types';
 
 const EchoNutriLogo = () => (
   <div className="flex items-center gap-2.5 mb-1">
@@ -158,6 +159,9 @@ const AuthScreen: React.FC = () => {
             termsVersion: '2026-05-12',
             privacyVersion: '2026-05-12',
           },
+          // Trial de 14 dias começa agora. Stripe IDs ficam vazios — preenchidos
+          // quando o checkout for integrado (Semana 4).
+          subscription: createInitialSubscription(),
         });
       }
     } catch (err: any) {
