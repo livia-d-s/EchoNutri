@@ -14,7 +14,7 @@ import React from 'react';
 export const LEGAL_META = {
   productName: 'EchoNutri',
   legalEntity: 'Lívia da Silva — MEI · CNPJ 63.383.704/0001-00',
-  contactEmail: 'c.echomed@gmail.com', // migrar para contato@echonutri.com.br após domínio
+  contactEmail: 'contato@echonutri.com.br',
   jurisdiction: 'Brasil',
   effectiveDate: '01/07/2026',
   lastUpdate: '12/05/2026',

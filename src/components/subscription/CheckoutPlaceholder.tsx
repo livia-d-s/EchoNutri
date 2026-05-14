@@ -42,7 +42,7 @@ export function CheckoutPlaceholder({ onClose }: CheckoutPlaceholderProps) {
             Até lá, beta-testers usam o app sem limitações.
           </p>
           <p className="text-2xs text-ink-tertiary mt-3 leading-relaxed">
-            Dúvidas? <a href="mailto:c.echomed@gmail.com" className="text-brand-700 hover:text-brand-900 font-medium underline underline-offset-2">c.echomed@gmail.com</a>
+            Dúvidas? <a href="mailto:contato@echonutri.com.br" className="text-brand-700 hover:text-brand-900 font-medium underline underline-offset-2">contato@echonutri.com.br</a>
           </p>
         </div>
 

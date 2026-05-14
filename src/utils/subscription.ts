@@ -11,7 +11,7 @@ import { Subscription, createInitialSubscription } from '../../types';
 // Mantido em código (não env) pra ser visível em code review.
 const ADMIN_EMAILS = new Set<string>([
   'liviadasilva205@gmail.com',
-  'c.echomed@gmail.com',
+  'contato@echonutri.com.br',
 ]);
 
 export function isAdminUser(email: string | null | undefined): boolean {
