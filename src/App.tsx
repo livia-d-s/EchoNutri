@@ -2300,12 +2300,12 @@ function TranscriptionView({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 items-center">
+      <div className="flex flex-col md:flex-row gap-3 items-center">
         <div className="relative flex-1 w-full">
-            <User className="absolute left-5 top-1/2 -translate-y-1/2 text-ink-tertiary z-10" size={18} strokeWidth={2.25} />
+            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-tertiary z-10" size={16} strokeWidth={2.25} />
             <input
               placeholder="Nome completo da paciente"
-              className={`w-full bg-surface border rounded-lg py-5 md:py-6 pl-12 md:pl-14 pr-5 outline-none font-semibold text-ink-primary placeholder:text-ink-tertiary placeholder:font-normal shadow-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all text-lg ${
+              className={`w-full bg-surface border rounded-lg py-3 pl-11 pr-5 outline-none font-semibold text-ink-primary placeholder:text-ink-tertiary placeholder:font-normal shadow-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all text-md ${
                 nameWarning ? 'border-amber-300' : 'border-line'
               }`}
               value={patientName}
