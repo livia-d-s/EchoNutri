@@ -8,7 +8,7 @@
 // necessário). Caso volte na pauta, é só adicionar uma terceira seção.
 
 import React, { useMemo } from 'react';
-import { Calendar, Users, ChevronRight, Activity } from 'lucide-react';
+import { Calendar, ChevronRight, Activity } from 'lucide-react';
 import { Patient, TimelineEvent } from '../../../types';
 
 interface ConsultaDashboardProps {
@@ -44,22 +44,13 @@ const formatDate = (d: any) => {
 };
 
 export function ConsultaDashboard({ patients, events, onOpenConsultation }: ConsultaDashboardProps) {
-  const stats = useMemo(() => {
+  const consultasUltima7Dias = useMemo(() => {
     const now = Date.now();
     const weekMs = 7 * 24 * 60 * 60 * 1000;
-    const monthMs = 30 * 24 * 60 * 60 * 1000;
-
-    // Consultas (não-ajustes) registradas nos últimos 7 dias.
-    const consultasSemana = events.filter(
+    // Consultas (não-ajustes) registradas nos últimos 7 dias — passado.
+    return events.filter(
       (e) => e.type !== 'adjustment' && now - toMs(e.date) < weekMs
     ).length;
-
-    // Pacientes únicas com algum evento (consulta ou ajuste) nos últimos 30 dias.
-    const ativas = new Set<string>();
-    for (const e of events) {
-      if (now - toMs(e.date) < monthMs) ativas.add(e.patientId);
-    }
-    return { consultasSemana, pacientesAtivas: ativas.size };
   }, [events]);
 
   const recentConsultations = useMemo(() => {
@@ -80,23 +71,9 @@ export function ConsultaDashboard({ patients, events, onOpenConsultation }: Cons
   if (events.length === 0) return null;
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-300">
-      {/* Stats row — 2 cards compactos */}
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard
-          icon={<Calendar size={14} strokeWidth={2.25} className="text-brand-700" />}
-          label="Consultas esta semana"
-          value={stats.consultasSemana}
-        />
-        <StatCard
-          icon={<Users size={14} strokeWidth={2.25} className="text-brand-700" />}
-          label="Pacientes ativas · 30 dias"
-          value={stats.pacientesAtivas}
-        />
-      </div>
-
-      {/* Recent consultations */}
-      <div className="bg-surface rounded-lg border border-line shadow-xs overflow-hidden">
+    <div className="grid grid-cols-1 md:grid-cols-10 gap-3 animate-in fade-in duration-300">
+      {/* Consultas recentes — 70% de largura */}
+      <div className="md:col-span-7 bg-surface rounded-lg border border-line shadow-xs overflow-hidden">
         <div className="px-4 py-2.5 border-b border-line flex items-center justify-between">
           <h3 className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary">
             Consultas recentes
@@ -143,24 +120,24 @@ export function ConsultaDashboard({ patients, events, onOpenConsultation }: Cons
           })}
         </ul>
       </div>
-    </div>
-  );
-}
 
-interface StatCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: number | string;
-}
-
-function StatCard({ icon, label, value }: StatCardProps) {
-  return (
-    <div className="bg-surface border border-line rounded-lg p-3 shadow-xs">
-      <div className="flex items-center gap-1.5 mb-1">
-        {icon}
-        <span className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary">{label}</span>
+      {/* Stat — 30% de largura */}
+      <div className="md:col-span-3 bg-surface border border-line rounded-lg shadow-xs p-4 flex flex-col">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Calendar size={13} strokeWidth={2.25} className="text-brand-700" />
+          <span className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary">
+            Consultas nesta última semana
+          </span>
+        </div>
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="text-4xl font-bold text-ink-primary tracking-tight font-mono leading-none">
+            {consultasUltima7Dias}
+          </div>
+          <div className="text-2xs text-ink-tertiary mt-1.5">
+            registradas nos últimos 7 dias
+          </div>
+        </div>
       </div>
-      <div className="text-2xl font-bold text-ink-primary tracking-tight font-mono">{value}</div>
     </div>
   );
 }
