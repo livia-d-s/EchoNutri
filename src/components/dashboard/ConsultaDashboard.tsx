@@ -123,13 +123,13 @@ export function ConsultaDashboard({ patients, events, onOpenConsultation }: Cons
 
       {/* Stat — 30% de largura */}
       <div className="md:col-span-3 bg-surface border border-line rounded-lg shadow-xs p-4 flex flex-col">
-        <div className="flex items-center gap-1.5 mb-2">
+        <div className="flex items-center justify-center gap-1.5 mb-2">
           <Calendar size={13} strokeWidth={2.25} className="text-brand-700" />
-          <span className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary">
+          <span className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary text-center">
             Consultas nesta última semana
           </span>
         </div>
-        <div className="flex-1 flex flex-col justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center text-center">
           <div className="text-4xl font-bold text-ink-primary tracking-tight font-mono leading-none">
             {consultasUltima7Dias}
           </div>
