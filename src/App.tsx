@@ -14,6 +14,7 @@ import { LegalOverlay } from './components/legal/LegalOverlay';
 import { TrialBadge } from './components/subscription/TrialBadge';
 import { TrialExpiredGate } from './components/subscription/TrialExpiredGate';
 import { CheckoutPlaceholder } from './components/subscription/CheckoutPlaceholder';
+import { ConsultaDashboard } from './components/dashboard/ConsultaDashboard';
 import { Subscription, createInitialSubscription } from '../types';
 import { deriveSubscriptionState, hasActiveAccess } from './utils/subscription';
 
@@ -997,6 +998,19 @@ export default function App() {
               patientHeight={currentPatientHeight} setPatientHeight={setCurrentPatientHeight}
               patientBirthDate={currentPatientBirthDate} setPatientBirthDate={setCurrentPatientBirthDate}
               patientRestrictions={currentPatientRestrictions} setPatientRestrictions={setCurrentPatientRestrictions}
+              onOpenConsultation={(event: TimelineEvent) => {
+                setSelectedEvent(event);
+                if (event.result) {
+                  setCurrentResult(event.result as any);
+                  // Look up patient name for header rendering
+                  const p = patients.find((x: Patient) => x.id === event.patientId);
+                  if (p) {
+                    setSelectedPatient(p);
+                    setPatientName(p.name);
+                  }
+                  setView('diagnosis');
+                }
+              }}
             />
             <ConsultationBriefingBubble
               events={events}
@@ -1842,7 +1856,8 @@ function TranscriptionView({
   patientWeight, setPatientWeight,
   patientHeight, setPatientHeight,
   patientBirthDate, setPatientBirthDate,
-  patientRestrictions, setPatientRestrictions
+  patientRestrictions, setPatientRestrictions,
+  onOpenConsultation,
 }: any) {
   const recognitionRef = useRef<any>(null);
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
@@ -2493,6 +2508,17 @@ function TranscriptionView({
             </span>
           )}
         </div>
+      )}
+
+      {/* Empty-state dashboard — preenche o espaço quando nenhuma paciente
+          foi selecionada ainda e nada está acontecendo. Mostra stats da
+          semana e últimas 5 consultas como atalho de reentrada. */}
+      {status === AppStatus.IDLE && !patientName.trim() && audioUploadState.kind === 'idle' && (
+        <ConsultaDashboard
+          patients={patients}
+          events={events}
+          onOpenConsultation={(event: TimelineEvent) => onOpenConsultation && onOpenConsultation(event)}
+        />
       )}
 
       <div className="bg-surface rounded-lg border border-line shadow-sm h-[320px] sm:h-[380px] md:h-[440px] flex flex-col relative overflow-hidden">
