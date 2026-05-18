@@ -2510,17 +2510,6 @@ function TranscriptionView({
         </div>
       )}
 
-      {/* Empty-state dashboard — preenche o espaço quando nenhuma paciente
-          foi selecionada ainda e nada está acontecendo. Mostra stats da
-          semana e últimas 5 consultas como atalho de reentrada. */}
-      {status === AppStatus.IDLE && !patientName.trim() && audioUploadState.kind === 'idle' && (
-        <ConsultaDashboard
-          patients={patients}
-          events={events}
-          onOpenConsultation={(event: TimelineEvent) => onOpenConsultation && onOpenConsultation(event)}
-        />
-      )}
-
       <div className="bg-surface rounded-lg border border-line shadow-sm h-[320px] sm:h-[380px] md:h-[440px] flex flex-col relative overflow-hidden">
         <div
           ref={transcriptContainerRef}
@@ -2656,6 +2645,18 @@ function TranscriptionView({
           </div>
         )}
       </div>
+
+      {/* Empty-state dashboard — depois do bloco de transcrição, só quando
+          nada está acontecendo e nenhuma paciente foi escolhida. Stat da
+          semana à direita (~30%), lista de consultas recentes à esquerda
+          (~70%). */}
+      {status === AppStatus.IDLE && !patientName.trim() && audioUploadState.kind === 'idle' && (
+        <ConsultaDashboard
+          patients={patients}
+          events={events}
+          onOpenConsultation={(event: TimelineEvent) => onOpenConsultation && onOpenConsultation(event)}
+        />
+      )}
 
       {/* Patient Pre-Consultation Popup */}
       {showNamePopup && (
