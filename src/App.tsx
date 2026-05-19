@@ -1609,7 +1609,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout, onExportD
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-lg font-bold text-ink-primary tracking-tight">Pro</span>
-              <span className="text-sm text-ink-tertiary">· R$ 97/mês</span>
+              <span className="text-sm text-ink-tertiary">· R$ 67/mês</span>
             </div>
             {subscriptionState.kind === 'trialing' && (
               <p className="text-2xs text-ink-tertiary mt-1.5">

@@ -2,7 +2,7 @@
 //
 // Estratégia: o subscription doc vive em doctors/{uid}.subscription
 // (criado no signup pelo AuthScreen). Se um usuário antigo entra sem
-// subscription, o App lazy-cria um trial de 14 dias a partir do
+// subscription, o App lazy-cria um trial de 7 dias a partir do
 // primeiro login observado.
 
 import { Subscription, createInitialSubscription } from '../../types';

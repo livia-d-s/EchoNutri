@@ -68,7 +68,7 @@ export const GOAL_LABELS: Record<PatientGoal, string> = {
 // checkout entrar — o resto do app já lê/escreve nessa estrutura agora.
 
 export type SubscriptionStatus =
-  | 'trialing'        // dentro do trial de 14 dias, ainda não cobrou
+  | 'trialing'        // dentro do trial de 7 dias, ainda não cobrou
   | 'active'          // pagamento em dia
   | 'past_due'        // cobrança falhou, em retry
   | 'canceled'        // cancelada (acesso até currentPeriodEnd)
@@ -88,7 +88,7 @@ export interface Subscription {
   stripeSubscriptionId?: string;
 }
 
-export const TRIAL_LENGTH_DAYS = 14;
+export const TRIAL_LENGTH_DAYS = 7;
 
 export function createInitialSubscription(now: Date = new Date()): Subscription {
   const trialEnd = new Date(now.getTime() + TRIAL_LENGTH_DAYS * 24 * 60 * 60 * 1000);

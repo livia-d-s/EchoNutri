@@ -159,7 +159,7 @@ const AuthScreen: React.FC = () => {
             termsVersion: '2026-05-12',
             privacyVersion: '2026-05-12',
           },
-          // Trial de 14 dias começa agora. Stripe IDs ficam vazios — preenchidos
+          // Trial de 7 dias começa agora. Stripe IDs ficam vazios — preenchidos
           // quando o checkout for integrado (Semana 4).
           subscription: createInitialSubscription(),
         });

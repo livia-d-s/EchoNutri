@@ -19,7 +19,7 @@ export function TrialExpiredGate({ state, onSubscribe, onLogout }: TrialExpiredG
   const title = isPastDue ? 'Pagamento pendente' : 'Período de teste encerrado';
   const description = isPastDue
     ? 'A cobrança da sua assinatura falhou. Atualize seu método de pagamento para retomar o acesso completo.'
-    : 'Seu trial de 14 dias terminou. Ative a assinatura para continuar usando o EchoNutri sem interrupção.';
+    : 'Seu trial de 7 dias terminou. Ative a assinatura para continuar usando o EchoNutri sem interrupção.';
 
   return (
     <div className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-md flex items-center justify-center p-4">
@@ -39,9 +39,10 @@ export function TrialExpiredGate({ state, onSubscribe, onLogout }: TrialExpiredG
               Plano Pro
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-ink-primary tracking-tight">R$ 97</span>
+              <span className="text-2xl font-bold text-ink-primary tracking-tight">R$ 67</span>
               <span className="text-sm text-ink-tertiary">/mês</span>
             </div>
+            <div className="text-2xs text-ink-tertiary">ou R$ 57/mês no plano anual (15% off)</div>
             <ul className="text-xs text-ink-secondary space-y-1 mt-2">
               <li>• Pacientes e consultas ilimitados</li>
               <li>• Transcrição de áudio/vídeo até 2h30 cada</li>
