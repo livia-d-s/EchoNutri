@@ -11,6 +11,7 @@ import { ConsultationBriefingBubble } from './components/patient/ConsultationBri
 import { MealPlanCard, planSignature } from './components/patient/MealPlanCard';
 import { MealPlanBubble } from './components/patient/MealPlanBubble';
 import { LegalOverlay } from './components/legal/LegalOverlay';
+import { LandingPage } from './components/landing/LandingPage';
 import { TrialBadge } from './components/subscription/TrialBadge';
 import { TrialExpiredGate } from './components/subscription/TrialExpiredGate';
 import { CheckoutPlaceholder } from './components/subscription/CheckoutPlaceholder';
@@ -199,6 +200,10 @@ export default function App() {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [showCheckoutPlaceholder, setShowCheckoutPlaceholder] = useState(false);
+  // Pre-auth surface: null = show LandingPage, 'login'/'signup' = show AuthScreen
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | null>(null);
+  // Legal overlay shown from the public landing (terms/privacy footer links)
+  const [publicLegalOverlay, setPublicLegalOverlay] = useState<'terms' | 'privacy' | null>(null);
   // Exams uploaded in popup/transcription — applied to the patient on finalize
   const [pendingExams, setPendingExams] = useState<any[]>([]);
   const [pendingMealPlans, setPendingMealPlans] = useState<any[]>([]);
@@ -935,7 +940,31 @@ export default function App() {
   }
 
   if (!user) {
-    return <AuthScreen />;
+    // Visitante não logado: landing primeiro, AuthScreen só quando ela
+    // clica num CTA (signup) ou "Entrar" (login).
+    if (authMode === null) {
+      return (
+        <>
+          <LandingPage
+            onStartTrial={() => setAuthMode('signup')}
+            onLogin={() => setAuthMode('login')}
+            onOpenLegal={(tab) => setPublicLegalOverlay(tab)}
+          />
+          {publicLegalOverlay && (
+            <LegalOverlay
+              initialTab={publicLegalOverlay}
+              onClose={() => setPublicLegalOverlay(null)}
+            />
+          )}
+        </>
+      );
+    }
+    return (
+      <AuthScreen
+        initialMode={authMode}
+        onBackToLanding={() => setAuthMode(null)}
+      />
+    );
   }
 
   return (
@@ -1609,7 +1638,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout, onExportD
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-lg font-bold text-ink-primary tracking-tight">Pro</span>
-              <span className="text-sm text-ink-tertiary">· R$ 97/mês</span>
+              <span className="text-sm text-ink-tertiary">· R$ 67/mês</span>
             </div>
             {subscriptionState.kind === 'trialing' && (
               <p className="text-2xs text-ink-tertiary mt-1.5">
@@ -2300,12 +2329,12 @@ function TranscriptionView({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 items-center">
+      <div className="flex flex-col md:flex-row gap-3 items-center">
         <div className="relative flex-1 w-full">
             <User className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-tertiary z-10" size={16} strokeWidth={2.25} />
             <input
               placeholder="Nome completo da paciente"
-              className={`w-full bg-surface border rounded-md py-3 pl-10 md:pl-11 pr-4 outline-none font-semibold text-ink-primary placeholder:text-ink-tertiary placeholder:font-normal shadow-xs focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all text-md ${
+              className={`w-full bg-surface border rounded-lg py-3 pl-11 pr-5 outline-none font-semibold text-ink-primary placeholder:text-ink-tertiary placeholder:font-normal shadow-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all text-md ${
                 nameWarning ? 'border-amber-300' : 'border-line'
               }`}
               value={patientName}
