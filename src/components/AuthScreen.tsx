@@ -42,9 +42,14 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const AuthScreen: React.FC = () => {
+interface AuthScreenProps {
+  initialMode?: 'login' | 'signup';
+  onBackToLanding?: () => void;
+}
+
+const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackToLanding }) => {
   const { loginWithGoogle, loginWithEmail, registerWithEmail } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -194,9 +199,17 @@ const AuthScreen: React.FC = () => {
     <div className="min-h-screen w-full bg-base flex items-center justify-center p-4">
       <div className="bg-surface w-full max-w-md rounded-lg border border-line shadow-sm overflow-hidden">
         <div className="p-7 pb-5 text-center border-b border-line relative">
-          {isForgotPassword && (
+          {isForgotPassword ? (
             <button
               onClick={toggleForgotPassword}
+              className="absolute left-5 top-7 text-ink-tertiary hover:text-ink-primary transition-colors"
+              title="Voltar"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          ) : onBackToLanding && (
+            <button
+              onClick={onBackToLanding}
               className="absolute left-5 top-7 text-ink-tertiary hover:text-ink-primary transition-colors"
               title="Voltar"
             >

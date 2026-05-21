@@ -11,6 +11,7 @@ import { ConsultationBriefingBubble } from './components/patient/ConsultationBri
 import { MealPlanCard, planSignature } from './components/patient/MealPlanCard';
 import { MealPlanBubble } from './components/patient/MealPlanBubble';
 import { LegalOverlay } from './components/legal/LegalOverlay';
+import { LandingPage } from './components/landing/LandingPage';
 import { TrialBadge } from './components/subscription/TrialBadge';
 import { TrialExpiredGate } from './components/subscription/TrialExpiredGate';
 import { CheckoutPlaceholder } from './components/subscription/CheckoutPlaceholder';
@@ -199,6 +200,10 @@ export default function App() {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [showCheckoutPlaceholder, setShowCheckoutPlaceholder] = useState(false);
+  // Pre-auth surface: null = show LandingPage, 'login'/'signup' = show AuthScreen
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | null>(null);
+  // Legal overlay shown from the public landing (terms/privacy footer links)
+  const [publicLegalOverlay, setPublicLegalOverlay] = useState<'terms' | 'privacy' | null>(null);
   // Exams uploaded in popup/transcription — applied to the patient on finalize
   const [pendingExams, setPendingExams] = useState<any[]>([]);
   const [pendingMealPlans, setPendingMealPlans] = useState<any[]>([]);
@@ -935,7 +940,31 @@ export default function App() {
   }
 
   if (!user) {
-    return <AuthScreen />;
+    // Visitante não logado: landing primeiro, AuthScreen só quando ela
+    // clica num CTA (signup) ou "Entrar" (login).
+    if (authMode === null) {
+      return (
+        <>
+          <LandingPage
+            onStartTrial={() => setAuthMode('signup')}
+            onLogin={() => setAuthMode('login')}
+            onOpenLegal={(tab) => setPublicLegalOverlay(tab)}
+          />
+          {publicLegalOverlay && (
+            <LegalOverlay
+              initialTab={publicLegalOverlay}
+              onClose={() => setPublicLegalOverlay(null)}
+            />
+          )}
+        </>
+      );
+    }
+    return (
+      <AuthScreen
+        initialMode={authMode}
+        onBackToLanding={() => setAuthMode(null)}
+      />
+    );
   }
 
   return (
