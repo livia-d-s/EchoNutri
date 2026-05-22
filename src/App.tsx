@@ -16,6 +16,7 @@ import { TrialBadge } from './components/subscription/TrialBadge';
 import { TrialExpiredGate } from './components/subscription/TrialExpiredGate';
 import { CheckoutPlaceholder } from './components/subscription/CheckoutPlaceholder';
 import { ConsultaDashboard } from './components/dashboard/ConsultaDashboard';
+import { PatientsSidebar } from './components/sidebar/PatientsSidebar';
 import { Subscription, createInitialSubscription } from '../types';
 import { deriveSubscriptionState, hasActiveAccess } from './utils/subscription';
 
@@ -1049,14 +1050,16 @@ export default function App() {
           </>
         )}
         {view === 'patients' && (
-          <PatientList
-            patients={patients}
-            events={events}
-            onSelectPatient={(patient) => {
-              setSelectedPatient(patient);
-              setView('patient');
-            }}
-          />
+          <PatientsSidebar>
+            <PatientList
+              patients={patients}
+              events={events}
+              onSelectPatient={(patient) => {
+                setSelectedPatient(patient);
+                setView('patient');
+              }}
+            />
+          </PatientsSidebar>
         )}
         {view === 'patient' && selectedPatient && (
           <PatientPage
