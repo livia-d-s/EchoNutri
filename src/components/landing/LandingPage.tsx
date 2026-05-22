@@ -1,14 +1,6 @@
 // Landing page pública do EchoNutri. Aparece quando o visitante chega
 // em echonutri.com.br sem estar logado. Pitch + 4 pilares + pricing
 // + CTAs pra criar conta.
-//
-// Decisões do pitch (definidas com a founder em 13/05/2026):
-// - Tom: premium clínico-acolhedor
-// - Headline: "Inteligência clínica para nutrição integrativa"
-// - 4 pilares (com PDFs incluídos por pedido explícito):
-//   capturar, analisar, prescrever (+ PDFs), acompanhar evolução
-// - Logo placeholder: letra "E" maiúscula em quadrado brand-700
-// - Pricing: R$67 mensal ou R$57 anual (15% off), 7 dias trial
 
 import React from 'react';
 import {
@@ -16,9 +8,78 @@ import {
   ShieldCheck, Clock, Sparkles
 } from 'lucide-react';
 
+// Animações CSS
+const styles = `
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.6s ease-out forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+
+  .pillar-1 { animation-delay: 0ms; }
+  .pillar-2 { animation-delay: 100ms; }
+  .pillar-3 { animation-delay: 200ms; }
+  .pillar-4 { animation-delay: 300ms; }
+
+  .section-fade { animation-delay: 0ms; }
+
+`;
+
 interface LandingPageProps {
-  onStartTrial: () => void;       // CTA primário — abre AuthScreen em modo signup
-  onLogin: () => void;            // Link "entrar" no header — abre AuthScreen em modo login
+  onStartTrial: () => void;
+  onLogin: () => void;
   onOpenLegal: (tab: 'terms' | 'privacy') => void;
 }
 
@@ -41,7 +102,7 @@ interface PillarProps {
 }
 
 const Pillar: React.FC<PillarProps> = ({ icon, title, description }) => (
-  <div className="bg-surface border border-line rounded-lg p-6 shadow-xs">
+  <div className="bg-surface border border-line rounded-lg p-6 shadow-xs animate-fade-in-up">
     <div className="w-10 h-10 rounded-md bg-subtle border border-line flex items-center justify-center mb-4">
       {icon}
     </div>
@@ -53,6 +114,8 @@ const Pillar: React.FC<PillarProps> = ({ icon, title, description }) => (
 export function LandingPage({ onStartTrial, onLogin, onOpenLegal }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-base text-ink-primary">
+      <style>{styles}</style>
+
       {/* ===== NAV ===== */}
       <nav className="border-b border-line bg-surface/80 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-5 md:px-8 py-3 flex items-center justify-between">
@@ -106,15 +169,15 @@ export function LandingPage({ onStartTrial, onLogin, onOpenLegal }: LandingPageP
         <div className="mt-12 flex flex-wrap justify-center gap-x-6 gap-y-2 text-2xs text-ink-tertiary font-medium">
           <div className="flex items-center gap-1.5">
             <ShieldCheck size={12} strokeWidth={2.25} className="text-positive" />
-            LGPD-aware desde o cadastro
+            Dados protegidos — LGPD completa
           </div>
           <div className="flex items-center gap-1.5">
             <Clock size={12} strokeWidth={2.25} className="text-positive" />
-            Setup em menos de 2 minutos
+            Pronto em minutos
           </div>
           <div className="flex items-center gap-1.5">
             <Activity size={12} strokeWidth={2.25} className="text-positive" />
-            Para CRN ativo
+            Para nutricionistas com CRN ativo
           </div>
         </div>
       </section>
@@ -135,33 +198,41 @@ export function LandingPage({ onStartTrial, onLogin, onOpenLegal }: LandingPageP
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Pillar
-              icon={<Mic size={18} strokeWidth={2.25} className="text-brand-700" />}
-              title="1. Capture a consulta inteira"
-              description="Grave ao vivo no app ou importe a gravação do Zoom, Meet ou do gravador do celular — áudio ou vídeo, até 2h30. Você atende, a EchoNutri transcreve com fidelidade clínica."
-            />
-            <Pillar
-              icon={<Brain size={18} strokeWidth={2.25} className="text-brand-700" />}
-              title="2. Análise clínica que conecta os pontos"
-              description="Não é só transcrição. A IA interpreta o caso cruzando alimentação, sono, estresse, treino, queixas e contexto biopsicossocial — em uma avaliação estruturada com racional, hipóteses e direcionamento."
-            />
-            <Pillar
-              icon={<FileText size={18} strokeWidth={2.25} className="text-brand-700" />}
-              title="3. Prescrição e documentos prontos"
-              description="Plano alimentar com substituições equivalentes e macros calculados. Pedido de exames, conduta nutricional para a paciente e encaminhamento clínico — todos em PDF na sua identidade visual, em um clique."
-            />
-            <Pillar
-              icon={<TrendingUp size={18} strokeWidth={2.25} className="text-brand-700" />}
-              title="4. Evolução real, consulta após consulta"
-              description="Marcadores clínicos, histórico de hipóteses e comparação entre consultas. Toda paciente acumula contexto — você nunca perde o raciocínio anterior."
-            />
+            <div className="pillar-1">
+              <Pillar
+                icon={<Mic size={18} strokeWidth={2.25} className="text-brand-700" />}
+                title="1. Capture a consulta inteira"
+                description="Grave ao vivo no app ou importe a gravação do Zoom, Meet ou do gravador do celular — áudio ou vídeo, até 2h30. Você atende, a EchoNutri transcreve com fidelidade clínica."
+              />
+            </div>
+            <div className="pillar-2">
+              <Pillar
+                icon={<Brain size={18} strokeWidth={2.25} className="text-brand-700" />}
+                title="2. Análise clínica que conecta os pontos"
+                description="Não é só transcrição. A IA interpreta o caso cruzando alimentação, sono, estresse, treino, queixas e contexto biopsicossocial — em uma avaliação estruturada com racional, hipóteses e direcionamento."
+              />
+            </div>
+            <div className="pillar-3">
+              <Pillar
+                icon={<FileText size={18} strokeWidth={2.25} className="text-brand-700" />}
+                title="3. Prescrição e documentos prontos"
+                description="Plano alimentar com substituições equivalentes e macros calculados. Pedido de exames, conduta nutricional para a paciente e encaminhamento clínico — todos em PDF na sua identidade visual, em um clique."
+              />
+            </div>
+            <div className="pillar-4">
+              <Pillar
+                icon={<TrendingUp size={18} strokeWidth={2.25} className="text-brand-700" />}
+                title="4. Evolução real, consulta após consulta"
+                description="Marcadores clínicos, histórico de hipóteses e comparação entre consultas. Toda paciente acumula contexto — você nunca perde o raciocínio anterior."
+              />
+            </div>
           </div>
         </div>
       </section>
 
       {/* ===== DIFFERENTIATION ===== */}
       <section className="max-w-5xl mx-auto px-5 md:px-8 py-16 md:py-20">
-        <div className="bg-surface border border-line rounded-lg p-8 md:p-10 shadow-sm">
+        <div className="bg-surface border border-line rounded-lg p-8 md:p-10 shadow-sm animate-fade-in-up">
           <div className="text-2xs font-semibold uppercase tracking-[0.1em] text-brand-700 mb-3">
             Para quem trata o ser humano inteiro
           </div>
@@ -173,7 +244,7 @@ export function LandingPage({ onStartTrial, onLogin, onOpenLegal }: LandingPageP
               Outros apps tratam a paciente como um conjunto de gramas e calorias. A EchoNutri foi construída para nutricionistas que enxergam alimentação como sintoma — não como causa.
             </p>
             <p>
-              A IA entrega análise integrativa de verdade: cruza queixas, sono, rotina, treino, exames, comportamento e contexto familiar. Devolve hipóteses clínicas — não receitas prontas. <strong className="text-ink-primary">A conduta continua sendo sua.</strong>
+              A IA entrega análise integrativa de verdade: cruza queixas, sono, rotina, treino, exames, comportamento e contexto familiar. Devolve hipóteses clínicas — não receitas prontas. <strong className="text-ink-primary">O controle continua seu — todos os exames, condutas e plano alimentar são editáveis por você. Você sempre no controle.</strong>
             </p>
           </div>
         </div>
@@ -187,10 +258,10 @@ export function LandingPage({ onStartTrial, onLogin, onOpenLegal }: LandingPageP
               Preço justo
             </div>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-primary leading-tight">
-              Um plano. Todas as features.
+              Um plano. Todos os recursos.
             </h2>
             <p className="text-md text-ink-secondary mt-4 leading-relaxed">
-              Sem tiers confusos. Sem features escondidas atrás de upgrade. Sem fidelidade.
+              Sem cobranças extras. Sem recursos escondidos. Sem fidelidade.
             </p>
           </div>
 
@@ -244,12 +315,12 @@ export function LandingPage({ onStartTrial, onLogin, onOpenLegal }: LandingPageP
               {[
                 'Pacientes e consultas ilimitados',
                 'Gravação ao vivo + upload de áudio/vídeo (até 2h30)',
-                'Avaliação clínica integrativa com IA',
+                'Análise clínica integrativa com IA',
                 'Prescrição nutricional com substituições',
                 'PDFs prontos (4 templates)',
                 'Marcadores clínicos por paciente',
                 'Histórico e comparação entre consultas',
-                'LGPD-aware (export + delete sob demanda)',
+                'Seus dados sempre em suas mãos (baixar ou deletar)',
               ].map((feature, i) => (
                 <li key={i} className="flex items-start gap-2">
                   <Check size={14} strokeWidth={2.25} className="text-positive mt-0.5 flex-shrink-0" />
