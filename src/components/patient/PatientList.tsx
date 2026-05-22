@@ -74,9 +74,10 @@ export function PatientList({ patients, events, onSelectPatient }: PatientListPr
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-ink-primary tracking-tight">Pacientes</h2>
+          <h2 className="text-2xl font-bold text-ink-primary tracking-tight">Minhas pacientes</h2>
           <p className="text-ink-tertiary text-sm mt-1">
-            {filteredPatients.length} de {patients.length} {patients.length === 1 ? 'paciente' : 'pacientes'}
+            {filteredPatients.length} {filteredPatients.length === 1 ? 'paciente' : 'pacientes'}
+            {patients.length > filteredPatients.length && ` de ${patients.length} no total`}
           </p>
         </div>
       </div>
@@ -110,7 +111,7 @@ export function PatientList({ patients, events, onSelectPatient }: PatientListPr
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar paciente por nome"
+                placeholder="Buscar por nome"
                 className="w-full bg-surface border border-line rounded-md py-2 pl-9 pr-4
                            outline-none text-md text-ink-primary placeholder:text-ink-tertiary
                            focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
@@ -164,13 +165,13 @@ export function PatientList({ patients, events, onSelectPatient }: PatientListPr
             <Users size={36} strokeWidth={1.75} className="mb-3 opacity-50" />
             <p className="font-semibold text-md text-ink-secondary">
               {patients.length === 0
-                ? 'Nenhuma paciente cadastrada'
-                : 'Nenhuma paciente encontrada'}
+                ? 'Comece registrando uma consulta'
+                : 'Nenhuma paciente com esse nome'}
             </p>
             <p className="text-sm mt-1">
               {patients.length === 0
-                ? 'Registre uma consulta para começar'
-                : 'Tente buscar por outro nome'}
+                ? 'Grava o áudio ou importa de um arquivo'
+                : 'Tente outro nome ou limpa os filtros'}
             </p>
           </div>
         )}

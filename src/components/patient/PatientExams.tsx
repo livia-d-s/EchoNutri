@@ -17,7 +17,7 @@ export function PatientExams({ patient, onUpdateExams }: PatientExamsProps) {
   const confirmedChange = (next: PatientExam[]) => {
     // Protect removals with a confirmation (only when list shrinks)
     if (next.length < exams.length) {
-      if (!window.confirm('Remover este exame? Ele não será considerado em análises futuras.')) return;
+      if (!window.confirm('Remover este exame?')) return;
     }
     handleChange(next);
   };

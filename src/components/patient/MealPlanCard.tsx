@@ -155,7 +155,7 @@ export function MealPlanCard({
       </div>
 
       <p className="text-2xs text-ink-tertiary mb-5">
-        Análise interpretativa — revise antes de entregar. Clique em qualquer item para ver substituições equivalentes.
+        Toque em cada item para ver opções de substituição. Revise tudo antes de entregar.
       </p>
 
       {/* Macros */}

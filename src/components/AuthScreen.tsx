@@ -83,7 +83,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackTo
     setError(null);
     // On signup mode, require explicit consent before sending the user to Google.
     if (!isLogin && !legalConsent) {
-      setError("Para criar conta, é necessário aceitar os Termos de Uso e a Política de Privacidade.");
+      setError("Você precisa aceitar os Termos de Uso e a Política de Privacidade para continuar.");
       return;
     }
     setIsLoading(true);
@@ -145,7 +145,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackTo
           setCrmError(crnCheck.error);
           throw new Error(crnCheck.error);
         }
-        if (!legalConsent) throw new Error("Para criar conta, é necessário aceitar os Termos de Uso e a Política de Privacidade.");
+        if (!legalConsent) throw new Error("Você precisa aceitar os Termos de Uso e a Política de Privacidade para continuar.");
 
         const user = await registerWithEmail(emailCheck.canonical, password, fullName);
         await setDoc(doc(db, "doctors", user.uid), {
@@ -185,11 +185,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackTo
 
   const getHeaderContent = () => {
     if (isForgotPassword) {
-      return { title: "Redefinir senha", subtitle: "Informe seu e-mail para receber as instruções" };
+      return { title: "Recuperar acesso", subtitle: "Enviaremos as instruções para seu e-mail" };
     }
     return {
-      title: isLogin ? 'Acessar conta' : 'Cadastro profissional',
-      subtitle: isLogin ? 'Plataforma de inteligência clínica para nutrição' : 'Cadastro de profissionais com CRN ativo'
+      title: isLogin ? 'Bem-vindo de volta' : 'Crie sua conta',
+      subtitle: isLogin ? 'Inteligência clínica para nutrição integrativa' : 'Nutricionistas com CRN ativo'
     };
   };
 
@@ -236,9 +236,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackTo
               <div className="mx-auto w-14 h-14 bg-green-50 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle2 className="w-7 h-7 text-positive" />
               </div>
-              <h3 className="text-md font-semibold text-ink-primary mb-2">E-mail enviado</h3>
+              <h3 className="text-md font-semibold text-ink-primary mb-2">Instruções enviadas</h3>
               <p className="text-ink-secondary text-sm mb-5">
-                Verifique sua caixa de entrada (e spam) para redefinir a senha.
+                Verifique seu e-mail (incluindo pasta de spam) para resetar a senha.
               </p>
               <button
                 type="button"
@@ -440,13 +440,13 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackTo
           {!isForgotPassword && (
             <div className="mt-6 text-center">
               <p className="text-sm text-ink-secondary">
-                {isLogin ? 'Ainda não tem conta?' : 'Já possui cadastro?'}
+                {isLogin ? 'Primeira vez aqui?' : 'Já tem uma conta?'}
                 <button
                   type="button"
                   onClick={toggleMode}
                   className="ml-2 font-semibold text-brand-700 hover:text-brand-900 transition-colors"
                 >
-                  {isLogin ? 'Criar conta' : 'Acessar'}
+                  {isLogin ? 'Cadastre-se' : 'Entre aqui'}
                 </button>
               </p>
             </div>

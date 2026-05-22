@@ -34,7 +34,7 @@ const formatFileSize = (bytes?: number) => {
 export function ExamUploader({
   exams, onChange, compact = false,
   label = 'Exames laboratoriais',
-  emptyMessage = 'Nenhum exame. A IA considerará os PDFs anexados durante a análise.',
+  emptyMessage = 'Nenhum exame ainda. A IA usará os PDFs anexados como referência.',
   idPrefix = 'exam',
   buttonColor = 'blue',
 }: ExamUploaderProps) {

@@ -135,7 +135,7 @@ export function PatientMealPlans({ patient, onUpdateMealPlans }: PatientMealPlan
 
       {plans.length === 0 ? (
         <p className="text-xs text-ink-tertiary py-1">
-          Nenhuma prescrição anexada. Importe um PDF para a IA usar como referência ao sugerir ajustes.
+          Nenhuma prescrição ainda. Anexa um PDF como referência para sugerir ajustes.
         </p>
       ) : (
         <div className="space-y-2">
