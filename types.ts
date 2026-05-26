@@ -213,3 +213,77 @@ export interface NutritionalAssessment {
   recommendedExams: string[];
   nutritionalConduct: string;
 }
+
+// ============ FIRESTORE COLLECTIONS (New Schema - Phase 1) ============
+
+// firestore/patients/{patientId}
+export interface FirestorePatient {
+  id: string;                              // Document ID (auto-generated)
+  nutritionistId: string;                  // Reference to doctor/nutri (users/{uid})
+  name: string;
+  email?: string;                          // For patient app login (future)
+  phone?: string;
+  dateOfBirth?: string;                    // ISO date
+  mainComplaint?: string;                  // Initial reason for consultation
+  notes?: string;                          // Nutri's private notes
+  status: 'active' | 'archived';
+  createdAt: string;                       // ISO timestamp
+  updatedAt?: string;                      // ISO timestamp
+}
+
+// firestore/prescriptions/{prescriptionId}
+export interface FirestorePrescription {
+  id: string;                              // Document ID
+  patientId: string;                       // Reference to patients/{patientId}
+  nutritionistId: string;                  // Reference to doctors/{uid}
+  date: string;                            // ISO timestamp (when prescribed)
+  consultationId?: string;                 // Reference to users/{uid}/consultations/{id}
+
+  // Structured meal plan + macros
+  mealPlan?: StructuredMealPlan;
+
+  // Raw analysis (from AI)
+  analysis?: {
+    complaint: string;
+    rationale: string;
+    recommendations: string;
+  };
+
+  status: 'draft' | 'delivered' | 'archived';
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// firestore/evolution/{patientId}/weight
+export interface EvolutionWeight {
+  id: string;
+  patientId: string;
+  date: string;                            // ISO timestamp
+  value: number;
+  unit: 'kg' | 'lb';
+  notes?: string;
+  createdAt: string;
+}
+
+// firestore/evolution/{patientId}/exams
+export interface EvolutionExam {
+  id: string;
+  patientId: string;
+  date: string;                            // ISO timestamp
+  type: string;                            // e.g., "glicose", "colesterol"
+  value: number;
+  unit: string;                            // e.g., "mg/dL"
+  referenceRange?: string;                 // e.g., "70-100"
+  status: 'normal' | 'improved' | 'high' | 'low';
+  createdAt: string;
+}
+
+// firestore/evolution/{patientId}/notes
+export interface EvolutionNote {
+  id: string;
+  patientId: string;
+  date: string;                            // ISO timestamp
+  note: string;
+  type?: 'observation' | 'follow-up' | 'alert';
+  createdAt: string;
+}

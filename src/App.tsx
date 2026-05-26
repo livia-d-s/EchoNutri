@@ -27,6 +27,11 @@ import {
 import { db } from './firebaseConfig';
 import AuthScreen from './components/AuthScreen';
 import { useAuth } from './context/AuthContext';
+import {
+  createPatient,
+  createPrescription,
+  recordWeight,
+} from './services/firestoreNewSchema';
 
 const getBackendUrl = () => {
   // In production, use Render backend
@@ -922,6 +927,42 @@ export default function App() {
         }).catch(dbError => {
           console.error("Failed to save to Firebase:", dbError);
         });
+
+        // === NEW SCHEMA: Save to patients + prescriptions collections ===
+        try {
+          const patientName_ = patientName || 'Anônimo';
+          let patientId = '';
+
+          // 1. Create patient in firestore/patients
+          const firestorePatient = await createPatient(user.uid, {
+            name: patientName_,
+            mainComplaint: aiResponse.patientHighlights?.[0] || '',
+          });
+          patientId = firestorePatient.id;
+
+          // 2. Create prescription
+          const prescription = await createPrescription(user.uid, patientId, {
+            date: now,
+            consultationId: newEvent.id,
+            analysis: {
+              complaint: aiResponse.patientHighlights?.[0] || '',
+              rationale: aiResponse.clinicalRationale || '',
+              recommendations: aiResponse.nutritionalConduct || '',
+            },
+          });
+
+          // 3. Record weight if captured
+          if (currentPatientWeight) {
+            await recordWeight(patientId, currentPatientWeight, 'kg').catch(err => {
+              console.warn('Failed to record weight:', err);
+            });
+          }
+
+          console.log('✅ Saved to new schema:', { patientId, prescriptionId: prescription.id });
+        } catch (schemaErr) {
+          console.error('Failed to save to new schema:', schemaErr);
+          // Non-blocking — app still works if this fails
+        }
       }
     } catch (error: any) {
       console.error("Erro na análise:", error);
