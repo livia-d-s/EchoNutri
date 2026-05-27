@@ -16,6 +16,7 @@ import { TrialBadge } from './components/subscription/TrialBadge';
 import { TrialExpiredGate } from './components/subscription/TrialExpiredGate';
 import { CheckoutPlaceholder } from './components/subscription/CheckoutPlaceholder';
 import { ConsultaDashboard } from './components/dashboard/ConsultaDashboard';
+import { PostsScreen } from './components/posts/PostsScreen';
 import { Subscription, createInitialSubscription } from '../types';
 import { deriveSubscriptionState, hasActiveAccess } from './utils/subscription';
 
@@ -193,7 +194,7 @@ export default function App() {
   // Build a localStorage key namespaced to the current user
   const lsKey = (base: string) => userId ? `echomed_${userId}_${base}` : null;
 
-  const [view, setView] = useState<'transcription' | 'diagnosis' | 'patients' | 'patient'>('transcription');
+  const [view, setView] = useState<'transcription' | 'diagnosis' | 'patients' | 'patient' | 'posts'>('transcription');
   const [status, setStatus] = useState(AppStatus.IDLE);
 
   // Patient-centric state — initialized empty; loaded from user-scoped storage in an effect below
@@ -1025,6 +1026,9 @@ export default function App() {
               <button onClick={() => { setView('patients'); setSelectedPatient(null); }} className={`px-3 md:px-4 py-1.5 rounded-sm text-sm font-semibold transition-colors flex items-center gap-1.5 ${view === 'patients' || view === 'patient' ? 'bg-surface shadow-xs text-ink-primary' : 'text-ink-secondary hover:text-ink-primary'}`}>
                 <Users size={14} strokeWidth={2.25} /> <span className="hidden sm:inline">Pacientes</span><span className="sm:hidden">Pac.</span>
               </button>
+              <button onClick={() => { setView('posts'); }} className={`px-3 md:px-4 py-1.5 rounded-sm text-sm font-semibold transition-colors flex items-center gap-1.5 ${view === 'posts' ? 'bg-surface shadow-xs text-ink-primary' : 'text-ink-secondary hover:text-ink-primary'}`}>
+                <Pencil size={14} strokeWidth={2.25} /> <span className="hidden sm:inline">Posts</span><span className="sm:hidden">Pos.</span>
+              </button>
             </div>
             {/* Trial / subscription status badge */}
             <TrialBadge
@@ -1156,6 +1160,9 @@ export default function App() {
               }
             }}
           />
+        )}
+        {view === 'posts' && (
+          <PostsScreen patients={patients} />
         )}
         {view === 'diagnosis' && <DiagnosisView
           result={currentResult}

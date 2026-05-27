@@ -287,3 +287,21 @@ export interface EvolutionNote {
   type?: 'observation' | 'follow-up' | 'alert';
   createdAt: string;
 }
+
+// firestore/posts/{postId}
+export interface FirestorePost {
+  id: string;
+  nutritionistId: string;
+  patientIds: string[];                    // patients this post is assigned to
+  title: string;
+  description?: string;
+  projectId?: string;                      // Reference to EchoConteúdo project ID
+  carouselData?: Record<string, any>;      // Full carousel structure (JSON)
+  exportedUrls?: {
+    images: string[];
+    video?: string;
+  };
+  status: 'draft' | 'published';
+  createdAt: string;
+  updatedAt?: string;
+}

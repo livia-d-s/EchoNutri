@@ -28,6 +28,7 @@ import {
   EvolutionExam,
   EvolutionNote,
   StructuredMealPlan,
+  FirestorePost,
 } from '../../types';
 
 // ============ PATIENTS COLLECTION ============
@@ -356,5 +357,145 @@ export async function getNotes(patientId: string): Promise<EvolutionNote[]> {
   } catch (err) {
     console.error('Failed to get notes:', err);
     return [];
+  }
+}
+
+// ============ POSTS COLLECTION ============
+
+/**
+ * Create a new post (carousel generated content)
+ */
+export async function createPost(
+  nutritionistId: string,
+  data: Omit<FirestorePost, 'id' | 'nutritionistId' | 'createdAt' | 'updatedAt'>
+): Promise<FirestorePost> {
+  const now = new Date().toISOString();
+  const postRef = await addDoc(collection(db, 'posts'), {
+    ...data,
+    nutritionistId,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return {
+    id: postRef.id,
+    ...data,
+    nutritionistId,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/**
+ * Get post by ID
+ */
+export async function getPost(postId: string): Promise<FirestorePost | null> {
+  try {
+    const snap = await getDoc(doc(db, 'posts', postId));
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() } as FirestorePost;
+  } catch (err) {
+    console.error('Failed to get post:', err);
+    return null;
+  }
+}
+
+/**
+ * Get all posts for a nutritionist
+ */
+export async function getPostsByNutritionist(nutritionistId: string): Promise<FirestorePost[]> {
+  try {
+    const q = query(
+      collection(db, 'posts'),
+      where('nutritionistId', '==', nutritionistId),
+      orderBy('createdAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestorePost));
+  } catch (err) {
+    console.error('Failed to get posts:', err);
+    return [];
+  }
+}
+
+/**
+ * Get posts assigned to a patient
+ */
+export async function getPostsByPatient(patientId: string): Promise<FirestorePost[]> {
+  try {
+    const q = query(
+      collection(db, 'posts'),
+      where('patientIds', 'array-contains', patientId),
+      where('status', '==', 'published'),
+      orderBy('createdAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestorePost));
+  } catch (err) {
+    console.error('Failed to get posts for patient:', err);
+    return [];
+  }
+}
+
+/**
+ * Update post (e.g., add patients, change status, update carousel)
+ */
+export async function updatePost(
+  postId: string,
+  updates: Partial<Omit<FirestorePost, 'id' | 'nutritionistId' | 'createdAt'>>
+): Promise<void> {
+  try {
+    await updateDoc(doc(db, 'posts', postId), {
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('Failed to update post:', err);
+    throw err;
+  }
+}
+
+/**
+ * Delete post
+ */
+export async function deletePost(postId: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, 'posts', postId));
+  } catch (err) {
+    console.error('Failed to delete post:', err);
+    throw err;
+  }
+}
+
+/**
+ * Assign post to patients
+ */
+export async function assignPostToPatients(postId: string, patientIds: string[]): Promise<void> {
+  try {
+    const post = await getPost(postId);
+    if (!post) throw new Error('Post not found');
+
+    const currentIds = post.patientIds || [];
+    const newIds = Array.from(new Set([...currentIds, ...patientIds]));
+
+    await updatePost(postId, { patientIds: newIds });
+  } catch (err) {
+    console.error('Failed to assign post to patients:', err);
+    throw err;
+  }
+}
+
+/**
+ * Remove post from patient
+ */
+export async function removePostFromPatient(postId: string, patientId: string): Promise<void> {
+  try {
+    const post = await getPost(postId);
+    if (!post) throw new Error('Post not found');
+
+    const updatedIds = (post.patientIds || []).filter(id => id !== patientId);
+    await updatePost(postId, { patientIds: updatedIds });
+  } catch (err) {
+    console.error('Failed to remove post from patient:', err);
+    throw err;
   }
 }
