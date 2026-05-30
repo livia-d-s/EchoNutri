@@ -1205,6 +1205,7 @@ export default function App() {
                 setSelectedPatient(prev => prev ? { ...prev, ...changes } : null);
               }
             }}
+            onRecordWeight={selectedPatient ? (weight: number) => recordWeight(selectedPatient.id, weight) : undefined}
             onEventClick={(event) => {
               setSelectedEvent(event);
               if (event.result) {
