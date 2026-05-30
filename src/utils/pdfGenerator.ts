@@ -102,9 +102,14 @@ async function loadPdfMake(): Promise<any> {
 
   // pdfmake 0.3.x exposes addVirtualFileSystem(); fall back to direct assignment
   // for older builds. Both routes end up populating the same internal vfs.
-  if (typeof pdfMake.addVirtualFileSystem === 'function') {
-    pdfMake.addVirtualFileSystem(vfs);
-  } else {
+  try {
+    if (typeof pdfMake.addVirtualFileSystem === 'function') {
+      pdfMake.addVirtualFileSystem(vfs);
+    } else {
+      pdfMake.vfs = vfs;
+    }
+  } catch (e) {
+    console.warn('[pdfmake] addVirtualFileSystem failed, falling back to direct assignment:', e);
     pdfMake.vfs = vfs;
   }
 
