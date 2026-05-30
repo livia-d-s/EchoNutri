@@ -31,6 +31,8 @@ import {
   createPatient,
   createPrescription,
   recordWeight,
+  getPatientsByNutritionist,
+  getPrescriptionsByPatient,
 } from './services/firestoreNewSchema';
 
 const getBackendUrl = () => {
@@ -235,22 +237,78 @@ export default function App() {
     if (!db) return;
     const loadFromFirestore = async () => {
       try {
-        const [patientsDoc, eventsDoc, profileDoc] = await Promise.all([
-          getDoc(doc(db, 'users', userId, 'appData', 'patients')),
-          getDoc(doc(db, 'users', userId, 'appData', 'events')),
-          getDoc(doc(db, 'users', userId, 'appData', 'profile')),
-        ]);
+        // Load patients from new schema
+        const firestorePatients = await getPatientsByNutritionist(userId);
 
-        if (patientsDoc.exists()) {
-          const items = patientsDoc.data().items || [];
-          setPatients(items);
-          localStorage.setItem(`echomed_${userId}_patients`, JSON.stringify(items));
+        // Convert FirestorePatient to local Patient structure
+        const localPatients = firestorePatients.map(fp => ({
+          id: fp.id,
+          name: fp.name,
+          phone: fp.phone || undefined,
+          email: fp.email || undefined,
+          birthDate: fp.dateOfBirth || undefined,
+          createdAt: fp.createdAt,
+          highlights: [] as string[],
+          exams: [] as any[],
+          mealPlans: [] as any[],
+          goalCustom: undefined,
+          goals: [] as PatientGoal[],
+          trainingRoutine: [] as TrainingActivity[],
+        } as Patient));
+
+        if (localPatients.length > 0) {
+          setPatients(localPatients);
+          localStorage.setItem(`echomed_${userId}_patients`, JSON.stringify(localPatients));
+        } else {
+          // Fallback: try loading from legacy schema
+          const legacyPatientsDoc = await getDoc(doc(db, 'users', userId, 'appData', 'patients'));
+          if (legacyPatientsDoc.exists()) {
+            const items = legacyPatientsDoc.data().items || [];
+            setPatients(items);
+            localStorage.setItem(`echomed_${userId}_patients`, JSON.stringify(items));
+          }
         }
-        if (eventsDoc.exists()) {
-          const items = eventsDoc.data().items || [];
-          setEvents(items);
-          localStorage.setItem(`echomed_${userId}_events`, JSON.stringify(items));
+
+        // Load prescriptions for all patients and convert to TimelineEvents
+        const allEvents: TimelineEvent[] = [];
+        for (const patient of localPatients) {
+          const prescriptions = await getPrescriptionsByPatient(patient.id);
+          for (const presc of prescriptions) {
+            const event: TimelineEvent = {
+              id: presc.id,
+              patientId: patient.id,
+              type: presc.consultationId ? 'followup' : 'initial',
+              date: presc.date,
+              transcript: presc.analysis?.complaint || '',
+              result: presc.analysis ? {
+                nutritionalAssessment: presc.analysis.complaint,
+                clinicalRationale: presc.analysis.rationale,
+                possibleAssociatedConditions: [],
+                recommendedExams: [],
+                nutritionalConduct: presc.analysis.recommendations,
+              } as any : undefined,
+              doctorName: doctorProfile.name,
+              createdAt: presc.createdAt,
+            };
+            allEvents.push(event);
+          }
         }
+
+        if (allEvents.length > 0) {
+          setEvents(allEvents);
+          localStorage.setItem(`echomed_${userId}_events`, JSON.stringify(allEvents));
+        } else {
+          // Fallback: try loading from legacy schema
+          const legacyEventsDoc = await getDoc(doc(db, 'users', userId, 'appData', 'events'));
+          if (legacyEventsDoc.exists()) {
+            const items = legacyEventsDoc.data().items || [];
+            setEvents(items);
+            localStorage.setItem(`echomed_${userId}_events`, JSON.stringify(items));
+          }
+        }
+
+        // Load profile from legacy location (still use old schema for profile)
+        const profileDoc = await getDoc(doc(db, 'users', userId, 'appData', 'profile'));
         if (profileDoc.exists()) {
           const data = profileDoc.data();
           const profile = { ...DEFAULT_PROFILE, ...data };
