@@ -63,14 +63,22 @@ function findVfsObject(root: any): Record<string, string> | null {
   function walk(obj: any, depth: number): Record<string, string> | null {
     if (!obj || typeof obj !== 'object' || seen.has(obj) || depth > 4) return null;
     seen.add(obj);
-    if (typeof obj['Roboto-Regular.ttf'] === 'string') {
-      return obj as Record<string, string>;
-    }
-    for (const v of Object.values(obj)) {
-      if (v && typeof v === 'object') {
-        const found = walk(v, depth + 1);
-        if (found) return found;
+    try {
+      if (typeof obj['Roboto-Regular.ttf'] === 'string') {
+        return obj as Record<string, string>;
       }
+      // Safely iterate over object properties
+      const keys = Object.keys(obj);
+      for (const key of keys) {
+        const v = obj[key];
+        if (v && typeof v === 'object') {
+          const found = walk(v, depth + 1);
+          if (found) return found;
+        }
+      }
+    } catch (e) {
+      // Skip objects that don't support property access (Proxies, sealed objects, etc)
+      console.warn('[pdfmake] Could not inspect object:', e);
     }
     return null;
   }
