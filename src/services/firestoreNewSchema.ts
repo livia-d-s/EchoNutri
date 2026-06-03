@@ -28,6 +28,8 @@ import {
   EvolutionExam,
   EvolutionNote,
   StructuredMealPlan,
+  PatientExam,
+  MealPlan,
 } from '../../types';
 
 // ============ PATIENTS COLLECTION ============
@@ -86,6 +88,33 @@ export async function getPatientsByNutritionist(nutritionistId: string): Promise
     return snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestorePatient));
   } catch (err) {
     console.error('Failed to get patients:', err);
+    return [];
+  }
+}
+
+/**
+ * Get uploaded exam PDFs for a patient (Híbrido model: stored as a
+ * subcollection under patients/{id}/exams to stay under the 1MB doc limit).
+ */
+export async function getPatientExams(patientId: string): Promise<PatientExam[]> {
+  try {
+    const snap = await getDocs(collection(db, 'patients', patientId, 'exams'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as PatientExam));
+  } catch (err) {
+    console.error('Failed to get patient exams:', err);
+    return [];
+  }
+}
+
+/**
+ * Get uploaded meal-plan PDFs for a patient (subcollection patients/{id}/mealPlans).
+ */
+export async function getPatientMealPlans(patientId: string): Promise<MealPlan[]> {
+  try {
+    const snap = await getDocs(collection(db, 'patients', patientId, 'mealPlans'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as MealPlan));
+  } catch (err) {
+    console.error('Failed to get patient meal plans:', err);
     return [];
   }
 }
@@ -236,16 +265,18 @@ export async function recordWeight(
   notes?: string
 ): Promise<EvolutionWeight> {
   const now = new Date().toISOString();
+  // Firestore rejects `undefined` field values, so only include `notes` when set.
+  const data: Record<string, unknown> = {
+    patientId,
+    date: now,
+    value: weight,
+    unit,
+    createdAt: now,
+  };
+  if (notes !== undefined) data.notes = notes;
   const weightRef = await addDoc(
     collection(db, 'evolution', patientId, 'weight'),
-    {
-      patientId,
-      date: now,
-      value: weight,
-      unit,
-      notes,
-      createdAt: now,
-    }
+    data
   );
   return {
     id: weightRef.id,

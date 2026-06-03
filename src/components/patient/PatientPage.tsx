@@ -4,7 +4,6 @@ import { PatientHeader } from './PatientHeader';
 import { PatientTimeline } from './PatientTimeline';
 import { PatientExams } from './PatientExams';
 import { PatientMealPlans } from './PatientMealPlans';
-import { PatientWeightTracker } from './PatientWeightTracker';
 import { AdjustmentModal } from './AdjustmentModal';
 import { PatientExam, MealPlan } from '../../../types';
 
@@ -22,7 +21,6 @@ interface PatientPageProps {
   onUpdateExams?: (patientId: string, exams: PatientExam[]) => void;
   onUpdateMealPlans?: (patientId: string, mealPlans: MealPlan[]) => void;
   onUpdatePatient?: (patientId: string, changes: Partial<Patient>) => void;
-  onRecordWeight?: (weight: number) => Promise<void>;
 }
 
 export function PatientPage({
@@ -39,7 +37,6 @@ export function PatientPage({
   onUpdateExams,
   onUpdateMealPlans,
   onUpdatePatient,
-  onRecordWeight,
 }: PatientPageProps) {
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
 
@@ -78,9 +75,6 @@ export function PatientPage({
       />
 
       <div className="max-w-6xl mx-auto">
-        {onRecordWeight && (
-          <PatientWeightTracker patient={patient} onRecordWeight={onRecordWeight} />
-        )}
         {onUpdateExams && (
           <PatientExams patient={patient} onUpdateExams={onUpdateExams} />
         )}

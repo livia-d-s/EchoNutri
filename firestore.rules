@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Legacy: consultations
+    match /users/{uid}/consultations/{doc=**} {
+      allow read, write: if request.auth.uid == uid;
+    }
+
+    // App data (profile, patients, events, etc)
+    match /users/{uid}/appData/{doc=**} {
+      allow read, write: if request.auth.uid == uid;
+    }
+
+    // Doctors (subscription lives here)
+    match /doctors/{uid} {
+      allow read, write: if request.auth.uid == uid;
+    }
+
+    // Patients - CREATE sem checklist, UPDATE com checklist
+    match /patients/{patientId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if request.auth != null
+        && resource.data.nutritionistId == request.auth.uid;
+    }
+
+    // Subcoleções do paciente (exames e planos em PDF — modelo Híbrido).
+    // Acesso restrito ao nutricionista dono do paciente, checando o doc pai.
+    match /patients/{patientId}/{sub}/{doc=**} {
+      allow read, write: if request.auth != null
+        && get(/databases/$(database)/documents/patients/$(patientId)).data.nutritionistId == request.auth.uid;
+    }
+
+    // Prescriptions - SAME PATTERN
+    match /prescriptions/{prescriptionId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if request.auth != null
+        && resource.data.nutritionistId == request.auth.uid;
+    }
+
+    // Evolution (peso, notas).
+    //
+    // ATUAL (em uso enquanto a migração de pacientes legados não termina):
+    // qualquer autenticado pode escrever. Necessário porque pacientes legados
+    // têm IDs locais ("patient_<timestamp>") e NÃO existem em /patients/{id},
+    // então a checagem por dono abaixo os bloquearia.
+    match /evolution/{patientId}/{collection}/{doc=**} {
+      allow create, read, update, delete: if request.auth != null;
+    }
+
+    // BLINDADA (LGPD) — trocar pela de cima quando TODOS os pacientes
+    // estiverem na coleção /patients/{id} (migração concluída). Restringe o
+    // acesso ao nutricionista dono do paciente:
+    //
+    // match /evolution/{patientId}/{collection}/{doc=**} {
+    //   allow read, write: if request.auth != null
+    //     && get(/databases/$(database)/documents/patients/$(patientId)).data.nutritionistId == request.auth.uid;
+    // }
+  }
+}

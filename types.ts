@@ -229,6 +229,27 @@ export interface FirestorePatient {
   status: 'active' | 'archived';
   createdAt: string;                       // ISO timestamp
   updatedAt?: string;                      // ISO timestamp
+
+  // Current-state clinical/profile data (Híbrido model). These are "latest
+  // value" fields edited via the body-composition modal, not time-series —
+  // weight history lives in evolution/{id}/weight. Uploaded exam/meal-plan
+  // PDFs live in the patients/{id}/exams and /mealPlans subcollections to
+  // avoid the 1MB-per-document limit.
+  weightKg?: number;
+  heightCm?: number;
+  bodyFatPct?: number;
+  leanMassPct?: number;
+  dietaryRestrictions?: string;
+  goal?: PatientGoal;
+  goals?: PatientGoal[];
+  goalCustom?: string;
+  trainingRoutine?: TrainingActivity[];
+  isFirstConsultation?: boolean;
+  highlights?: string[];
+
+  // Provenance: set to 'legacy' on records created by the appData→new-schema
+  // backfill, so we can tell migrated records apart from natively-created ones.
+  migratedFrom?: 'legacy';
 }
 
 // firestore/prescriptions/{prescriptionId}

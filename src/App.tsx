@@ -26,13 +26,12 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import AuthScreen from './components/AuthScreen';
+import { MigrationPanel } from './components/patient/MigrationPanel';
 import { useAuth } from './context/AuthContext';
 import {
   createPatient,
   createPrescription,
   recordWeight,
-  getPatientsByNutritionist,
-  getPrescriptionsByPatient,
 } from './services/firestoreNewSchema';
 
 const getBackendUrl = () => {
@@ -205,6 +204,7 @@ export default function App() {
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [doctorProfile, setDoctorProfile] = useState<DoctorProfileType>(DEFAULT_PROFILE);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [showMigration, setShowMigration] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [showCheckoutPlaceholder, setShowCheckoutPlaceholder] = useState(false);
   // Pre-auth surface: null = show LandingPage, 'login'/'signup' = show AuthScreen
@@ -237,74 +237,27 @@ export default function App() {
     if (!db) return;
     const loadFromFirestore = async () => {
       try {
-        // Load patients from new schema
-        const firestorePatients = await getPatientsByNutritionist(userId);
-
-        // Convert FirestorePatient to local Patient structure
-        const localPatients = firestorePatients.map(fp => ({
-          id: fp.id,
-          name: fp.name,
-          phone: fp.phone || undefined,
-          email: fp.email || undefined,
-          birthDate: fp.dateOfBirth || undefined,
-          createdAt: fp.createdAt,
-          highlights: [] as string[],
-          exams: [] as any[],
-          mealPlans: [] as any[],
-          goalCustom: undefined,
-          goals: [] as PatientGoal[],
-          trainingRoutine: [] as TrainingActivity[],
-        } as Patient));
-
-        if (localPatients.length > 0) {
-          setPatients(localPatients);
-          localStorage.setItem(`echomed_${userId}_patients`, JSON.stringify(localPatients));
-        } else {
-          // Fallback: try loading from legacy schema
-          const legacyPatientsDoc = await getDoc(doc(db, 'users', userId, 'appData', 'patients'));
-          if (legacyPatientsDoc.exists()) {
-            const items = legacyPatientsDoc.data().items || [];
-            setPatients(items);
-            localStorage.setItem(`echomed_${userId}_patients`, JSON.stringify(items));
-          }
+        // Read patients + events from legacy appData — currently the
+        // authoritative, COMPLETE source. The dual-write effects below keep it
+        // current on every change. We intentionally do NOT read the new schema
+        // here yet: the consultation-save path creates a fresh patients/ stub
+        // per consultation (see createPatient call in the save flow) instead of
+        // reusing the patient, so patients/ is full of empty duplicates.
+        // Reading them used to hide the real legacy patients and their
+        // consultations. Reads switch to the new schema only after the backfill
+        // + write-side migration are finished and verified.
+        const legacyPatientsDoc = await getDoc(doc(db, 'users', userId, 'appData', 'patients'));
+        if (legacyPatientsDoc.exists()) {
+          const items = legacyPatientsDoc.data().items || [];
+          setPatients(items);
+          localStorage.setItem(`echomed_${userId}_patients`, JSON.stringify(items));
         }
 
-        // Load prescriptions for all patients and convert to TimelineEvents
-        const allEvents: TimelineEvent[] = [];
-        for (const patient of localPatients) {
-          const prescriptions = await getPrescriptionsByPatient(patient.id);
-          for (const presc of prescriptions) {
-            const event: TimelineEvent = {
-              id: presc.id,
-              patientId: patient.id,
-              type: presc.consultationId ? 'followup' : 'initial',
-              date: presc.date,
-              transcript: presc.analysis?.complaint || '',
-              result: presc.analysis ? {
-                nutritionalAssessment: presc.analysis.complaint,
-                clinicalRationale: presc.analysis.rationale,
-                possibleAssociatedConditions: [],
-                recommendedExams: [],
-                nutritionalConduct: presc.analysis.recommendations,
-              } as any : undefined,
-              doctorName: doctorProfile.name,
-              createdAt: presc.createdAt,
-            };
-            allEvents.push(event);
-          }
-        }
-
-        if (allEvents.length > 0) {
-          setEvents(allEvents);
-          localStorage.setItem(`echomed_${userId}_events`, JSON.stringify(allEvents));
-        } else {
-          // Fallback: try loading from legacy schema
-          const legacyEventsDoc = await getDoc(doc(db, 'users', userId, 'appData', 'events'));
-          if (legacyEventsDoc.exists()) {
-            const items = legacyEventsDoc.data().items || [];
-            setEvents(items);
-            localStorage.setItem(`echomed_${userId}_events`, JSON.stringify(items));
-          }
+        const legacyEventsDoc = await getDoc(doc(db, 'users', userId, 'appData', 'events'));
+        if (legacyEventsDoc.exists()) {
+          const items = legacyEventsDoc.data().items || [];
+          setEvents(items);
+          localStorage.setItem(`echomed_${userId}_events`, JSON.stringify(items));
         }
 
         // Load profile from legacy location (still use old schema for profile)
@@ -319,8 +272,6 @@ export default function App() {
         // who predate the subscription model (Google signups or accounts created
         // before this feature shipped).
         try {
-          const doctorSnap = await getDoc(doc(db, 'users', userId));
-          void doctorSnap;
           const docDoc = await getDoc(doc(db, 'doctors', userId));
           if (docDoc.exists() && docDoc.data().subscription) {
             setSubscription(docDoc.data().subscription as Subscription);
@@ -1148,14 +1099,25 @@ export default function App() {
           </>
         )}
         {view === 'patients' && (
-          <PatientList
-            patients={patients}
-            events={events}
-            onSelectPatient={(patient) => {
-              setSelectedPatient(patient);
-              setView('patient');
-            }}
-          />
+          <>
+            <div className="max-w-6xl mx-auto flex justify-end mb-3">
+              <button
+                onClick={() => setShowMigration(true)}
+                className="text-2xs font-semibold text-ink-tertiary hover:text-brand-700 hover:bg-subtle px-2.5 py-1.5 rounded-md transition-colors"
+                title="Migrar dados legados para o esquema novo"
+              >
+                Migração de dados
+              </button>
+            </div>
+            <PatientList
+              patients={patients}
+              events={events}
+              onSelectPatient={(patient) => {
+                setSelectedPatient(patient);
+                setView('patient');
+              }}
+            />
+          </>
         )}
         {view === 'patient' && selectedPatient && (
           <PatientPage
@@ -1198,14 +1160,23 @@ export default function App() {
               }
             }}
             onUpdatePatient={(patientId: string, changes: any) => {
+              const prevPatient = patients.find((p: Patient) => p.id === patientId);
               setPatients(prev => prev.map(p =>
                 p.id === patientId ? { ...p, ...changes } : p
               ));
               if (selectedPatient?.id === patientId) {
                 setSelectedPatient(prev => prev ? { ...prev, ...changes } : null);
               }
+              // Unified weight entry: when the body-composition modal changes the
+              // weight, append a point to the evolution history (the time-series
+              // that feeds the progress chart). Only on an actual change, to avoid
+              // duplicate points when other fields are edited.
+              if (typeof changes.weightKg === 'number' && changes.weightKg !== prevPatient?.weightKg) {
+                recordWeight(patientId, changes.weightKg, 'kg').catch(err => {
+                  console.warn('Failed to record weight in evolution history:', err);
+                });
+              }
             }}
-            onRecordWeight={selectedPatient ? (weight: number) => recordWeight(selectedPatient.id, weight) : undefined}
             onEventClick={(event) => {
               setSelectedEvent(event);
               if (event.result) {
@@ -1264,6 +1235,10 @@ export default function App() {
       </main>
 
       {/* Profile Popup */}
+      {showMigration && userId && (
+        <MigrationPanel userId={userId} onClose={() => setShowMigration(false)} />
+      )}
+
       {showProfilePopup && (
         <ProfilePopup
           profile={doctorProfile}
