@@ -29,8 +29,6 @@ import AuthScreen from './components/AuthScreen';
 import { MigrationPanel } from './components/patient/MigrationPanel';
 import { useAuth } from './context/AuthContext';
 import {
-  createPatient,
-  createPrescription,
   recordWeight,
 } from './services/firestoreNewSchema';
 
@@ -937,40 +935,19 @@ export default function App() {
           console.error("Failed to save to Firebase:", dbError);
         });
 
-        // === NEW SCHEMA: Save to patients + prescriptions collections ===
-        try {
-          const patientName_ = patientName || 'Anônimo';
-          let patientId = '';
-
-          // 1. Create patient in firestore/patients
-          const firestorePatient = await createPatient(user.uid, {
-            name: patientName_,
-            mainComplaint: aiResponse.patientHighlights?.[0] || '',
+        // Record the weight captured this consultation into the evolution
+        // time-series, keyed by the patient's (legacy) id — the same id used
+        // everywhere else, so points stay consistent and orphan-free.
+        //
+        // We intentionally no longer create patients/ + prescriptions/ docs
+        // here. The new schema isn't read yet, and creating a fresh patient
+        // per consultation polluted it with empty duplicates (that's what hid
+        // the real patients). The new schema gets populated correctly by the
+        // backfill ("Migração de dados") once the write path is fully migrated.
+        if (currentPatientWeight) {
+          recordWeight(patient.id, currentPatientWeight, 'kg').catch(err => {
+            console.warn('Failed to record weight in evolution history:', err);
           });
-          patientId = firestorePatient.id;
-
-          // 2. Create prescription
-          const prescription = await createPrescription(user.uid, patientId, {
-            date: now,
-            consultationId: newEvent.id,
-            analysis: {
-              complaint: aiResponse.patientHighlights?.[0] || '',
-              rationale: aiResponse.clinicalRationale || '',
-              recommendations: aiResponse.nutritionalConduct || '',
-            },
-          });
-
-          // 3. Record weight if captured
-          if (currentPatientWeight) {
-            await recordWeight(patientId, currentPatientWeight, 'kg').catch(err => {
-              console.warn('Failed to record weight:', err);
-            });
-          }
-
-          console.log('✅ Saved to new schema:', { patientId, prescriptionId: prescription.id });
-        } catch (schemaErr) {
-          console.error('Failed to save to new schema:', schemaErr);
-          // Non-blocking — app still works if this fails
         }
       }
     } catch (error: any) {
