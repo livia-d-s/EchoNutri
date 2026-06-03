@@ -26,7 +26,6 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import AuthScreen from './components/AuthScreen';
-import { ResetDataPanel } from './components/patient/ResetDataPanel';
 import { useAuth } from './context/AuthContext';
 import {
   getPatientsByNutritionist,
@@ -226,7 +225,6 @@ export default function App() {
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [doctorProfile, setDoctorProfile] = useState<DoctorProfileType>(DEFAULT_PROFILE);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
-  const [showReset, setShowReset] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [showCheckoutPlaceholder, setShowCheckoutPlaceholder] = useState(false);
   // Pre-auth surface: null = show LandingPage, 'login'/'signup' = show AuthScreen
@@ -1154,25 +1152,14 @@ export default function App() {
           </>
         )}
         {view === 'patients' && (
-          <>
-            <div className="max-w-6xl mx-auto flex justify-end mb-3">
-              <button
-                onClick={() => setShowReset(true)}
-                className="text-2xs font-semibold text-ink-tertiary hover:text-red-600 hover:bg-subtle px-2.5 py-1.5 rounded-md transition-colors"
-                title="Apagar todos os dados de teste e recomeçar do zero"
-              >
-                Limpar dados de teste
-              </button>
-            </div>
-            <PatientList
-              patients={patients}
-              events={events}
-              onSelectPatient={(patient) => {
-                setSelectedPatient(patient);
-                setView('patient');
-              }}
-            />
-          </>
+          <PatientList
+            patients={patients}
+            events={events}
+            onSelectPatient={(patient) => {
+              setSelectedPatient(patient);
+              setView('patient');
+            }}
+          />
         )}
         {view === 'patient' && selectedPatient && (
           <PatientPage
@@ -1241,21 +1228,6 @@ export default function App() {
       </main>
 
       {/* Profile Popup */}
-      {showReset && userId && (
-        <ResetDataPanel
-          userId={userId}
-          onClose={() => setShowReset(false)}
-          onDone={() => {
-            // Clear the local cache and hard-reload so nothing stale survives
-            // on screen — the reload re-reads the (now empty) new schema.
-            for (const key of Object.keys(localStorage)) {
-              if (userId && key.startsWith(`echomed_${userId}_`)) localStorage.removeItem(key);
-            }
-            window.location.reload();
-          }}
-        />
-      )}
-
       {showProfilePopup && (
         <ProfilePopup
           profile={doctorProfile}

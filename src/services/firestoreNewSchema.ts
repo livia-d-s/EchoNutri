@@ -404,11 +404,3 @@ export async function deleteAllNutritionistData(
 
   return { patients: patientsSnap.docs.length, prescriptions: prescSnap.docs.length };
 }
-
-/** Delete the legacy appData patient/event blobs (post-cutover cleanup). */
-export async function deleteLegacyAppData(uid: string): Promise<void> {
-  await Promise.all([
-    deleteDoc(doc(db, 'users', uid, 'appData', 'patients')).catch(() => {}),
-    deleteDoc(doc(db, 'users', uid, 'appData', 'events')).catch(() => {}),
-  ]);
-}
