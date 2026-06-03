@@ -4,7 +4,7 @@ import {
   ArrowLeft, Camera, Check, AlertTriangle, Loader2, Users, Pencil, Info, CheckCircle, Trash2,
   ClipboardCheck, TrendingUp, Brain, Stethoscope, TestTube, Utensils, ChevronDown, ChevronRight
 } from 'lucide-react';
-import { Patient, TimelineEvent, EventType, PatientGoal, GOAL_LABELS, TrainingActivity } from '../types';
+import { Patient, TimelineEvent, EventType, PatientGoal, GOAL_LABELS, TrainingActivity, PatientExam, MealPlan } from '../types';
 import { PatientList, PatientPage } from './components/patient';
 import { ExamUploader } from './components/patient/ExamUploader';
 import { ConsultationBriefingBubble } from './components/patient/ConsultationBriefingBubble';
@@ -26,11 +26,35 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import AuthScreen from './components/AuthScreen';
-import { MigrationPanel } from './components/patient/MigrationPanel';
+import { ResetDataPanel } from './components/patient/ResetDataPanel';
 import { useAuth } from './context/AuthContext';
 import {
+  getPatientsByNutritionist,
+  getPatientExams,
+  getPatientMealPlans,
+  savePatientExam,
+  deletePatientExam,
+  savePatientMealPlan,
+  deletePatientMealPlan,
+  createPatient,
+  updatePatient,
+  createPrescription,
+  getPrescriptionsByNutritionist,
+  updatePrescription,
+  deletePrescription,
+  recordNote,
+  getNotes,
+  updateNote,
+  deleteNote,
   recordWeight,
+  deleteAllNutritionistData,
 } from './services/firestoreNewSchema';
+import {
+  firestorePatientToLocal,
+  localPatientToFirestore,
+  prescriptionToEvent,
+  noteToEvent,
+} from './services/schemaMappers';
 
 const getBackendUrl = () => {
   // In production, use Render backend
@@ -202,7 +226,7 @@ export default function App() {
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [doctorProfile, setDoctorProfile] = useState<DoctorProfileType>(DEFAULT_PROFILE);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
-  const [showMigration, setShowMigration] = useState(false);
+  const [showReset, setShowReset] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [showCheckoutPlaceholder, setShowCheckoutPlaceholder] = useState(false);
   // Pre-auth surface: null = show LandingPage, 'login'/'signup' = show AuthScreen
@@ -235,28 +259,34 @@ export default function App() {
     if (!db) return;
     const loadFromFirestore = async () => {
       try {
-        // Read patients + events from legacy appData — currently the
-        // authoritative, COMPLETE source. The dual-write effects below keep it
-        // current on every change. We intentionally do NOT read the new schema
-        // here yet: the consultation-save path creates a fresh patients/ stub
-        // per consultation (see createPatient call in the save flow) instead of
-        // reusing the patient, so patients/ is full of empty duplicates.
-        // Reading them used to hide the real legacy patients and their
-        // consultations. Reads switch to the new schema only after the backfill
-        // + write-side migration are finished and verified.
-        const legacyPatientsDoc = await getDoc(doc(db, 'users', userId, 'appData', 'patients'));
-        if (legacyPatientsDoc.exists()) {
-          const items = legacyPatientsDoc.data().items || [];
-          setPatients(items);
-          localStorage.setItem(`echomed_${userId}_patients`, JSON.stringify(items));
-        }
+        // Single source of truth: the new schema. Patients come from
+        // patients/{id} (+ their exam/meal-plan subcollections); the timeline
+        // is rebuilt from prescriptions (consultations) + evolution notes
+        // (adjustments). No legacy appData reads — that dual-schema split is
+        // what caused data to disappear before.
+        const fsPatients = await getPatientsByNutritionist(userId);
+        const hydratedPatients = await Promise.all(
+          fsPatients.map(async fp => {
+            const [exams, mealPlans] = await Promise.all([
+              getPatientExams(fp.id),
+              getPatientMealPlans(fp.id),
+            ]);
+            return firestorePatientToLocal(fp, exams, mealPlans);
+          })
+        );
+        setPatients(hydratedPatients);
+        localStorage.setItem(`echomed_${userId}_patients`, JSON.stringify(hydratedPatients));
 
-        const legacyEventsDoc = await getDoc(doc(db, 'users', userId, 'appData', 'events'));
-        if (legacyEventsDoc.exists()) {
-          const items = legacyEventsDoc.data().items || [];
-          setEvents(items);
-          localStorage.setItem(`echomed_${userId}_events`, JSON.stringify(items));
-        }
+        const [prescriptions, noteLists] = await Promise.all([
+          getPrescriptionsByNutritionist(userId),
+          Promise.all(hydratedPatients.map(p => getNotes(p.id))),
+        ]);
+        const docName = doctorProfile.name;
+        const consultationEvents = prescriptions.map(p => prescriptionToEvent(p, docName));
+        const adjustmentEvents = noteLists.flat().map(n => noteToEvent(n, docName));
+        const allEvents = [...consultationEvents, ...adjustmentEvents];
+        setEvents(allEvents);
+        localStorage.setItem(`echomed_${userId}_events`, JSON.stringify(allEvents));
 
         // Load profile from legacy location (still use old schema for profile)
         const profileDoc = await getDoc(doc(db, 'users', userId, 'appData', 'profile'));
@@ -366,15 +396,12 @@ export default function App() {
     }
   }, [history, userId]);
 
-  // Save patients (localStorage cache + Firestore)
+  // Cache patients to localStorage for instant load. Firestore persistence is
+  // per-mutation via the service layer (single source of truth = new schema).
   useEffect(() => {
     const key = lsKey('patients');
     if (!key || !userId) return;
     localStorage.setItem(key, JSON.stringify(patients));
-    if (db && patients.length > 0) {
-      setDoc(doc(db, 'users', userId, 'appData', 'patients'), stripUndefinedDeep({ items: patients }))
-        .catch(err => console.error('Failed to save patients to Firestore:', err));
-    }
   }, [patients, userId]);
 
   // Normalize existing patient names (runs once on app load)
@@ -400,15 +427,12 @@ export default function App() {
     }
   }, []);
 
-  // Save events (localStorage cache + Firestore)
+  // Cache events to localStorage for instant load. Firestore persistence is
+  // per-mutation via the service layer (prescriptions + evolution notes).
   useEffect(() => {
     const key = lsKey('events');
     if (!key || !userId) return;
     localStorage.setItem(key, JSON.stringify(events));
-    if (db && events.length > 0) {
-      setDoc(doc(db, 'users', userId, 'appData', 'events'), stripUndefinedDeep({ items: events }))
-        .catch(err => console.error('Failed to save events to Firestore:', err));
-    }
   }, [events, userId]);
 
   // Rehydrate navigation state on mount/login. Views that don't need a data
@@ -511,7 +535,7 @@ export default function App() {
   }, [history, patients.length]);
 
   // Helper to find or create patient with context
-  const findOrCreatePatient = (
+  const findOrCreatePatient = async (
     name: string,
     context?: {
       goals?: PatientGoal[];
@@ -519,7 +543,7 @@ export default function App() {
       training?: TrainingActivity[];
       isFirstConsultation?: boolean | null;
     }
-  ): Patient => {
+  ): Promise<Patient> => {
     const normalizedName = normalizePatientName(name);
     const normalizedLower = normalizedName.toLowerCase();
     const existing = patients.find(p => p.name.toLowerCase() === normalizedLower);
@@ -535,93 +559,148 @@ export default function App() {
           isFirstConsultation: context.isFirstConsultation !== null ? context.isFirstConsultation : existing.isFirstConsultation
         };
         setPatients(prev => prev.map(p => p.id === existing.id ? updatedPatient : p));
+        if (userId) updatePatient(existing.id, localPatientToFirestore(updatedPatient)).catch(err => console.error('Failed to persist patient context:', err));
         return updatedPatient;
       }
       return existing;
     }
 
+    // Create in the new schema and adopt the Firestore id as the patient id
+    // (reusing it everywhere keeps a single, consistent identity).
+    const id = userId
+      ? (await createPatient(userId, {
+          name: normalizedName,
+          goals: context?.goals,
+          goalCustom: context?.goalCustom,
+          trainingRoutine: context?.training,
+          isFirstConsultation: context?.isFirstConsultation ?? true,
+        })).id
+      : `patient_${Date.now()}`;
     const newPatient: Patient = {
-      id: `patient_${Date.now()}`,
+      id,
       name: normalizedName,
       createdAt: new Date().toISOString(),
-      goals: context?.goals,
+      goals: context?.goals || [],
       goalCustom: context?.goalCustom,
-      trainingRoutine: context?.training,
-      isFirstConsultation: context?.isFirstConsultation ?? true
+      trainingRoutine: context?.training || [],
+      isFirstConsultation: context?.isFirstConsultation ?? true,
+      highlights: [],
+      exams: [],
+      mealPlans: [],
     };
     setPatients(prev => [...prev, newPatient]);
     return newPatient;
   };
 
-  // Add event for patient
-  const addEventForPatient = (patientId: string, type: EventType, result: any, transcript?: string) => {
-    const newEvent: TimelineEvent = {
-      id: `event_${Date.now()}`,
-      patientId,
-      type,
+  // Add a consultation event = persist a prescription in the new schema.
+  const addEventForPatient = async (patientId: string, type: EventType, result: any, transcript?: string): Promise<TimelineEvent> => {
+    if (!userId) {
+      const local: TimelineEvent = { id: `event_${Date.now()}`, patientId, type, date: new Date().toISOString(), transcript, result, doctorName: doctorProfile.name, createdAt: new Date().toISOString() };
+      setEvents(prev => [local, ...prev]);
+      return local;
+    }
+    const presc = await createPrescription(userId, patientId, {
+      type: type as 'initial' | 'followup',
       date: new Date().toISOString(),
       transcript,
       result,
+      suggestedNextQuestions: result?.suggestedNextQuestions,
       doctorName: doctorProfile.name,
-      createdAt: new Date().toISOString()
-    };
+    });
+    const newEvent = prescriptionToEvent(presc, doctorProfile.name);
     setEvents(prev => [newEvent, ...prev]);
     return newEvent;
   };
 
-  // Add adjustment/observation for patient, linked to a specific consultation
-  const addAdjustmentForPatient = (patientId: string, note: string, parentEventId?: string) => {
-    const newEvent: TimelineEvent = {
-      id: `event_${Date.now()}`,
-      patientId,
-      type: 'adjustment',
-      date: new Date().toISOString(),
-      adjustmentNote: note,
-      parentEventId,
-      doctorName: doctorProfile.name,
-      createdAt: new Date().toISOString()
-    };
-    setEvents(prev => [newEvent, ...prev]);
+  // Add adjustment/observation = persist an evolution note in the new schema.
+  const addAdjustmentForPatient = async (patientId: string, note: string, parentEventId?: string) => {
+    if (!userId) {
+      const local: TimelineEvent = { id: `event_${Date.now()}`, patientId, type: 'adjustment', date: new Date().toISOString(), adjustmentNote: note, parentEventId, doctorName: doctorProfile.name, createdAt: new Date().toISOString() };
+      setEvents(prev => [local, ...prev]);
+      return;
+    }
+    const saved = await recordNote(patientId, { date: new Date().toISOString(), note, type: 'follow-up' });
+    setEvents(prev => [noteToEvent(saved, doctorProfile.name), ...prev]);
   };
 
-  // Delete event (mainly for adjustments)
+  // Delete event — a prescription (consultation) or an evolution note (adjustment).
   const deleteEvent = (eventId: string) => {
+    const target = events.find(e => e.id === eventId);
     setEvents(prev => prev.filter(e => e.id !== eventId));
+    if (!target) return;
+    const op = target.type === 'adjustment'
+      ? deleteNote(target.patientId, eventId)
+      : deletePrescription(eventId);
+    op.catch(err => console.error('Failed to delete event:', err));
   };
 
-  // Edit event note (for adjustments)
+  // Edit adjustment note text.
   const editEventNote = (eventId: string, newNote: string) => {
-    setEvents(prev => prev.map(e =>
-      e.id === eventId ? { ...e, adjustmentNote: newNote } : e
-    ));
+    const target = events.find(e => e.id === eventId);
+    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, adjustmentNote: newNote } : e));
+    if (target && target.type === 'adjustment') {
+      updateNote(target.patientId, eventId, newNote).catch(err => console.error('Failed to edit note:', err));
+    }
   };
 
-  // Update event result (for diagnosis edits)
+  // Update consultation result (diagnosis edits) -> persist on the prescription.
   const updateEventResult = (eventId: string, updatedResult: any) => {
-    console.log('🟡 updateEventResult called', { eventId, updatedResult });
-    setEvents(prev => {
-      const updated = prev.map(e =>
-        e.id === eventId ? { ...e, result: updatedResult } : e
-      );
-      console.log('🟡 Events updated, found match:', prev.some(e => e.id === eventId));
-      return updated;
-    });
+    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, result: updatedResult } : e));
+    updatePrescription(eventId, { result: updatedResult }).catch(err => console.error('Failed to update result:', err));
   };
 
-  // Edit patient name
+  // Edit patient name.
   const editPatient = (patientId: string, newName: string) => {
     const normalizedName = normalizePatientName(newName);
     if (!normalizedName.trim()) return;
-
-    // Update patient
-    setPatients(prev => prev.map(p =>
-      p.id === patientId ? { ...p, name: normalizedName } : p
-    ));
-
-    // Update selectedPatient if it's the one being edited
+    setPatients(prev => prev.map(p => p.id === patientId ? { ...p, name: normalizedName } : p));
     if (selectedPatient?.id === patientId) {
       setSelectedPatient(prev => prev ? { ...prev, name: normalizedName } : null);
     }
+    updatePatient(patientId, { name: normalizedName }).catch(err => console.error('Failed to rename patient:', err));
+  };
+
+  // Update a patient's AI-extracted highlights.
+  const updateHighlights = (patientId: string, highlights: string[]) => {
+    setPatients(prev => prev.map(p => p.id === patientId ? { ...p, highlights } : p));
+    if (selectedPatient?.id === patientId) setSelectedPatient(prev => prev ? { ...prev, highlights } : null);
+    updatePatient(patientId, { highlights }).catch(err => console.error('Failed to update highlights:', err));
+  };
+
+  // Update a patient's clinical/profile fields (body-composition modal, etc.).
+  const updatePatientFields = (patientId: string, changes: Partial<Patient>) => {
+    const prevPatient = patients.find(p => p.id === patientId);
+    setPatients(prev => prev.map(p => p.id === patientId ? { ...p, ...changes } : p));
+    if (selectedPatient?.id === patientId) setSelectedPatient(prev => prev ? { ...prev, ...changes } : null);
+    updatePatient(patientId, localPatientToFirestore(changes)).catch(err => console.error('Failed to update patient:', err));
+    // Unified weight entry: append an evolution point only on an actual change.
+    if (typeof changes.weightKg === 'number' && changes.weightKg !== prevPatient?.weightKg) {
+      recordWeight(patientId, changes.weightKg, 'kg').catch(err => console.warn('Failed to record weight:', err));
+    }
+  };
+
+  // Update uploaded exam PDFs (diffs the array: persist additions, delete removals).
+  const updateExams = (patientId: string, exams: PatientExam[]) => {
+    const prevExams = patients.find(p => p.id === patientId)?.exams || [];
+    setPatients(prev => prev.map(p => p.id === patientId ? { ...p, exams } : p));
+    if (selectedPatient?.id === patientId) setSelectedPatient(prev => prev ? { ...prev, exams } : null);
+    const nextIds = new Set(exams.map(e => e.id));
+    exams.filter(e => !prevExams.some(pe => pe.id === e.id))
+      .forEach(e => savePatientExam(patientId, e).catch(err => console.error('Failed to save exam:', err)));
+    prevExams.filter(pe => !nextIds.has(pe.id))
+      .forEach(pe => deletePatientExam(patientId, pe.id).catch(err => console.error('Failed to delete exam:', err)));
+  };
+
+  // Update uploaded meal-plan PDFs (diffs the array: persist additions, delete removals).
+  const updateMealPlans = (patientId: string, mealPlans: MealPlan[]) => {
+    const prevPlans = patients.find(p => p.id === patientId)?.mealPlans || [];
+    setPatients(prev => prev.map(p => p.id === patientId ? { ...p, mealPlans } : p));
+    if (selectedPatient?.id === patientId) setSelectedPatient(prev => prev ? { ...prev, mealPlans } : null);
+    const nextIds = new Set(mealPlans.map(m => m.id));
+    mealPlans.filter(m => !prevPlans.some(pm => pm.id === m.id))
+      .forEach(m => savePatientMealPlan(patientId, m).catch(err => console.error('Failed to save meal plan:', err)));
+    prevPlans.filter(pm => !nextIds.has(pm.id))
+      .forEach(pm => deletePatientMealPlan(patientId, pm.id).catch(err => console.error('Failed to delete meal plan:', err)));
   };
 
   // Auto-fill profile name from authenticated user on first login
@@ -795,7 +874,7 @@ export default function App() {
       setHistory((prev: any) => [consultationRecord, ...prev]);
 
       // === Patient-centric storage ===
-      const patient = findOrCreatePatient(patientName || 'Anônimo', {
+      const patient = await findOrCreatePatient(patientName || 'Anônimo', {
         goals: currentPatientGoals,
         goalCustom: currentPatientGoalCustom,
         training: currentPatientTraining,
@@ -807,7 +886,7 @@ export default function App() {
       const eventType: EventType = patientEvents.length === 0 ? 'initial' : 'followup';
 
       // Create timeline event and set it as selected for editing
-      const newEvent = addEventForPatient(patient.id, eventType, aiResponse, currentTranscript);
+      const newEvent = await addEventForPatient(patient.id, eventType, aiResponse, currentTranscript);
       setSelectedEvent(newEvent);
 
       // Merge AI-extracted highlights + training into patient
@@ -858,57 +937,62 @@ export default function App() {
       }
       const hasAnthropoChanges = Object.keys(anthropoChanges).length > 0;
 
-      if (newHighlights.length > 0 || rawTraining.length > 0 || newExams.length > 0 || newMealPlans.length > 0 || hasAnthropoChanges) {
-        setPatients(prev => prev.map(p => {
-          if (p.id !== patient.id) return p;
-          const updated: any = { ...p, ...anthropoChanges };
-          if (newHighlights.length > 0) {
-            updated.highlights = [...existingHighlights, ...newHighlights];
-          }
-          // Merge training: keep nutri's manual entries + append new ones the AI extracted.
-          // Dedup uses a canonical activity token (strips digits and frequency words like
-          // "x", "semana", "por") so "2x semana futebol" matches "Futebol" + "2x/semana".
-          // If the existing entry is missing frequency and the AI version has it, we
-          // upgrade to the AI's cleaner { type, frequency } pair.
-          if (rawTraining.length > 0) {
-            const canonActivity = (t: any): string => {
-              return `${t?.type || ''} ${t?.frequency || ''}`
-                .toLowerCase()
-                .replace(/\d+/g, ' ')
-                .replace(/\b(x|vezes|por|semana|semanal|sem|dia|diaria|mes|mensal|min|minutos?|h|horas?)\b/g, ' ')
-                .replace(/[\/:,.]/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-            };
-            const merged = [...(p.trainingRoutine || [])];
-            for (const aiT of rawTraining as TrainingActivity[]) {
-              const aiCanon = canonActivity(aiT);
-              if (!aiCanon) continue;
-              const idx = merged.findIndex((e) => canonActivity(e) === aiCanon);
-              if (idx === -1) {
-                merged.push(aiT);
-              } else {
-                // Same activity — if the manual entry has no clean frequency, prefer
-                // the AI's structured version (cleaner type + frequency split).
-                const existing = merged[idx];
-                if (!existing.frequency && aiT.frequency && aiT.type) {
-                  merged[idx] = aiT;
-                }
-              }
-            }
-            if (merged.length !== (p.trainingRoutine || []).length ||
-                merged.some((m, i) => m !== (p.trainingRoutine || [])[i])) {
-              updated.trainingRoutine = merged;
-            }
-          }
-          if (newExams.length > 0) {
-            updated.exams = [...existingExams, ...newExams];
-          }
-          if (newMealPlans.length > 0) {
-            updated.mealPlans = [...existingMealPlans, ...newMealPlans];
-          }
-          return updated;
-        }));
+      // Merge training: keep nutri's manual entries + append new ones the AI
+      // extracted. Dedup uses a canonical activity token (strips digits and
+      // frequency words like "x", "semana", "por") so "2x semana futebol"
+      // matches "Futebol" + "2x/semana". If the existing entry is missing
+      // frequency and the AI version has it, upgrade to the AI's cleaner pair.
+      let mergedTraining: TrainingActivity[] | undefined;
+      if (rawTraining.length > 0) {
+        const canonActivity = (t: any): string =>
+          `${t?.type || ''} ${t?.frequency || ''}`
+            .toLowerCase()
+            .replace(/\d+/g, ' ')
+            .replace(/\b(x|vezes|por|semana|semanal|sem|dia|diaria|mes|mensal|min|minutos?|h|horas?)\b/g, ' ')
+            .replace(/[\/:,.]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        const merged = [...(patient.trainingRoutine || [])];
+        for (const aiT of rawTraining as TrainingActivity[]) {
+          const aiCanon = canonActivity(aiT);
+          if (!aiCanon) continue;
+          const idx = merged.findIndex((e) => canonActivity(e) === aiCanon);
+          if (idx === -1) merged.push(aiT);
+          else if (!merged[idx].frequency && aiT.frequency && aiT.type) merged[idx] = aiT;
+        }
+        const prevTraining = patient.trainingRoutine || [];
+        if (merged.length !== prevTraining.length || merged.some((m, i) => m !== prevTraining[i])) {
+          mergedTraining = merged;
+        }
+      }
+
+      const finalHighlights = newHighlights.length > 0 ? [...existingHighlights, ...newHighlights] : undefined;
+      const finalExams = newExams.length > 0 ? [...existingExams, ...newExams] : undefined;
+      const finalMealPlans = newMealPlans.length > 0 ? [...existingMealPlans, ...newMealPlans] : undefined;
+
+      if (hasAnthropoChanges || finalHighlights || mergedTraining || finalExams || finalMealPlans) {
+        const changes: Partial<Patient> = { ...anthropoChanges };
+        if (finalHighlights) changes.highlights = finalHighlights;
+        if (mergedTraining) changes.trainingRoutine = mergedTraining;
+        if (finalExams) changes.exams = finalExams;
+        if (finalMealPlans) changes.mealPlans = finalMealPlans;
+
+        setPatients(prev => prev.map(p => p.id === patient.id ? { ...p, ...changes } : p));
+        if (selectedPatient?.id === patient.id) {
+          setSelectedPatient(prev => prev ? { ...prev, ...changes } : null);
+        }
+
+        // Persist to the new schema: clinical/profile fields on the patient doc,
+        // uploaded PDFs into their subcollections.
+        if (userId) {
+          updatePatient(patient.id, localPatientToFirestore({
+            ...anthropoChanges,
+            highlights: finalHighlights,
+            trainingRoutine: mergedTraining,
+          })).catch(err => console.error('Failed to persist patient updates:', err));
+          (newExams as PatientExam[]).forEach(ex => savePatientExam(patient.id, ex).catch(err => console.error('Failed to save exam:', err)));
+          (newMealPlans as MealPlan[]).forEach(mp => savePatientMealPlan(patient.id, mp).catch(err => console.error('Failed to save meal plan:', err)));
+        }
       }
       // Clear pending docs after applying
       setPendingExams([]);
@@ -935,15 +1019,9 @@ export default function App() {
           console.error("Failed to save to Firebase:", dbError);
         });
 
-        // Record the weight captured this consultation into the evolution
-        // time-series, keyed by the patient's (legacy) id — the same id used
-        // everywhere else, so points stay consistent and orphan-free.
-        //
-        // We intentionally no longer create patients/ + prescriptions/ docs
-        // here. The new schema isn't read yet, and creating a fresh patient
-        // per consultation polluted it with empty duplicates (that's what hid
-        // the real patients). The new schema gets populated correctly by the
-        // backfill ("Migração de dados") once the write path is fully migrated.
+        // Record the weight captured this consultation as an evolution point
+        // (the patient + prescription were already persisted above via
+        // findOrCreatePatient / addEventForPatient).
         if (currentPatientWeight) {
           recordWeight(patient.id, currentPatientWeight, 'kg').catch(err => {
             console.warn('Failed to record weight in evolution history:', err);
@@ -1079,11 +1157,11 @@ export default function App() {
           <>
             <div className="max-w-6xl mx-auto flex justify-end mb-3">
               <button
-                onClick={() => setShowMigration(true)}
-                className="text-2xs font-semibold text-ink-tertiary hover:text-brand-700 hover:bg-subtle px-2.5 py-1.5 rounded-md transition-colors"
-                title="Migrar dados legados para o esquema novo"
+                onClick={() => setShowReset(true)}
+                className="text-2xs font-semibold text-ink-tertiary hover:text-red-600 hover:bg-subtle px-2.5 py-1.5 rounded-md transition-colors"
+                title="Apagar todos os dados de teste e recomeçar do zero"
               >
-                Migração de dados
+                Limpar dados de teste
               </button>
             </div>
             <PatientList
@@ -1112,48 +1190,10 @@ export default function App() {
             onDeleteEvent={deleteEvent}
             onEditEvent={editEventNote}
             onEditPatient={editPatient}
-            onUpdateHighlights={(patientId: string, highlights: string[]) => {
-              setPatients(prev => prev.map(p =>
-                p.id === patientId ? { ...p, highlights } : p
-              ));
-              if (selectedPatient?.id === patientId) {
-                setSelectedPatient(prev => prev ? { ...prev, highlights } : null);
-              }
-            }}
-            onUpdateExams={(patientId: string, exams: any[]) => {
-              setPatients(prev => prev.map(p =>
-                p.id === patientId ? { ...p, exams } : p
-              ));
-              if (selectedPatient?.id === patientId) {
-                setSelectedPatient(prev => prev ? { ...prev, exams } : null);
-              }
-            }}
-            onUpdateMealPlans={(patientId: string, mealPlans: any[]) => {
-              setPatients(prev => prev.map(p =>
-                p.id === patientId ? { ...p, mealPlans } : p
-              ));
-              if (selectedPatient?.id === patientId) {
-                setSelectedPatient(prev => prev ? { ...prev, mealPlans } : null);
-              }
-            }}
-            onUpdatePatient={(patientId: string, changes: any) => {
-              const prevPatient = patients.find((p: Patient) => p.id === patientId);
-              setPatients(prev => prev.map(p =>
-                p.id === patientId ? { ...p, ...changes } : p
-              ));
-              if (selectedPatient?.id === patientId) {
-                setSelectedPatient(prev => prev ? { ...prev, ...changes } : null);
-              }
-              // Unified weight entry: when the body-composition modal changes the
-              // weight, append a point to the evolution history (the time-series
-              // that feeds the progress chart). Only on an actual change, to avoid
-              // duplicate points when other fields are edited.
-              if (typeof changes.weightKg === 'number' && changes.weightKg !== prevPatient?.weightKg) {
-                recordWeight(patientId, changes.weightKg, 'kg').catch(err => {
-                  console.warn('Failed to record weight in evolution history:', err);
-                });
-              }
-            }}
+            onUpdateHighlights={updateHighlights}
+            onUpdateExams={updateExams}
+            onUpdateMealPlans={updateMealPlans}
+            onUpdatePatient={updatePatientFields}
             onEventClick={(event) => {
               setSelectedEvent(event);
               if (event.result) {
@@ -1177,34 +1217,23 @@ export default function App() {
           })()}
           onUpdatePatient={(changes: any) => {
             const pn = (patientName || '').trim().toLowerCase();
-            const target = pn ? patients.find((p: any) => p.name?.toLowerCase() === pn) : null;
-            if (!target) return;
-            setPatients(prev => prev.map((p: any) =>
-              p.id === target.id ? { ...p, ...changes } : p
-            ));
-            if (selectedPatient?.id === target.id) {
-              setSelectedPatient(prev => prev ? { ...prev, ...changes } : null);
-            }
+            const target = pn ? patients.find((p: Patient) => p.name?.toLowerCase() === pn) : null;
+            if (target) updatePatientFields(target.id, changes);
           }}
           onSaveMealPlan={async (structuredPlan: any) => {
             const pn = (patientName || '').trim().toLowerCase();
-            const target = pn ? patients.find((p: any) => p.name?.toLowerCase() === pn) : null;
+            const target = pn ? patients.find((p: Patient) => p.name?.toLowerCase() === pn) : null;
             if (!target) return;
             // Convert structured plan to a MealPlan entry (text representation)
             const text = JSON.stringify(structuredPlan, null, 2);
-            const newPlan: any = {
+            const newPlan: MealPlan = {
               id: `plan_ai_${Date.now()}`,
               fileName: `Plano_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`,
               uploadedAt: new Date().toISOString(),
               extractedText: text,
               sizeBytes: text.length,
-              structuredPlan,
             };
-            setPatients(prev => prev.map((p: any) =>
-              p.id === target.id
-                ? { ...p, mealPlans: [...(p.mealPlans || []), newPlan] }
-                : p
-            ));
+            updateMealPlans(target.id, [...(target.mealPlans || []), newPlan]);
           }}
           onSaveResult={(updatedResult: any) => { if (selectedEvent?.id) { updateEventResult(selectedEvent.id, updatedResult); setCurrentResult(updatedResult); } }}
           onBack={() => { setView(selectedPatient ? 'patient' : 'transcription'); setCurrentTranscript(''); if (!selectedPatient) setPatientName(''); }}
@@ -1212,8 +1241,12 @@ export default function App() {
       </main>
 
       {/* Profile Popup */}
-      {showMigration && userId && (
-        <MigrationPanel userId={userId} onClose={() => setShowMigration(false)} />
+      {showReset && userId && (
+        <ResetDataPanel
+          userId={userId}
+          onClose={() => setShowReset(false)}
+          onDone={() => { setPatients([]); setEvents([]); setShowReset(false); }}
+        />
       )}
 
       {showProfilePopup && (
@@ -1264,6 +1297,8 @@ export default function App() {
             try {
               const { deleteDoc, doc: fsDoc } = await import('firebase/firestore');
               if (db) {
+                // New-schema data (patients/prescriptions/evolution + subcollections).
+                await deleteAllNutritionistData(userId).catch(() => {});
                 await Promise.all([
                   deleteDoc(fsDoc(db, 'users', userId, 'appData', 'patients')).catch(() => {}),
                   deleteDoc(fsDoc(db, 'users', userId, 'appData', 'events')).catch(() => {}),

@@ -32,6 +32,19 @@ import {
   MealPlan,
 } from '../../types';
 
+/** Recursively drop `undefined` values — Firestore rejects them. */
+export function stripUndefined<T>(obj: T): T {
+  if (Array.isArray(obj)) return obj.map(stripUndefined) as unknown as T;
+  if (obj && typeof obj === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      if (v !== undefined) out[k] = stripUndefined(v);
+    }
+    return out as T;
+  }
+  return obj;
+}
+
 // ============ PATIENTS COLLECTION ============
 
 /**
@@ -42,21 +55,15 @@ export async function createPatient(
   data: Omit<FirestorePatient, 'id' | 'createdAt' | 'updatedAt' | 'nutritionistId' | 'status'>
 ): Promise<FirestorePatient> {
   const now = new Date().toISOString();
-  const patientRef = await addDoc(collection(db, 'patients'), {
+  const payload = stripUndefined({
     ...data,
     nutritionistId,
-    status: 'active',
+    status: 'active' as const,
     createdAt: now,
     updatedAt: now,
   });
-  return {
-    id: patientRef.id,
-    ...data,
-    nutritionistId,
-    status: 'active',
-    createdAt: now,
-    updatedAt: now,
-  };
+  const patientRef = await addDoc(collection(db, 'patients'), payload);
+  return { id: patientRef.id, ...payload } as FirestorePatient;
 }
 
 /**
@@ -78,14 +85,15 @@ export async function getPatient(patientId: string): Promise<FirestorePatient | 
  */
 export async function getPatientsByNutritionist(nutritionistId: string): Promise<FirestorePatient[]> {
   try {
-    const q = query(
-      collection(db, 'patients'),
-      where('nutritionistId', '==', nutritionistId),
-      where('status', '==', 'active'),
-      orderBy('createdAt', 'desc')
+    // Single-field filter (matches the security rule and needs no composite
+    // index); status filter + ordering are done client-side.
+    const snap = await getDocs(
+      query(collection(db, 'patients'), where('nutritionistId', '==', nutritionistId))
     );
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestorePatient));
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() } as FirestorePatient))
+      .filter(p => p.status !== 'archived')
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   } catch (err) {
     console.error('Failed to get patients:', err);
     return [];
@@ -119,6 +127,28 @@ export async function getPatientMealPlans(patientId: string): Promise<MealPlan[]
   }
 }
 
+/** Upsert one uploaded exam PDF (its own `id` is the doc id). */
+export async function savePatientExam(patientId: string, exam: PatientExam): Promise<void> {
+  const { id, ...rest } = exam;
+  await setDoc(doc(db, 'patients', patientId, 'exams', id), stripUndefined(rest));
+}
+
+/** Delete one uploaded exam PDF. */
+export async function deletePatientExam(patientId: string, examId: string): Promise<void> {
+  await deleteDoc(doc(db, 'patients', patientId, 'exams', examId));
+}
+
+/** Upsert one uploaded meal-plan PDF (its own `id` is the doc id). */
+export async function savePatientMealPlan(patientId: string, mealPlan: MealPlan): Promise<void> {
+  const { id, ...rest } = mealPlan;
+  await setDoc(doc(db, 'patients', patientId, 'mealPlans', id), stripUndefined(rest));
+}
+
+/** Delete one uploaded meal-plan PDF. */
+export async function deletePatientMealPlan(patientId: string, mealPlanId: string): Promise<void> {
+  await deleteDoc(doc(db, 'patients', patientId, 'mealPlans', mealPlanId));
+}
+
 /**
  * Update patient
  */
@@ -127,10 +157,10 @@ export async function updatePatient(
   updates: Partial<Omit<FirestorePatient, 'id' | 'nutritionistId' | 'createdAt'>>
 ): Promise<void> {
   try {
-    await updateDoc(doc(db, 'patients', patientId), {
+    await updateDoc(doc(db, 'patients', patientId), stripUndefined({
       ...updates,
       updatedAt: new Date().toISOString(),
-    });
+    }));
   } catch (err) {
     console.error('Failed to update patient:', err);
     throw err;
@@ -163,23 +193,16 @@ export async function createPrescription(
   data: Omit<FirestorePrescription, 'id' | 'nutritionistId' | 'patientId' | 'createdAt' | 'updatedAt' | 'status'>
 ): Promise<FirestorePrescription> {
   const now = new Date().toISOString();
-  const prescRef = await addDoc(collection(db, 'prescriptions'), {
+  const payload = stripUndefined({
     ...data,
     nutritionistId,
     patientId,
-    status: 'draft',
+    status: 'delivered' as const,
     createdAt: now,
     updatedAt: now,
   });
-  return {
-    id: prescRef.id,
-    ...data,
-    nutritionistId,
-    patientId,
-    status: 'draft',
-    createdAt: now,
-    updatedAt: now,
-  };
+  const prescRef = await addDoc(collection(db, 'prescriptions'), payload);
+  return { id: prescRef.id, ...payload } as FirestorePrescription;
 }
 
 /**
@@ -197,60 +220,38 @@ export async function getPrescription(prescriptionId: string): Promise<Firestore
 }
 
 /**
- * Get all prescriptions for a patient (ordered by date, newest first)
+ * Get all prescriptions for a nutritionist (newest first). Filters by
+ * nutritionistId — matching the security rule, so the list query is allowed
+ * (a by-patientId query would be denied) and needs no composite index.
  */
-export async function getPrescriptionsByPatient(patientId: string): Promise<FirestorePrescription[]> {
+export async function getPrescriptionsByNutritionist(nutritionistId: string): Promise<FirestorePrescription[]> {
   try {
-    const q = query(
-      collection(db, 'prescriptions'),
-      where('patientId', '==', patientId),
-      orderBy('date', 'desc')
+    const snap = await getDocs(
+      query(collection(db, 'prescriptions'), where('nutritionistId', '==', nutritionistId))
     );
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestorePrescription));
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() } as FirestorePrescription))
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   } catch (err) {
     console.error('Failed to get prescriptions:', err);
     return [];
   }
 }
 
-/**
- * Get active prescription for a patient (most recent with status 'delivered')
- */
-export async function getActivePrescription(patientId: string): Promise<FirestorePrescription | null> {
-  try {
-    const q = query(
-      collection(db, 'prescriptions'),
-      where('patientId', '==', patientId),
-      where('status', '==', 'delivered'),
-      orderBy('date', 'desc')
-    );
-    const snap = await getDocs(q);
-    if (snap.empty) return null;
-    const doc = snap.docs[0];
-    return { id: doc.id, ...doc.data() } as FirestorePrescription;
-  } catch (err) {
-    console.error('Failed to get active prescription:', err);
-    return null;
-  }
-}
-
-/**
- * Update prescription (e.g., mark as delivered)
- */
+/** Update a prescription (e.g. when the nutri edits the diagnosis result). */
 export async function updatePrescription(
   prescriptionId: string,
-  updates: Partial<Omit<FirestorePrescription, 'id' | 'patientId' | 'nutritionistId' | 'createdAt'>>
+  updates: Partial<Omit<FirestorePrescription, 'id' | 'nutritionistId' | 'patientId' | 'createdAt'>>
 ): Promise<void> {
-  try {
-    await updateDoc(doc(db, 'prescriptions', prescriptionId), {
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.error('Failed to update prescription:', err);
-    throw err;
-  }
+  await updateDoc(doc(db, 'prescriptions', prescriptionId), stripUndefined({
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  }));
+}
+
+/** Delete a prescription. */
+export async function deletePrescription(prescriptionId: string): Promise<void> {
+  await deleteDoc(doc(db, 'prescriptions', prescriptionId));
 }
 
 // ============ EVOLUTION COLLECTION ============
@@ -265,28 +266,9 @@ export async function recordWeight(
   notes?: string
 ): Promise<EvolutionWeight> {
   const now = new Date().toISOString();
-  // Firestore rejects `undefined` field values, so only include `notes` when set.
-  const data: Record<string, unknown> = {
-    patientId,
-    date: now,
-    value: weight,
-    unit,
-    createdAt: now,
-  };
-  if (notes !== undefined) data.notes = notes;
-  const weightRef = await addDoc(
-    collection(db, 'evolution', patientId, 'weight'),
-    data
-  );
-  return {
-    id: weightRef.id,
-    patientId,
-    date: now,
-    value: weight,
-    unit,
-    notes,
-    createdAt: now,
-  };
+  const payload = stripUndefined({ patientId, date: now, value: weight, unit, notes, createdAt: now });
+  const weightRef = await addDoc(collection(db, 'evolution', patientId, 'weight'), payload);
+  return { id: weightRef.id, ...payload } as EvolutionWeight;
 }
 
 /**
@@ -357,20 +339,9 @@ export async function recordNote(
   note: Omit<EvolutionNote, 'id' | 'patientId' | 'createdAt'>
 ): Promise<EvolutionNote> {
   const now = new Date().toISOString();
-  const noteRef = await addDoc(
-    collection(db, 'evolution', patientId, 'notes'),
-    {
-      patientId,
-      ...note,
-      createdAt: now,
-    }
-  );
-  return {
-    id: noteRef.id,
-    patientId,
-    ...note,
-    createdAt: now,
-  };
+  const payload = stripUndefined({ patientId, ...note, createdAt: now });
+  const noteRef = await addDoc(collection(db, 'evolution', patientId, 'notes'), payload);
+  return { id: noteRef.id, ...payload } as EvolutionNote;
 }
 
 /**
@@ -388,4 +359,56 @@ export async function getNotes(patientId: string): Promise<EvolutionNote[]> {
     console.error('Failed to get notes:', err);
     return [];
   }
+}
+
+/** Update an evolution note (e.g. editing an adjustment). */
+export async function updateNote(patientId: string, noteId: string, note: string): Promise<void> {
+  await updateDoc(doc(db, 'evolution', patientId, 'notes', noteId), { note });
+}
+
+/** Delete an evolution note. */
+export async function deleteNote(patientId: string, noteId: string): Promise<void> {
+  await deleteDoc(doc(db, 'evolution', patientId, 'notes', noteId));
+}
+
+// ============ MAINTENANCE ============
+
+/**
+ * Wipe every record owned by a nutritionist (patients + their subcollections,
+ * evolution series, and prescriptions). Used for a clean start while there is
+ * only disposable test data. Destructive and irreversible.
+ */
+export async function deleteAllNutritionistData(
+  nutritionistId: string
+): Promise<{ patients: number; prescriptions: number }> {
+  const patientsSnap = await getDocs(
+    query(collection(db, 'patients'), where('nutritionistId', '==', nutritionistId))
+  );
+  for (const pdoc of patientsSnap.docs) {
+    const pid = pdoc.id;
+    for (const sub of ['exams', 'mealPlans']) {
+      const s = await getDocs(collection(db, 'patients', pid, sub));
+      await Promise.all(s.docs.map(d => deleteDoc(d.ref)));
+    }
+    for (const sub of ['weight', 'exams', 'notes']) {
+      const s = await getDocs(collection(db, 'evolution', pid, sub));
+      await Promise.all(s.docs.map(d => deleteDoc(d.ref)));
+    }
+    await deleteDoc(pdoc.ref);
+  }
+
+  const prescSnap = await getDocs(
+    query(collection(db, 'prescriptions'), where('nutritionistId', '==', nutritionistId))
+  );
+  await Promise.all(prescSnap.docs.map(d => deleteDoc(d.ref)));
+
+  return { patients: patientsSnap.docs.length, prescriptions: prescSnap.docs.length };
+}
+
+/** Delete the legacy appData patient/event blobs (post-cutover cleanup). */
+export async function deleteLegacyAppData(uid: string): Promise<void> {
+  await Promise.all([
+    deleteDoc(doc(db, 'users', uid, 'appData', 'patients')).catch(() => {}),
+    deleteDoc(doc(db, 'users', uid, 'appData', 'events')).catch(() => {}),
+  ]);
 }

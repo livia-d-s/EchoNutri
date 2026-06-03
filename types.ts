@@ -253,23 +253,19 @@ export interface FirestorePatient {
 }
 
 // firestore/prescriptions/{prescriptionId}
+// A prescription is the persisted form of a consultation (initial/followup).
+// It holds everything needed to reconstruct that timeline event losslessly.
 export interface FirestorePrescription {
   id: string;                              // Document ID
   patientId: string;                       // Reference to patients/{patientId}
   nutritionistId: string;                  // Reference to doctors/{uid}
+  type: 'initial' | 'followup';            // Consultation type
   date: string;                            // ISO timestamp (when prescribed)
-  consultationId?: string;                 // Reference to users/{uid}/consultations/{id}
-
-  // Structured meal plan + macros
-  mealPlan?: StructuredMealPlan;
-
-  // Raw analysis (from AI)
-  analysis?: {
-    complaint: string;
-    rationale: string;
-    recommendations: string;
-  };
-
+  transcript?: string;                     // Consultation transcript
+  result?: NutritionalAssessment;          // Full AI assessment (may embed structuredMealPlan)
+  suggestedNextQuestions?: string[];       // Briefing for the next consultation
+  mealPlan?: StructuredMealPlan;           // Active structured meal plan, if saved separately
+  doctorName?: string;
   status: 'draft' | 'delivered' | 'archived';
   createdAt: string;
   updatedAt?: string;
