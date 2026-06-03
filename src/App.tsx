@@ -1245,7 +1245,14 @@ export default function App() {
         <ResetDataPanel
           userId={userId}
           onClose={() => setShowReset(false)}
-          onDone={() => { setPatients([]); setEvents([]); setShowReset(false); }}
+          onDone={() => {
+            // Clear the local cache and hard-reload so nothing stale survives
+            // on screen — the reload re-reads the (now empty) new schema.
+            for (const key of Object.keys(localStorage)) {
+              if (userId && key.startsWith(`echomed_${userId}_`)) localStorage.removeItem(key);
+            }
+            window.location.reload();
+          }}
         />
       )}
 
