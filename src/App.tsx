@@ -482,56 +482,6 @@ export default function App() {
     navRehydratedRef.current = true;
   }, [userId, patients, events]);
 
-  // Migrate existing history to patient-centric format (runs once)
-  useEffect(() => {
-    if (history.length > 0 && patients.length === 0) {
-      const migratedPatients: Patient[] = [];
-      const migratedEvents: TimelineEvent[] = [];
-      const patientMap = new Map<string, Patient>();
-
-      history.forEach((item: any, index: number) => {
-        const rawPatientName = item.patient || 'Anônimo';
-        const normalizedDisplayName = normalizePatientName(rawPatientName);
-        const normalizedKey = normalizedDisplayName.toLowerCase();
-
-        // Create or get patient
-        let patient = patientMap.get(normalizedKey);
-        if (!patient) {
-          patient = {
-            id: `patient_${Date.now()}_${index}`,
-            name: normalizedDisplayName,
-            createdAt: item.createdAt || new Date().toISOString()
-          };
-          patientMap.set(normalizedKey, patient);
-          migratedPatients.push(patient);
-        }
-
-        // Determine event type (first event for patient = initial, others = followup)
-        const existingEventsForPatient = migratedEvents.filter(e => e.patientId === patient!.id);
-        const eventType: EventType = existingEventsForPatient.length === 0 ? 'initial' : 'followup';
-
-        // Create event
-        const event: TimelineEvent = {
-          id: item.id || `event_${Date.now()}_${index}`,
-          patientId: patient.id,
-          type: eventType,
-          date: item.createdAt || new Date().toISOString(),
-          transcript: item.transcript,
-          result: item.result,
-          doctorName: item.doctorName || 'Nutricionista',
-          createdAt: item.createdAt || new Date().toISOString()
-        };
-        migratedEvents.push(event);
-      });
-
-      if (migratedPatients.length > 0) {
-        setPatients(migratedPatients);
-        setEvents(migratedEvents);
-        console.log(`✅ Migrated ${migratedPatients.length} patients and ${migratedEvents.length} events`);
-      }
-    }
-  }, [history, patients.length]);
-
   // Helper to find or create patient with context
   const findOrCreatePatient = async (
     name: string,
