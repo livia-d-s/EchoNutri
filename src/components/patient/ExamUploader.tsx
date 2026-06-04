@@ -66,7 +66,7 @@ export function ExamUploader({
         return;
       }
       const newExam: PatientExam = {
-        id: `${idPrefix}_${Date.now()}`,
+        id: `${idPrefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         fileName: file.name,
         uploadedAt: new Date().toISOString(),
         extractedText: text,

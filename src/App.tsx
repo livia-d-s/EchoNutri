@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Mic, Square, Pause, Play, Activity, User, FileText, Upload,
-  ArrowLeft, Camera, Check, AlertTriangle, Loader2, Users, Pencil, Info, CheckCircle, Trash2,
+  ArrowLeft, Camera, Check, AlertTriangle, AlertCircle, Loader2, Users, Pencil, Info, CheckCircle, Trash2,
   ClipboardCheck, TrendingUp, Brain, Stethoscope, TestTube, Utensils, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { Patient, TimelineEvent, EventType, PatientGoal, GOAL_LABELS, TrainingActivity, PatientExam, MealPlan } from '../types';
@@ -54,6 +54,7 @@ import {
   prescriptionToEvent,
   noteToEvent,
 } from './services/schemaMappers';
+import { registerToast, notify } from './utils/toast';
 
 const getBackendUrl = () => {
   // In production, use Render backend
@@ -342,7 +343,7 @@ export default function App() {
   const [currentTranscript, setCurrentTranscript] = useState('');
   const [history, setHistory] = useState<any[]>([]);
   const [currentResult, setCurrentResult] = useState(null);
-  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; visible: boolean }>({ message: '', type: 'success', visible: false });
 
   // Navigation persistence: keep the user on the same screen across refreshes.
   // We store only lightweight identifiers (view + patient/event id) and look
@@ -379,11 +380,15 @@ export default function App() {
   const [currentPatientBirthDate, setCurrentPatientBirthDate] = useState<string>('');
   const [currentPatientRestrictions, setCurrentPatientRestrictions] = useState<string>('');
 
-  // Show toast notification
-  const showToast = (message: string) => {
-    setToast({ message, visible: true });
-    setTimeout(() => setToast({ message: '', visible: false }), 3000);
+  // Show toast notification (success = green check, error = red alert).
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type, visible: true });
+    setTimeout(() => setToast(t => ({ ...t, visible: false })), type === 'error' ? 5000 : 3000);
   };
+
+  // Wire the global toast bus so child components and utils (e.g. the PDF
+  // generator) can trigger styled toasts instead of native alert().
+  useEffect(() => registerToast((message, type) => showToast(message, type)), []);
 
   // Save history to localStorage when it changes (user-scoped)
   useEffect(() => {
@@ -978,7 +983,7 @@ export default function App() {
       }
     } catch (error: any) {
       console.error("Erro na análise:", error);
-      alert(`Erro na análise: ${error.message}\n\nVerifique se o servidor backend está rodando em ${backendUrl}`);
+      notify(`Erro na análise: ${error.message}`, 'error');
     } finally {
       setStatus(AppStatus.IDLE);
     }
@@ -1247,7 +1252,7 @@ export default function App() {
                 await user.delete();
               } catch (err: any) {
                 if (err?.code === 'auth/requires-recent-login') {
-                  alert('Por segurança, é necessário entrar novamente antes de excluir a conta. Vamos deslogar — entre de novo e repita o pedido.');
+                  notify('Por segurança, entre novamente antes de excluir a conta. Vamos deslogar — faça login e repita o pedido.', 'error');
                   await logout();
                   setShowProfilePopup(false);
                   return;
@@ -1257,7 +1262,7 @@ export default function App() {
               setShowProfilePopup(false);
             } catch (err: any) {
               console.error('Account deletion error:', err);
-              alert(`Não foi possível excluir a conta: ${err?.message || 'erro desconhecido'}`);
+              notify(`Não foi possível excluir a conta: ${err?.message || 'erro desconhecido'}`, 'error');
             }
           }}
         />
@@ -1265,9 +1270,11 @@ export default function App() {
 
       {/* Toast Notification */}
       {toast.visible && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-[90vw]">
           <div className="flex items-center gap-3 bg-ink-primary text-white px-4 py-2.5 rounded-md shadow-md border border-ink-primary">
-            <CheckCircle size={16} className="text-positive" strokeWidth={2.25} />
+            {toast.type === 'error'
+              ? <AlertCircle size={16} className="text-red-400 shrink-0" strokeWidth={2.25} />
+              : <CheckCircle size={16} className="text-positive shrink-0" strokeWidth={2.25} />}
             <span className="font-medium text-sm">{toast.message}</span>
           </div>
         </div>
@@ -1315,7 +1322,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout, onExportD
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      alert('A imagem deve ter no máximo 5MB');
+      notify('A imagem deve ter no máximo 5MB', 'error');
       return;
     }
     const reader = new FileReader();
@@ -1352,7 +1359,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout, onExportD
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      alert('Imagem original muito grande (máx 5MB). Comprima antes de enviar.');
+      notify('Imagem original muito grande (máx 5MB). Comprima antes de enviar.', 'error');
       return;
     }
     const reader = new FileReader();
@@ -1932,7 +1939,7 @@ function TranscriptionView({
   const handleAudioFileSelected = async (file: File) => {
     if (!file) return;
     if (!patientName.trim()) {
-      alert('Informe o nome da paciente antes de carregar o áudio.');
+      notify('Informe o nome da paciente antes de carregar o áudio.', 'error');
       return;
     }
     if (file.size > 800 * 1024 * 1024) {
@@ -2234,7 +2241,7 @@ function TranscriptionView({
   const doStartRecording = (isResume = false) => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        alert("Seu navegador não suporta reconhecimento de voz.");
+        notify('Seu navegador não suporta reconhecimento de voz.', 'error');
         return;
     }
     recognitionRef.current = new SpeechRecognition();
@@ -3159,7 +3166,7 @@ Análise prévia:
       }
     } catch (err) {
       console.error('Failed to generate PDF:', err);
-      alert('Erro ao gerar PDF. Tente novamente.');
+      notify(err instanceof Error && err.message ? err.message : 'Erro ao gerar PDF. Tente novamente.', 'error');
     } finally {
       setGeneratingPdf(null);
     }

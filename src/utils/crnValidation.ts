@@ -42,9 +42,15 @@ const CRN_REGIONS: Record<string, string[]> = {
   '11': ['CE', 'MA', 'PI'],
 };
 
-export type CrnValidationResult =
-  | { valid: true; canonical: string; number: string; uf: string }
-  | { valid: false; error: string };
+// Flat optional shape (not a discriminated union) — see EmailValidationResult:
+// the project isn't in strict mode, so the union wouldn't narrow on `.valid`.
+export interface CrnValidationResult {
+  valid: boolean;
+  canonical?: string;
+  number?: string;
+  uf?: string;
+  error?: string;
+}
 
 export function validateCrn(input: string): CrnValidationResult {
   const raw = String(input || '').trim();

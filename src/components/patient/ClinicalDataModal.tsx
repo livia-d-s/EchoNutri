@@ -68,8 +68,8 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
                 Peso (kg)
               </label>
               <input
-                type="number"
-                step="0.1"
+                type="text"
+                inputMode="decimal"
                 placeholder="Ex: 65"
                 className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all font-mono"
                 value={weight}
@@ -81,7 +81,8 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
                 Altura (cm)
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 placeholder="Ex: 165"
                 className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all font-mono"
                 value={height}
@@ -107,8 +108,8 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
                 % Gordura
               </label>
               <input
-                type="number"
-                step="0.1"
+                type="text"
+                inputMode="decimal"
                 placeholder="Ex: 22"
                 className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all font-mono"
                 value={bodyFat}
@@ -120,8 +121,8 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
                 % Massa magra
               </label>
               <input
-                type="number"
-                step="0.1"
+                type="text"
+                inputMode="decimal"
                 placeholder="Ex: 78"
                 className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all font-mono"
                 value={leanMass}

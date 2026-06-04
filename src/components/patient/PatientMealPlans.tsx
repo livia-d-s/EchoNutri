@@ -64,13 +64,15 @@ export function PatientMealPlans({ patient, onUpdateMealPlans }: PatientMealPlan
         return;
       }
       const newPlan: MealPlan = {
-        id: `plan_${Date.now()}`,
+        id: `plan_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         fileName: file.name,
         uploadedAt: new Date().toISOString(),
         extractedText: text,
         sizeBytes: file.size,
       };
-      onUpdateMealPlans(patient.id, [...plans, newPlan]);
+      // Derive from the source array (patient.mealPlans), not the sorted copy,
+      // so a rapid second action can't overwrite with a stale snapshot.
+      onUpdateMealPlans(patient.id, [...(patient.mealPlans || []), newPlan]);
     } catch (err) {
       console.error('PDF extraction error:', err);
       setError('Erro ao processar o PDF. Tente outro arquivo.');
@@ -86,14 +88,12 @@ export function PatientMealPlans({ patient, onUpdateMealPlans }: PatientMealPlan
   };
 
   const removePlan = (planId: string) => {
-    const plan = plans.find(p => p.id === planId);
     const isActive = planId === activePlanId;
     const msg = isActive
       ? 'Remover o plano atual? A IA deixará de usá-lo como referência nas próximas análises.'
       : 'Remover este plano do histórico?';
     if (!window.confirm(msg)) return;
-    onUpdateMealPlans(patient.id, plans.filter(p => p.id !== planId));
-    void plan;
+    onUpdateMealPlans(patient.id, (patient.mealPlans || []).filter(p => p.id !== planId));
   };
 
   return (
@@ -135,7 +135,7 @@ export function PatientMealPlans({ patient, onUpdateMealPlans }: PatientMealPlan
 
       {plans.length === 0 ? (
         <p className="text-xs text-ink-tertiary py-1">
-          Nenhuma prescrição ainda. Anexa um PDF como referência para sugerir ajustes.
+          Nenhuma prescrição ainda. Anexe um PDF como referência para sugerir ajustes.
         </p>
       ) : (
         <div className="space-y-2">

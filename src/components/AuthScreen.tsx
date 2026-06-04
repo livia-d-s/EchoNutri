@@ -70,6 +70,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackTo
     setIsForgotPassword(false);
     setResetSent(false);
     setError(null);
+    setEmailError(null);
+    setCrmError(null);
     setShowPassword(false);
   };
 
@@ -77,6 +79,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackTo
     setIsForgotPassword(!isForgotPassword);
     setResetSent(false);
     setError(null);
+    setEmailError(null);
+    setCrmError(null);
   };
 
   const handleGoogleSignIn = async () => {
@@ -100,6 +104,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackTo
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setEmailError(null);
     setIsLoading(true);
 
     const emailCheck = validateEmail(email);
@@ -127,6 +132,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackTo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setEmailError(null);
+    setCrmError(null);
     setIsLoading(true);
 
     try {

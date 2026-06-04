@@ -1,4 +1,5 @@
 // PDF generator using pdfmake (dynamic import keeps initial bundle small)
+import { notify } from './toast';
 
 interface NutriProfile {
   name?: string;
@@ -475,31 +476,37 @@ export async function generateMealPlanPdf(
   const plan = result.structuredMealPlan;
 
   if (!plan || !Array.isArray(plan.meals) || plan.meals.length === 0) {
-    alert('Nenhum plano alimentar disponível para esta consulta. Gere um primeiro.');
+    notify('Nenhum plano alimentar disponível para esta consulta. Gere um primeiro.', 'error');
     return;
   }
 
   // Build a meal table: meal name | items + substitutions
   const mealRows = plan.meals.map((meal: any) => {
     const itemsStack: any[] = [];
-    (meal.items || []).forEach((item: any, idx: number) => {
+    (meal.items || []).forEach((item: any) => {
+      // Skip empty/placeholder items so the patient sheet never shows "•  undefined".
+      const food = item?.food ? String(item.food).trim() : '';
+      if (!food) return;
       itemsStack.push({
-        text: `•  ${item.food}`,
+        text: `•  ${food}`,
         style: 'mealItem',
-        margin: [0, idx === 0 ? 0 : 4, 0, 0],
+        margin: [0, itemsStack.length === 0 ? 0 : 4, 0, 0],
       });
       if (Array.isArray(item.substitutions) && item.substitutions.length > 0) {
-        itemsStack.push({
-          text: `Substituições: ${item.substitutions.join(' / ')}`,
-          style: 'substitutions',
-          margin: [12, 1, 0, 0],
-        });
+        const subs = item.substitutions.filter((s: any) => s && String(s).trim());
+        if (subs.length > 0) {
+          itemsStack.push({
+            text: `Substituições: ${subs.join(' / ')}`,
+            style: 'substitutions',
+            margin: [12, 1, 0, 0],
+          });
+        }
       }
     });
     return [
       {
         stack: [
-          { text: meal.name, style: 'mealName' },
+          { text: meal.name || 'Refeição', style: 'mealName' },
           meal.time ? { text: meal.time, style: 'mealTime' } : { text: '', style: 'mealTime' },
         ],
         margin: [0, 6, 0, 6],

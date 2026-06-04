@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Plus, Sliders, Pencil, Check, X, Target, Dumbbell, Sparkles, Activity } from 'lucide-react';
 import { Patient, GOAL_LABELS } from '../../../types';
 import { ClinicalDataModal } from './ClinicalDataModal';
+import { notify } from '../../utils/toast';
 
 interface PatientHeaderProps {
   patient: Patient;
@@ -67,7 +68,7 @@ export function PatientHeader({
   const addHighlight = () => {
     if (!newHighlight.trim() || !onUpdateHighlights) return;
     if (highlights.length >= MAX_HIGHLIGHTS) {
-      alert(`Limite de ${MAX_HIGHLIGHTS} marcadores atingido. Remova um para adicionar outro.`);
+      notify(`Limite de ${MAX_HIGHLIGHTS} marcadores atingido. Remova um para adicionar outro.`, 'error');
       return;
     }
     onUpdateHighlights(patient.id, [...highlights, newHighlight.trim()]);
@@ -77,7 +78,7 @@ export function PatientHeader({
 
   const handleClickAdd = () => {
     if (highlights.length >= MAX_HIGHLIGHTS) {
-      alert(`Limite de ${MAX_HIGHLIGHTS} marcadores atingido. Remova um para adicionar outro.`);
+      notify(`Limite de ${MAX_HIGHLIGHTS} marcadores atingido. Remova um para adicionar outro.`, 'error');
       return;
     }
     setIsAddingHighlight(true);

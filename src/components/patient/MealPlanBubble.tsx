@@ -145,15 +145,16 @@ export function MealPlanBubble({
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <input
-                      type="number"
-                      step="0.1"
+                      type="text"
+                      inputMode="decimal"
                       placeholder="Peso (kg)"
                       className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                       value={weight}
                       onChange={(e) => setWeight(e.target.value)}
                     />
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       placeholder="Altura (cm)"
                       className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                       value={height}
@@ -169,8 +170,8 @@ export function MealPlanBubble({
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <input
-                      type="number"
-                      step="0.1"
+                      type="text"
+                      inputMode="decimal"
                       placeholder="% Gordura"
                       className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                       value={bodyFat}
@@ -178,8 +179,8 @@ export function MealPlanBubble({
                       title="Percentual de gordura corporal"
                     />
                     <input
-                      type="number"
-                      step="0.1"
+                      type="text"
+                      inputMode="decimal"
                       placeholder="% Massa magra"
                       className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm text-ink-primary placeholder:text-ink-tertiary focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
                       value={leanMass}

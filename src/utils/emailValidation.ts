@@ -29,9 +29,15 @@ const VALID_TLDS = new Set([
 // Regex baseado no RFC 5322 simplificado — cobre o que usuários reais digitam.
 const EMAIL_FORMAT = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 
-export type EmailValidationResult =
-  | { valid: true; canonical: string }
-  | { valid: false; error: string };
+// Flat optional shape (instead of a discriminated union) because the project's
+// tsconfig isn't in strict mode, so `valid: true|false` doesn't narrow the
+// union — accessing `.error`/`.canonical` after a `.valid` check would error.
+// Runtime contract is unchanged: callers check `.valid` first.
+export interface EmailValidationResult {
+  valid: boolean;
+  canonical?: string;
+  error?: string;
+}
 
 export function validateEmail(input: string): EmailValidationResult {
   const raw = String(input || '').trim();
