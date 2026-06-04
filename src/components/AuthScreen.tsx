@@ -175,6 +175,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackTo
           // quando o checkout for integrado (Semana 4).
           subscription: createInitialSubscription(),
         });
+
+        // Seed the app profile so the nutri's name shows up immediately. The
+        // displayName set via updateProfile isn't reflected in the cached auth
+        // user until a reload, so the profile load (appData/profile) wouldn't
+        // pick it up otherwise.
+        await setDoc(
+          doc(db, "users", user.uid, "appData", "profile"),
+          { name: fullName, specialty: 'Nutricionista' },
+          { merge: true }
+        );
       }
     } catch (err: any) {
       let message = "Algo deu errado. Tente novamente.";
@@ -182,7 +192,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'login', onBackTo
       if (errorCode === 'auth/email-already-in-use') message = "Este e-mail já está em uso.";
       else if (errorCode === 'auth/invalid-email') message = "E-mail inválido.";
       else if (errorCode === 'auth/weak-password') message = "A senha precisa de pelo menos 6 caracteres.";
-      else if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') message = "E-mail ou senha incorretos.";
+      // Firebase's email-enumeration protection returns the same code for a
+      // wrong password and a non-existent account — on purpose, so we can't
+      // reveal which. Keep the message generic and nudge toward signup.
+      else if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') message = "E-mail ou senha incorretos. Confira os dados — ou crie uma conta se ainda não tem.";
       else if (err.message) message = err.message;
       setError(message);
     } finally {

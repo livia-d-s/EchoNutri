@@ -267,6 +267,7 @@ Regras para o campo patientHighlights:
 - NÃO inclua informações sobre treino/atividade física aqui (use o campo extractedTraining)
 - Máximo 8 palavras por item
 - Extraia apenas o que foi dito, não invente
+- FIDELIDADE ABSOLUTA em fatos sensíveis (profissão, gravidez/bebê, separação/divórcio, luto, doenças, medicações): copie EXATAMENTE como dito. NÃO troque a profissão por outra parecida, NÃO infira eventos de vida. Se a transcrição tiver [inaudível] ou a informação for ambígua, OMITA o item em vez de adivinhar — um erro nesses pontos é grave.
 
 Regras para o campo extractedTraining:
 - Extraia qualquer menção a atividade física / treino estruturado do paciente
@@ -338,7 +339,10 @@ sem inventar dados.
           parts: [{ text: prompt }]
         }],
         generationConfig: {
-          temperature: 0.7,
+          // Low temperature for clinical fidelity: extraction (highlights,
+          // assessment) must not invent or distort. Higher values made the AI
+          // paraphrase critical facts ("logista" -> "sociólogo", etc.).
+          temperature: 0.3,
           maxOutputTokens: 16384,
           responseMimeType: "application/json"
         }
@@ -640,7 +644,7 @@ REGRAS:
 - Não resuma — transcreva o que foi dito.
 - Use pontuação natural (vírgula, ponto, interrogação) para facilitar leitura.
 - Não inclua marcações de tempo nem identificação de falante (ex: "[00:32]" ou "Nutri:") — apenas a fala corrida.
-- Corrija apenas erros óbvios de pronúncia (sem alterar o sentido).
+- NÃO corrija, normalize nem substitua palavras. Transcreva EXATAMENTE o que foi dito, mesmo que pareça estranho ou gramaticalmente errado. Nunca troque uma palavra por outra que "faça mais sentido" (ex.: não transforme "logista" em "sociólogo", "biomédica" em "bioquímica"). Se uma palavra for ambígua ou difícil, transcreva o mais próximo foneticamente do que ouviu; se for impossível entender, marque [inaudível]. É MELHOR marcar [inaudível] do que adivinhar a palavra errada.
 - Ignore qualquer conteúdo visual do vídeo — transcreva APENAS o que é falado.
 
 Responda APENAS com a transcrição (texto puro, sem JSON, sem markdown).`;
@@ -651,6 +655,8 @@ Responda APENAS com a transcrição (texto puro, sem JSON, sem markdown).`;
         createPartFromUri(f.uri, f.mimeType),
         transcribePrompt,
       ]),
+      // Temperature 0 = most faithful transcription, no creative word swaps.
+      config: { temperature: 0 },
     });
 
     const transcript = (result.text || result.response?.text() || '').trim();
