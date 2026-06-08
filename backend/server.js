@@ -78,6 +78,13 @@ app.use(express.json({ limit: '50mb' }));
 // Inicializa a Inteligência Artificial do Google
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+// TEMP diagnostic: which key did this instance load? (last 4 chars only — safe)
+console.log(
+  '[boot] GEMINI_API_KEY tail:', (process.env.GEMINI_API_KEY || '(vazio)').slice(-4),
+  '| GOOGLE_API_KEY set:', !!process.env.GOOGLE_API_KEY,
+  '| GOOGLE_API_KEY tail:', (process.env.GOOGLE_API_KEY || '(vazio)').slice(-4)
+);
+
 // Endpoint para análise nutricional (EchoNutri)
 const TONE_INSTRUCTIONS = {
   humanizado: `Use linguagem acolhedora, empática e próxima. Valide os sentimentos do paciente
@@ -219,6 +226,8 @@ Quando NÃO solicitado, simplesmente NÃO inclua o campo structuredMealPlan no J
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY not configured in .env file");
     }
+    // TEMP diagnostic: which key is this request actually using?
+    console.log('[analise] usando key tail:', apiKey.slice(-4));
 
     console.log(`🤖 Calling Google Gemini API (tone: ${selectedTone})...`);
 
