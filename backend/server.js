@@ -85,6 +85,26 @@ console.log(
   '| GOOGLE_API_KEY tail:', (process.env.GOOGLE_API_KEY || '(vazio)').slice(-4)
 );
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Retry transient Gemini overloads (503/UNAVAILABLE/"high demand"/500) with
+// exponential backoff so the nutritionist never sees a momentary spike. Does
+// NOT retry billing/quota (429 RESOURCE_EXHAUSTED) — that won't self-heal.
+async function withGeminiRetry(fn, { retries = 3, baseDelay = 1000 } = {}) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const msg = String((err && err.message) || err);
+      const transient = /\b(503|500|UNAVAILABLE|INTERNAL|overloaded)\b/i.test(msg) || /high demand/i.test(msg);
+      if (!transient || attempt >= retries) throw err;
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.warn(`[retry] tentativa ${attempt + 1} falhou (${msg.slice(0, 90)}). Retentando em ${delay}ms...`);
+      await sleep(delay);
+    }
+  }
+}
+
 // Endpoint para análise nutricional (EchoNutri)
 const TONE_INSTRUCTIONS = {
   humanizado: `Use linguagem acolhedora, empática e próxima. Valide os sentimentos do paciente
@@ -342,32 +362,33 @@ sem inventar dados.
 
     const prompt = `${systemPrompt}${mealPlanInstruction}\n\nTranscrição da consulta:\n${transcript}${anthropoContext}${examsContext}${mealPlanContext}`;
 
-    // Use Google AI Studio API - Gemini 2.0 Flash
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          // Low temperature for clinical fidelity: extraction (highlights,
-          // assessment) must not invent or distort. Higher values made the AI
-          // paraphrase critical facts ("logista" -> "sociólogo", etc.).
-          temperature: 0.3,
-          maxOutputTokens: 16384,
-          responseMimeType: "application/json"
-        }
-      })
+    // Use Google AI Studio API - Gemini 2.5 Flash (with retry on transient 503s)
+    const result = await withGeminiRetry(async () => {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            // Low temperature for clinical fidelity: extraction (highlights,
+            // assessment) must not invent or distort. Higher values made the AI
+            // paraphrase critical facts ("logista" -> "sociólogo", etc.).
+            temperature: 0.3,
+            maxOutputTokens: 16384,
+            responseMimeType: "application/json"
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Gemini API Error:", errorData);
+        throw new Error(JSON.stringify(errorData));
+      }
+      return await response.json();
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Gemini API Error:", errorData);
-      throw new Error(JSON.stringify(errorData));
-    }
-
-    const result = await response.json();
     console.log("API Response structure:", JSON.stringify(result, null, 2));
 
     // Handle different response formats
@@ -481,11 +502,11 @@ Responda APENAS JSON puro neste schema (uma entrada por item, na mesma ordem):
   ]
 }`;
 
-      const result = await genAI.models.generateContent({
+      const result = await withGeminiRetry(() => genAI.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { responseMimeType: 'application/json', temperature: 0.1 },
-      });
+      }));
       const text = result.text || result.response?.text() || '';
       const clean = String(text).replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(clean);
@@ -661,7 +682,7 @@ REGRAS:
 
 Responda APENAS com a transcrição (texto puro, sem JSON, sem markdown).`;
 
-    const result = await genAI.models.generateContent({
+    const result = await withGeminiRetry(() => genAI.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: createUserContent([
         createPartFromUri(f.uri, f.mimeType),
@@ -669,7 +690,7 @@ Responda APENAS com a transcrição (texto puro, sem JSON, sem markdown).`;
       ]),
       // Temperature 0 = most faithful transcription, no creative word swaps.
       config: { temperature: 0 },
-    });
+    }));
 
     const transcript = (result.text || result.response?.text() || '').trim();
     if (!transcript) throw new Error('Gemini retornou transcrição vazia');
@@ -782,7 +803,7 @@ app.post('/api/analyze', apiLimiter, requireAuth, async (req, res) => {
     `;
 
     const result = await genAI.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json"
