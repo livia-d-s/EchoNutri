@@ -63,7 +63,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             onClick={handleNavigateHome}
           >
             <AppLogo className="w-9 h-9 flex-shrink-0" />
-            <span className="text-2xl font-bold tracking-tight text-slate-800">EchoMed</span>
+            <span className="text-2xl font-bold tracking-tight text-slate-800">EchoNutri</span>
           </div>
 
           <nav className="flex items-center gap-6">

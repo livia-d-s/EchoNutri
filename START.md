@@ -1,4 +1,4 @@
-# 🚀 EchoMed - Guia de Inicialização
+# 🚀 EchoNutri - Guia de Inicialização
 
 ## ⚡ Início Rápido
 
@@ -152,7 +152,7 @@ VITE v6.4.1  ready in 257 ms
 ## 🎉 Tudo Funcionando?
 
 Se você vê:
-- ✅ Interface do EchoMed carregada
+- ✅ Interface do EchoNutri carregada
 - ✅ Sem erros de Firebase no console
 - ✅ Backend rodando na porta 3001
 - ✅ Frontend rodando na porta 3000

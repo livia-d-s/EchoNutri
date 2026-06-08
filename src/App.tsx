@@ -214,7 +214,7 @@ export default function App() {
   const userId = user?.uid;
 
   // Build a localStorage key namespaced to the current user
-  const lsKey = (base: string) => userId ? `echomed_${userId}_${base}` : null;
+  const lsKey = (base: string) => userId ? `echonutri_${userId}_${base}` : null;
 
   const [view, setView] = useState<'transcription' | 'diagnosis' | 'patients' | 'patient'>('transcription');
   const [status, setStatus] = useState(AppStatus.IDLE);
@@ -249,10 +249,10 @@ export default function App() {
     }
 
     // 1. Instant load from localStorage cache
-    setPatients(safeParse(localStorage.getItem(`echomed_${userId}_patients`), [] as Patient[]));
-    setEvents(safeParse(localStorage.getItem(`echomed_${userId}_events`), [] as TimelineEvent[]));
-    setHistory(safeParse(localStorage.getItem(`echomed_${userId}_consultation_history`), [] as any[]));
-    setDoctorProfile(safeParse(localStorage.getItem(`echomed_${userId}_doctor_profile`), DEFAULT_PROFILE));
+    setPatients(safeParse(localStorage.getItem(`echonutri_${userId}_patients`), [] as Patient[]));
+    setEvents(safeParse(localStorage.getItem(`echonutri_${userId}_events`), [] as TimelineEvent[]));
+    setHistory(safeParse(localStorage.getItem(`echonutri_${userId}_consultation_history`), [] as any[]));
+    setDoctorProfile(safeParse(localStorage.getItem(`echonutri_${userId}_doctor_profile`), DEFAULT_PROFILE));
 
     // 2. Then load from Firestore (overrides localStorage if exists)
     if (!db) return;
@@ -274,7 +274,7 @@ export default function App() {
           })
         );
         setPatients(hydratedPatients);
-        localStorage.setItem(`echomed_${userId}_patients`, JSON.stringify(hydratedPatients));
+        localStorage.setItem(`echonutri_${userId}_patients`, JSON.stringify(hydratedPatients));
 
         const [prescriptions, noteLists] = await Promise.all([
           getPrescriptionsByNutritionist(userId),
@@ -285,7 +285,7 @@ export default function App() {
         const adjustmentEvents = noteLists.flat().map(n => noteToEvent(n, docName));
         const allEvents = [...consultationEvents, ...adjustmentEvents];
         setEvents(allEvents);
-        localStorage.setItem(`echomed_${userId}_events`, JSON.stringify(allEvents));
+        localStorage.setItem(`echonutri_${userId}_events`, JSON.stringify(allEvents));
 
         // Load profile from legacy location (still use old schema for profile)
         const profileDoc = await getDoc(doc(db, 'users', userId, 'appData', 'profile'));
@@ -293,7 +293,7 @@ export default function App() {
           const data = profileDoc.data();
           const profile = { ...DEFAULT_PROFILE, ...data };
           setDoctorProfile(profile);
-          localStorage.setItem(`echomed_${userId}_doctor_profile`, JSON.stringify(profile));
+          localStorage.setItem(`echonutri_${userId}_doctor_profile`, JSON.stringify(profile));
         }
         // Load subscription from doctors/{uid}. Lazy-create a trial for users
         // who predate the subscription model (Google signups or accounts created
@@ -355,7 +355,7 @@ export default function App() {
   // overwrite the saved state with the default 'transcription' on boot.
   useEffect(() => {
     if (!userId || !navRehydratedRef.current) return;
-    const navKey = `echomed_${userId}_nav_state`;
+    const navKey = `echonutri_${userId}_nav_state`;
     localStorage.setItem(navKey, JSON.stringify({
       view,
       selectedPatientId: selectedPatient?.id || null,
@@ -444,7 +444,7 @@ export default function App() {
   // the saved id against the actual record.
   useEffect(() => {
     if (!userId || navRehydratedRef.current) return;
-    const raw = localStorage.getItem(`echomed_${userId}_nav_state`);
+    const raw = localStorage.getItem(`echonutri_${userId}_nav_state`);
     if (!raw) {
       navRehydratedRef.current = true;
       return;
@@ -1067,7 +1067,7 @@ export default function App() {
         {view === 'transcription' && (
           <>
             <TranscriptionView
-              autosaveKey={userId ? `echomed_${userId}_autosave` : null}
+              autosaveKey={userId ? `echonutri_${userId}_autosave` : null}
               status={status} setStatus={setStatus}
               patientName={patientName} setPatientName={setPatientName}
               transcript={currentTranscript} setTranscript={setCurrentTranscript}
@@ -1243,7 +1243,7 @@ export default function App() {
               }
               // Wipe local cache
               for (const key of Object.keys(localStorage)) {
-                if (key.startsWith(`echomed_${userId}_`)) localStorage.removeItem(key);
+                if (key.startsWith(`echonutri_${userId}_`)) localStorage.removeItem(key);
               }
               // Delete the Firebase Auth user. Requires recent login —
               // if it fails for that reason, fall back to logout + ask

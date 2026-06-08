@@ -11,7 +11,7 @@ Your backend now uses **OpenAI ChatGPT** instead of Gemini for better reliabilit
 1. **Go to**: https://platform.openai.com/api-keys
 2. **Sign in** (or create account if needed)
 3. Click **"Create new secret key"**
-4. **Name it**: "EchoMed Backend"
+4. **Name it**: "EchoNutri Backend"
 5. **Copy the key** (starts with `sk-...`)
 
 ⚠️ **Important**: Copy it immediately! You can't see it again after closing the dialog.

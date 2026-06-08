@@ -22,7 +22,7 @@ If you already have a project:
 
 If you need to create a new project:
 - Click **"Add project"**
-- Name it (e.g., "EchoMed")
+- Name it (e.g., "EchoNutri")
 - Disable Google Analytics (optional)
 - Click **"Create project"**
 
@@ -33,7 +33,7 @@ If you need to create a new project:
 3. Scroll down to **"Your apps"**
 4. If you don't have a web app yet:
    - Click the **`</>`** icon (Web)
-   - Name it "EchoMed Web"
+   - Name it "EchoNutri Web"
    - Click **"Register app"**
 5. You'll see a **`firebaseConfig`** object like this:
 

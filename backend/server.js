@@ -57,6 +57,9 @@ const apiLimiter = rateLimit({
 
 // Configurações do Servidor
 const allowedOrigins = [
+  'https://echonutri.com.br',
+  'https://www.echonutri.com.br',
+  // Legacy domain — manter até o DNS apontar 100% pra echonutri.com.br, depois remover.
   'https://echomed.com.br',
   'https://www.echomed.com.br',
   'http://localhost:5173',
@@ -75,7 +78,7 @@ app.use(express.json({ limit: '50mb' }));
 // Inicializa a Inteligência Artificial do Google
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Endpoint para análise nutricional (EchoMed)
+// Endpoint para análise nutricional (EchoNutri)
 const TONE_INSTRUCTIONS = {
   humanizado: `Use linguagem acolhedora, empática e próxima. Valide os sentimentos do paciente
 e aborde as questões com sensibilidade. Evite termos excessivamente técnicos.
@@ -577,7 +580,7 @@ const audioUpload = multer({
     destination: os.tmpdir(),
     filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname || '').slice(0, 8);
-      cb(null, `echomed_audio_${crypto.randomUUID()}${ext}`);
+      cb(null, `echonutri_audio_${crypto.randomUUID()}${ext}`);
     },
   }),
   limits: {
@@ -616,7 +619,7 @@ async function processTranscriptionJob(jobId, file) {
       file: file.path,
       config: {
         mimeType: file.mimetype || 'audio/mpeg',
-        displayName: file.originalname || 'echomed_audio',
+        displayName: file.originalname || 'echonutri_audio',
       },
     });
 

@@ -1,6 +1,6 @@
 {
-  "name": "EchoMed - Teste MVP",
-  "description": "Um copiloto médico que transcreve consultas em tempo real e usa IA para gerar insights diagnósticos estruturados, sugestões de exames e recomendações de medicamentos.",
+  "name": "EchoNutri",
+  "description": "Inteligência clínica para nutrição: transcreve a consulta e usa IA para gerar avaliação nutricional estruturada, conduta e sugestões para a próxima consulta.",
   "requestFramePermissions": [
     "microphone"
   ]
