@@ -60,7 +60,7 @@ const getBackendUrl = () => {
   // In production, use Render backend
   // In development, use localhost
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return 'https://echomed-p3tr.onrender.com'; // Production - Render backend
+    return 'https://echomed.onrender.com'; // Production - Render backend
   }
   try {
     const env = (import.meta as any)?.env || {};
@@ -1954,7 +1954,7 @@ function TranscriptionView({
       return;
     }
     const baseUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost')
-      ? 'https://echomed-p3tr.onrender.com'
+      ? 'https://echomed.onrender.com'
       : 'http://localhost:3001';
 
     // Upload via XMLHttpRequest so we get progress events (fetch can't do that yet).
@@ -3015,7 +3015,7 @@ function DiagnosisView({ result, patientName, eventId, onSaveResult, onBack, pre
     if (!idToken) throw new Error('Sessão expirada. Faça login novamente.');
 
     const baseUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost')
-      ? 'https://echomed-p3tr.onrender.com'
+      ? 'https://echomed.onrender.com'
       : 'http://localhost:3001';
 
     const transcript = `Reaproveitamento da consulta atual para gerar plano alimentar estruturado.
@@ -3110,7 +3110,7 @@ Análise prévia:
     if (!idToken) throw new Error('Sessão expirada. Faça login novamente.');
 
     const baseUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost')
-      ? 'https://echomed-p3tr.onrender.com'
+      ? 'https://echomed.onrender.com'
       : 'http://localhost:3001';
 
     const resp = await fetch(`${baseUrl}/api/recalculate-macros`, {
