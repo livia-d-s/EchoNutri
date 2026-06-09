@@ -42,6 +42,56 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
+// ===== Controle de acesso à IA (protege a cota da API) =====
+// requireAuth garante login; requireAccess garante que só quem PODE usar a IA
+// consome a API. Durante o beta (BETA_MODE=true no Render), apenas admins e
+// e-mails na allowlist BETA_EMAILS têm acesso — assim um link compartilhado
+// por uma tester não deixa estranhos gastarem a API. No lançamento
+// (BETA_MODE off), libera por assinatura ativa (trial válido / active).
+const ADMIN_EMAILS = new Set([
+  'liviadasilva205@gmail.com',
+  'contato@echonutri.com.br',
+]);
+const BETA_EMAILS = new Set(
+  (process.env.BETA_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+);
+const BETA_MODE = process.env.BETA_MODE === 'true';
+
+function hasActiveSubscription(sub, now = new Date()) {
+  if (!sub) return false;
+  if (sub.status === 'active') return true;
+  if (sub.status === 'trialing') {
+    const end = sub.trialEnd ? new Date(sub.trialEnd) : null;
+    return !!end && !isNaN(end.getTime()) && end.getTime() > now.getTime();
+  }
+  if (sub.status === 'canceled') {
+    const end = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
+    return !!end && !isNaN(end.getTime()) && end.getTime() > now.getTime();
+  }
+  return false; // past_due / incomplete / desconhecido
+}
+
+const requireAccess = async (req, res, next) => {
+  try {
+    const email = (req.user && req.user.email ? req.user.email : '').toLowerCase();
+    const uid = req.user && req.user.uid;
+    if (ADMIN_EMAILS.has(email) || BETA_EMAILS.has(email)) return next();
+    if (BETA_MODE) {
+      return res.status(403).json({ error: 'Acesso restrito ao beta. Sua conta não está na lista de testers autorizados.' });
+    }
+    const snap = await admin.firestore().collection('doctors').doc(uid).get();
+    const sub = snap.exists ? snap.data().subscription : null;
+    if (hasActiveSubscription(sub)) return next();
+    return res.status(403).json({ error: 'Assinatura necessária para usar a IA. Ative seu plano para continuar.' });
+  } catch (err) {
+    console.error('Access check error:', err.message);
+    return res.status(500).json({ error: 'Falha ao verificar acesso.' });
+  }
+};
+
 const rateLimit = require('express-rate-limit');
 
 const app = express();
@@ -118,7 +168,7 @@ Use linguagem profissional com base científica.`,
 e elaborações emocionais. Vá direto à conduta e às recomendações práticas.`,
 };
 
-app.post('/api/analyze-medical', apiLimiter, requireAuth, async (req, res) => {
+app.post('/api/analyze-medical', apiLimiter, requireAuth, requireAccess, async (req, res) => {
   try {
     const { transcript, tone, exams, activeMealPlan, patientAnthropometry, generateMealPlan } = req.body;
     const selectedTone = tone && TONE_INSTRUCTIONS[tone] ? tone : 'humanizado';
@@ -445,7 +495,7 @@ sem inventar dados.
 // Strategy: reuse the cached per-item breakdown for unchanged items (string-exact match
 // on `food`), and only ask the LLM about NEW or CHANGED items. Then sum deterministically.
 // This avoids the drift you get when the LLM re-estimates the entire plan on every recalc.
-app.post('/api/recalculate-macros', apiLimiter, requireAuth, async (req, res) => {
+app.post('/api/recalculate-macros', apiLimiter, requireAuth, requireAccess, async (req, res) => {
   try {
     const { mealPlan, previousBreakdown } = req.body;
     if (!mealPlan || !Array.isArray(mealPlan.meals) || mealPlan.meals.length === 0) {
@@ -792,6 +842,7 @@ app.post(
   '/api/transcribe-audio',
   audioLimiter,
   requireAuth,
+  requireAccess,
   (req, res, next) => {
     audioUpload.single('audio')(req, res, (err) => {
       if (err) return handleAudioUploadErrors(err, req, res, next);
@@ -836,7 +887,7 @@ app.get('/api/transcribe-audio/:jobId', requireAuth, (req, res) => {
 });
 
 // Endpoint legado para nutrição
-app.post('/api/analyze', apiLimiter, requireAuth, async (req, res) => {
+app.post('/api/analyze', apiLimiter, requireAuth, requireAccess, async (req, res) => {
   try {
     const { audioBase64, textPreview } = req.body;
 
