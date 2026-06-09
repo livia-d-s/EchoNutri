@@ -197,35 +197,35 @@ export function PatientHeader({
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 flex-shrink-0 flex-wrap">
+          {/* Actions — compact so they don't dominate the header */}
+          <div className="flex gap-1.5 flex-shrink-0 flex-wrap items-start">
             <button
               onClick={onNewConsultation}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-700 text-white
-                         rounded-md font-semibold text-sm hover:bg-brand-900 transition-colors shadow-xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-700 text-white
+                         rounded-md font-semibold text-xs hover:bg-brand-900 transition-colors shadow-xs"
             >
-              <Plus size={15} strokeWidth={2.25} />
+              <Plus size={14} strokeWidth={2.25} />
               <span className="hidden sm:inline">Nova consulta</span>
               <span className="sm:hidden">Consulta</span>
             </button>
             <button
               onClick={onNewAdjustment}
-              className="flex items-center gap-2 px-4 py-2 bg-surface border border-line
-                         text-ink-primary rounded-md font-semibold text-sm hover:bg-subtle transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-line
+                         text-ink-primary rounded-md font-semibold text-xs hover:bg-subtle transition-colors"
             >
-              <Sliders size={15} strokeWidth={2.25} />
+              <Sliders size={14} strokeWidth={2.25} />
               <span className="hidden sm:inline">Ajuste clínico</span>
               <span className="sm:hidden">Ajuste</span>
             </button>
             {onUpdatePatient && (
               <button
                 onClick={() => setShowClinicalModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-surface border border-line
-                           text-ink-primary rounded-md font-semibold text-sm hover:bg-subtle
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-line
+                           text-ink-primary rounded-md font-semibold text-xs hover:bg-subtle
                            transition-colors relative"
                 title="Peso, altura, data de nascimento, %gordura, %massa magra, restrições"
               >
-                <Activity size={15} strokeWidth={2.25} />
+                <Activity size={14} strokeWidth={2.25} />
                 <span className="hidden sm:inline">Composição</span>
                 <span className="sm:hidden">Comp.</span>
                 {(patient.weightKg || patient.heightCm || patient.birthDate) && (

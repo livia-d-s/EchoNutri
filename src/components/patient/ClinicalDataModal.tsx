@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save, Activity } from 'lucide-react';
 import { Patient } from '../../../types';
 
@@ -32,7 +33,10 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
     onClose();
   };
 
-  return (
+  // Portaled to <body> so the fixed overlay covers the whole viewport — when
+  // rendered inside the header (which has backdrop-blur), a fixed child gets
+  // anchored to that header instead of the screen (blur only in a band).
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
       onClick={onClose}
@@ -165,6 +169,7 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
