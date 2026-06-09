@@ -362,33 +362,50 @@ sem inventar dados.
 
     const prompt = `${systemPrompt}${mealPlanInstruction}\n\nTranscrição da consulta:\n${transcript}${anthropoContext}${examsContext}${mealPlanContext}`;
 
-    // Use Google AI Studio API - Gemini 2.5 Flash (with retry on transient 503s)
-    const result = await withGeminiRetry(async () => {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            // Low temperature for clinical fidelity: extraction (highlights,
-            // assessment) must not invent or distort. Higher values made the AI
-            // paraphrase critical facts ("logista" -> "sociólogo", etc.).
-            temperature: 0.3,
-            maxOutputTokens: 16384,
-            responseMimeType: "application/json"
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Gemini API Error:", errorData);
-        throw new Error(JSON.stringify(errorData));
+    const requestBody = JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        // Low temperature for clinical fidelity: extraction (highlights,
+        // assessment) must not invent or distort. Higher values made the AI
+        // paraphrase critical facts ("logista" -> "sociólogo", etc.).
+        temperature: 0.3,
+        maxOutputTokens: 16384,
+        responseMimeType: "application/json"
       }
-      return await response.json();
     });
+
+    // Try the primary model with retry; if it stays overloaded (503), fall
+    // back to the next model (more capacity) so a demand spike on one model
+    // doesn't block the consultation.
+    const ANALYSIS_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    let result, lastErr;
+    for (const model of ANALYSIS_MODELS) {
+      try {
+        result = await withGeminiRetry(async () => {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: requestBody,
+          });
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`Gemini API Error (${model}):`, errorData);
+            throw new Error(JSON.stringify(errorData));
+          }
+          return await response.json();
+        }, { retries: 2 });
+        break; // success
+      } catch (err) {
+        lastErr = err;
+        const msg = String((err && err.message) || err);
+        if (/503|UNAVAILABLE|high demand|overloaded/i.test(msg)) {
+          console.warn(`[analise] ${model} sobrecarregado — tentando próximo modelo...`);
+          continue; // fall back to next model
+        }
+        throw err; // non-overload error: don't waste a fallback
+      }
+    }
+    if (!result) throw lastErr;
     console.log("API Response structure:", JSON.stringify(result, null, 2));
 
     // Handle different response formats
