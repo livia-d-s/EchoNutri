@@ -15,11 +15,29 @@ interface TrialExpiredGateProps {
 // Por enquanto, o botão "Ativar" apenas mostra um placeholder porque o
 // checkout do Stripe ainda não foi integrado (Semana 4 do plano).
 export function TrialExpiredGate({ state, onSubscribe, onLogout }: TrialExpiredGateProps) {
-  const isPastDue = state.kind === 'past_due';
-  const title = isPastDue ? 'Pagamento pendente' : 'Período de teste encerrado';
-  const description = isPastDue
-    ? 'A cobrança da sua assinatura falhou. Atualize seu método de pagamento para retomar o acesso completo.'
-    : 'Seu trial de 7 dias terminou. Ative a assinatura para continuar usando o EchoNutri sem interrupção.';
+  let title: string;
+  let description: string;
+  let cta = 'Ativar assinatura';
+  switch (state.kind) {
+    case 'past_due':
+      title = 'Pagamento pendente';
+      description = 'A cobrança da sua assinatura falhou. Atualize seu método de pagamento para retomar o acesso completo.';
+      cta = 'Atualizar pagamento';
+      break;
+    case 'incomplete':
+      title = 'Pagamento não concluído';
+      description = 'Seu checkout não foi finalizado. Conclua o pagamento para liberar o acesso ao EchoNutri.';
+      cta = 'Concluir pagamento';
+      break;
+    case 'canceled':
+      title = 'Assinatura encerrada';
+      description = 'Sua assinatura foi cancelada e o período de acesso terminou. Reative para continuar usando o EchoNutri.';
+      cta = 'Reativar assinatura';
+      break;
+    default: // trial_expired e missing
+      title = 'Período de teste encerrado';
+      description = 'Seu trial de 7 dias terminou. Ative a assinatura para continuar usando o EchoNutri sem interrupção.';
+  }
 
   return (
     <div className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-md flex items-center justify-center p-4">
@@ -57,7 +75,7 @@ export function TrialExpiredGate({ state, onSubscribe, onLogout }: TrialExpiredG
             onClick={onSubscribe}
             className="w-full py-2.5 rounded-md font-semibold text-sm text-white bg-brand-700 hover:bg-brand-900 transition-colors shadow-xs"
           >
-            Ativar assinatura
+            {cta}
           </button>
           {onLogout && (
             <button

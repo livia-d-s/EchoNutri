@@ -76,13 +76,14 @@ export function deriveSubscriptionState(
 }
 
 /** True quando o usuário tem acesso completo ao app agora. */
-export function hasActiveAccess(state: DerivedSubscriptionState): boolean {
+export function hasActiveAccess(state: DerivedSubscriptionState, now: Date = new Date()): boolean {
   return (
     state.kind === 'admin' ||
     state.kind === 'trialing' ||
     state.kind === 'active' ||
-    // canceled mantém acesso até o fim do ciclo pago atual
-    (state.kind === 'canceled' && (!state.endsAt || state.endsAt > new Date()))
+    // canceled mantém acesso só até o fim do ciclo pago atual. Sem data de fim
+    // conhecida, NEGA — um cancelamento nunca pode liberar acesso indefinido.
+    (state.kind === 'canceled' && !!state.endsAt && state.endsAt > now)
   );
 }
 

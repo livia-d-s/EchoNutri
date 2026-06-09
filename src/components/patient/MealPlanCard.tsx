@@ -15,7 +15,7 @@ interface MealPlanCardProps {
 // Compact signature of the meals array — used to detect when macros are stale
 // and when the plan differs from what was last saved as active.
 export function planSignature(plan: StructuredMealPlan): string {
-  return plan.meals
+  return (plan.meals || [])
     .map((m) => `${m.name}|${(m.items || []).map((it) => it.food).join('//')}`)
     .join('::');
 }
@@ -26,7 +26,7 @@ const PLACEHOLDER_MEAL = 'Nova refeição';
 // True when any item is still the just-added placeholder. We skip auto-recalc
 // in that state because the user hasn't confirmed the real food name yet.
 function hasPendingPlaceholder(plan: StructuredMealPlan): boolean {
-  return plan.meals.some((m) => {
+  return (plan.meals || []).some((m) => {
     if (m.name === PLACEHOLDER_MEAL && (!m.items || m.items.length === 0)) return true;
     return (m.items || []).some((it) => !it.food || it.food.trim() === '' || it.food === PLACEHOLDER_FOOD);
   });
@@ -98,20 +98,20 @@ export function MealPlanCard({
   const update = (next: StructuredMealPlan) => onChange(next);
 
   const updateMeal = (mealIdx: number, meal: StructuredMeal) => {
-    const meals = [...plan.meals];
+    const meals = [...(plan.meals || [])];
     meals[mealIdx] = meal;
     update({ ...plan, meals });
   };
 
   const removeMeal = (mealIdx: number) => {
     if (!window.confirm('Remover esta refeição?')) return;
-    update({ ...plan, meals: plan.meals.filter((_, i) => i !== mealIdx) });
+    update({ ...plan, meals: (plan.meals || []).filter((_, i) => i !== mealIdx) });
   };
 
   const addMeal = () => {
     update({
       ...plan,
-      meals: [...plan.meals, { name: 'Nova refeição', items: [] }],
+      meals: [...(plan.meals || []), { name: 'Nova refeição', items: [] }],
     });
   };
 
@@ -164,16 +164,16 @@ export function MealPlanCard({
           <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 transition-opacity ${
             recalculating ? 'opacity-50' : ''
           }`}>
-            {plan.macroEstimate.calories != null && (
-              <MacroCell label="Calorias" value={`${plan.macroEstimate.calories} kcal`} />
+            {plan.macroEstimate.calories != null && Number.isFinite(Number(plan.macroEstimate.calories)) && (
+              <MacroCell label="Calorias" value={`${Number(plan.macroEstimate.calories).toLocaleString('pt-BR')} kcal`} />
             )}
-            {plan.macroEstimate.protein && (
+            {plan.macroEstimate.protein && !/nan/i.test(plan.macroEstimate.protein) && (
               <MacroCell label="Proteínas" value={plan.macroEstimate.protein} />
             )}
-            {plan.macroEstimate.carbs && (
+            {plan.macroEstimate.carbs && !/nan/i.test(plan.macroEstimate.carbs) && (
               <MacroCell label="Carbos" value={plan.macroEstimate.carbs} />
             )}
-            {plan.macroEstimate.fat && (
+            {plan.macroEstimate.fat && !/nan/i.test(plan.macroEstimate.fat) && (
               <MacroCell label="Gorduras" value={plan.macroEstimate.fat} />
             )}
           </div>
@@ -189,7 +189,7 @@ export function MealPlanCard({
 
       {/* Meals */}
       <div className="space-y-3">
-        {plan.meals.map((meal, mealIdx) => (
+        {(plan.meals || []).map((meal, mealIdx) => (
           <MealSection
             key={mealIdx}
             meal={meal}
@@ -246,19 +246,19 @@ function MealSection({ meal, onChange, onRemove }: MealSectionProps) {
   const [nameValue, setNameValue] = useState(meal.name);
 
   const updateItem = (i: number, item: StructuredMealItem) => {
-    const items = [...meal.items];
+    const items = [...(meal.items || [])];
     items[i] = item;
     onChange({ ...meal, items });
   };
 
   const removeItem = (i: number) => {
-    onChange({ ...meal, items: meal.items.filter((_, j) => j !== i) });
+    onChange({ ...meal, items: (meal.items || []).filter((_, j) => j !== i) });
   };
 
   const addItem = () => {
     onChange({
       ...meal,
-      items: [...meal.items, { food: 'Novo item', category: 'outro', substitutions: [] }],
+      items: [...(meal.items || []), { food: 'Novo item', category: 'outro', substitutions: [] }],
     });
   };
 
@@ -310,7 +310,7 @@ function MealSection({ meal, onChange, onRemove }: MealSectionProps) {
       </div>
 
       <ul className="space-y-1.5">
-        {meal.items.map((item, i) => (
+        {(meal.items || []).map((item, i) => (
           <MealItemRow
             key={i}
             item={item}

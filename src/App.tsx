@@ -1231,23 +1231,27 @@ export default function App() {
             try {
               const { deleteDoc, doc: fsDoc } = await import('firebase/firestore');
               if (db) {
-                // New-schema data (patients/prescriptions/evolution + subcollections).
-                await deleteAllNutritionistData(userId).catch(() => {});
+                // Delete all the user's DATA first, surfacing failures. If any
+                // of this fails (rules/network), we abort BEFORE removing the
+                // auth user — otherwise the account would be deleted with data
+                // still on the server (the opposite of the LGPD guarantee).
+                await deleteAllNutritionistData(userId); // patients/prescriptions/evolution
                 await Promise.all([
-                  deleteDoc(fsDoc(db, 'users', userId, 'appData', 'patients')).catch(() => {}),
-                  deleteDoc(fsDoc(db, 'users', userId, 'appData', 'events')).catch(() => {}),
-                  deleteDoc(fsDoc(db, 'users', userId, 'appData', 'profile')).catch(() => {}),
-                  deleteDoc(fsDoc(db, 'users', userId)).catch(() => {}),
-                  deleteDoc(fsDoc(db, 'doctors', userId)).catch(() => {}),
+                  deleteDoc(fsDoc(db, 'users', userId, 'appData', 'patients')),
+                  deleteDoc(fsDoc(db, 'users', userId, 'appData', 'events')),
+                  deleteDoc(fsDoc(db, 'users', userId, 'appData', 'profile')),
+                  deleteDoc(fsDoc(db, 'doctors', userId)),
                 ]);
+                // Best-effort: the users/{uid} doc has no delete rule today and
+                // only holds provider/displayName — don't block deletion on it.
+                await deleteDoc(fsDoc(db, 'users', userId)).catch((e) => console.warn('users/{uid} delete skipped:', e?.message));
               }
               // Wipe local cache
               for (const key of Object.keys(localStorage)) {
                 if (key.startsWith(`echonutri_${userId}_`)) localStorage.removeItem(key);
               }
-              // Delete the Firebase Auth user. Requires recent login —
-              // if it fails for that reason, fall back to logout + ask
-              // the user to log in again before retrying.
+              // Delete the Firebase Auth user LAST — only after the data is gone.
+              // Requires recent login; if not, log out and ask to retry.
               try {
                 await user.delete();
               } catch (err: any) {
@@ -1262,7 +1266,7 @@ export default function App() {
               setShowProfilePopup(false);
             } catch (err: any) {
               console.error('Account deletion error:', err);
-              notify(`Não foi possível excluir a conta: ${err?.message || 'erro desconhecido'}`, 'error');
+              notify(`Não foi possível excluir todos os dados — sua conta NÃO foi removida. Tente novamente. (${err?.message || 'erro desconhecido'})`, 'error');
             }
           }}
         />
@@ -1867,7 +1871,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout, onExportD
               </h3>
               <p className="text-ink-secondary text-sm mt-1.5 leading-relaxed">
                 {confirmDelete === 1
-                  ? 'Esta ação remove sua conta e todos os dados associados (perfil, pacientes, consultas, prescrições). Após 30 dias do cancelamento, os dados são apagados em definitivo do servidor.'
+                  ? 'Esta ação apaga sua conta e todos os dados associados (perfil, pacientes, consultas, prescrições) imediatamente e em definitivo. Não há como recuperar.'
                   : 'Última confirmação. Após clicar em "Excluir", não há como recuperar.'}
               </p>
             </div>
