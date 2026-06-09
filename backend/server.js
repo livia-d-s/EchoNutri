@@ -656,13 +656,36 @@ const audioLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-async function processTranscriptionJob(jobId, file) {
-  const job = TRANSCRIPTION_JOBS.get(jobId);
-  if (!job) return;
-  try {
-    // 1. Upload to Gemini File API. The SDK handles the multipart upload
-    // and resumable protocol behind the scenes.
-    const uploaded = await genAI.files.upload({
+// OpenAI Whisper transcription — far more accurate for pt-BR speech than
+// Gemini. Used for files within Whisper's 25MB limit; larger files (long
+// Zoom videos) fall back to Gemini, which handles big media.
+const OPENAI_MAX_BYTES = 25 * 1024 * 1024;
+
+async function transcribeWithOpenAI(file) {
+  const buf = fs.readFileSync(file.path);
+  const fd = new FormData();
+  fd.append('file', new Blob([buf], { type: file.mimetype || 'audio/mpeg' }), file.originalname || 'audio.mp3');
+  fd.append('model', 'whisper-1');
+  fd.append('language', 'pt');
+  fd.append('response_format', 'text');
+  // Light context nudge (Whisper uses this for domain spelling, not as a command).
+  fd.append('prompt', 'Consulta de nutrição em português do Brasil.');
+  const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+    body: fd,
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`OpenAI transcription ${resp.status}: ${errText.slice(0, 200)}`);
+  }
+  return (await resp.text()).trim();
+}
+
+async function transcribeWithGemini(file) {
+  // 1. Upload to Gemini File API. The SDK handles the multipart upload
+  // and resumable protocol behind the scenes.
+  const uploaded = await genAI.files.upload({
       file: file.path,
       config: {
         mimeType: file.mimetype || 'audio/mpeg',
@@ -719,6 +742,28 @@ Responda APENAS com a transcrição (texto puro, sem JSON, sem markdown).`;
       console.warn('[transcribe] Failed to delete Gemini file:', cleanupErr.message);
     }
 
+    return transcript;
+}
+
+async function processTranscriptionJob(jobId, file) {
+  const job = TRANSCRIPTION_JOBS.get(jobId);
+  if (!job) return;
+  try {
+    let transcript;
+    // Prefer OpenAI Whisper (much better pt-BR accuracy) when configured and
+    // within its 25MB limit; otherwise Gemini. If OpenAI errors, fall back to
+    // Gemini so a consultation never gets stuck.
+    if (process.env.OPENAI_API_KEY && (file.size || 0) <= OPENAI_MAX_BYTES) {
+      try {
+        transcript = await transcribeWithOpenAI(file);
+      } catch (err) {
+        console.warn('[transcribe] OpenAI falhou, usando Gemini:', err?.message);
+        transcript = await transcribeWithGemini(file);
+      }
+    } else {
+      transcript = await transcribeWithGemini(file);
+    }
+    if (!transcript) throw new Error('Transcrição vazia');
     job.status = 'done';
     job.transcript = transcript;
   } catch (err) {
@@ -726,7 +771,6 @@ Responda APENAS com a transcrição (texto puro, sem JSON, sem markdown).`;
     job.status = 'failed';
     job.error = err?.message || 'Erro ao transcrever áudio';
   } finally {
-    // Always remove the local temp file
     try { fs.unlinkSync(file.path); } catch { /* ignore */ }
   }
 }
