@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   Mic, Square, Pause, Play, Activity, User, FileText, Upload,
   ArrowLeft, Camera, Check, AlertTriangle, AlertCircle, Loader2, Users, Pencil, Info, CheckCircle, Trash2,
@@ -1913,6 +1913,11 @@ function TranscriptionView({
 }: any) {
   const recognitionRef = useRef<any>(null);
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
+  // Editable live transcript: textarea ref + saved caret so the nutri can edit
+  // mid-text while speech keeps appending at the end without losing her place.
+  const transcriptRef = useRef<HTMLTextAreaElement>(null);
+  const caretRef = useRef<{ start: number; end: number } | null>(null);
+  const userEditedRef = useRef(false);
   const [interim, setInterim] = useState('');
   const [showNamePopup, setShowNamePopup] = useState(false);
   const [tempName, setTempName] = useState('');
@@ -2181,6 +2186,8 @@ function TranscriptionView({
 
   // Auto-scroll to bottom when transcript changes (teleprompter effect)
   useEffect(() => {
+    // Don't yank the view to the bottom while the nutri is editing mid-text.
+    if (transcriptRef.current && document.activeElement === transcriptRef.current) return;
     if (transcriptContainerRef.current) {
       transcriptContainerRef.current.scrollTo({
         top: transcriptContainerRef.current.scrollHeight,
@@ -2188,6 +2195,29 @@ function TranscriptionView({
       });
     }
   }, [transcript, interim]);
+
+  // Save the caret position whenever the nutri interacts with the textarea.
+  const saveCaret = () => {
+    const ta = transcriptRef.current;
+    if (ta) caretRef.current = { start: ta.selectionStart, end: ta.selectionEnd };
+  };
+  const handleTranscriptEdit = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    userEditedRef.current = true; // mark this change as a user edit (not a speech append)
+    setTranscript(e.target.value);
+  };
+
+  // After speech appends text (a programmatic change), restore the nutri's caret
+  // so her editing spot isn't lost; if she's not editing, follow the live text.
+  useLayoutEffect(() => {
+    const ta = transcriptRef.current;
+    if (!ta) return;
+    if (userEditedRef.current) { userEditedRef.current = false; saveCaret(); return; }
+    if (document.activeElement === ta && caretRef.current) {
+      ta.setSelectionRange(caretRef.current.start, caretRef.current.end);
+    } else {
+      ta.scrollTop = ta.scrollHeight; // not editing → keep latest speech in view
+    }
+  }, [transcript]);
 
   const checkPatientName = (action: 'record' | 'finalize') => {
     if (!patientName.trim()) {
@@ -2568,26 +2598,28 @@ function TranscriptionView({
           className="flex-1 p-4 sm:p-6 md:p-12 overflow-y-auto scroll-smooth"
           style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}
         >
-          {status === AppStatus.RECORDING ? (
-            // Live, read-only while actively transcribing.
-            (transcript || interim) ? (
-              <p className="text-lg sm:text-xl md:text-2xl font-medium text-ink-primary leading-relaxed">{transcript}<span className="text-brand-700 animate-pulse">{interim}</span></p>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center opacity-20 space-y-4">
-                <Mic size={40} />
-                <p className="font-bold text-center px-4 text-base sm:text-lg md:text-xl">Inicie a consulta para transcrever a voz em tempo real.</p>
-              </div>
-            )
-          ) : transcript ? (
-            // Review/edit mode (paused or finished): editable so the nutri can
-            // fix any mishearing or fill a gap before analyzing.
-            <textarea
-              value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
-              placeholder="Transcrição da consulta — revise e edite se precisar antes de analisar."
-              className="w-full h-full resize-none bg-transparent outline-none text-lg sm:text-xl md:text-2xl font-medium text-ink-primary leading-relaxed placeholder:text-ink-tertiary placeholder:opacity-60"
-              aria-label="Transcrição editável da consulta"
-            />
+          {transcript || interim || status === AppStatus.RECORDING ? (
+            // Editable transcript — even while recording. Speech appends at the
+            // end; the caret logic keeps the nutri's editing spot. The in-flight
+            // phrase (interim) shows as a faded preview below.
+            <div className="h-full flex flex-col">
+              <textarea
+                ref={transcriptRef}
+                value={transcript}
+                onChange={handleTranscriptEdit}
+                onSelect={saveCaret}
+                onClick={saveCaret}
+                onKeyUp={saveCaret}
+                placeholder={status === AppStatus.RECORDING
+                  ? 'Falando... o texto aparece aqui. Pode editar enquanto a paciente fala.'
+                  : 'Transcrição da consulta — revise e edite se precisar antes de analisar.'}
+                className="flex-1 w-full resize-none bg-transparent outline-none text-lg sm:text-xl md:text-2xl font-medium text-ink-primary leading-relaxed placeholder:text-ink-tertiary placeholder:opacity-60"
+                aria-label="Transcrição da consulta (editável)"
+              />
+              {status === AppStatus.RECORDING && interim && (
+                <p className="shrink-0 pt-2 text-base sm:text-lg md:text-xl text-brand-700/70 italic animate-pulse">{interim}</p>
+              )}
+            </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center opacity-20 space-y-4">
               <Mic size={40} />
