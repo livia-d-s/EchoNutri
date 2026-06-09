@@ -2568,8 +2568,26 @@ function TranscriptionView({
           className="flex-1 p-4 sm:p-6 md:p-12 overflow-y-auto scroll-smooth"
           style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}
         >
-          {transcript || interim ? (
-            <p className="text-lg sm:text-xl md:text-2xl font-medium text-ink-primary leading-relaxed">{transcript}<span className="text-brand-700 animate-pulse">{interim}</span></p>
+          {status === AppStatus.RECORDING ? (
+            // Live, read-only while actively transcribing.
+            (transcript || interim) ? (
+              <p className="text-lg sm:text-xl md:text-2xl font-medium text-ink-primary leading-relaxed">{transcript}<span className="text-brand-700 animate-pulse">{interim}</span></p>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center opacity-20 space-y-4">
+                <Mic size={40} />
+                <p className="font-bold text-center px-4 text-base sm:text-lg md:text-xl">Inicie a consulta para transcrever a voz em tempo real.</p>
+              </div>
+            )
+          ) : transcript ? (
+            // Review/edit mode (paused or finished): editable so the nutri can
+            // fix any mishearing or fill a gap before analyzing.
+            <textarea
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              placeholder="Transcrição da consulta — revise e edite se precisar antes de analisar."
+              className="w-full h-full resize-none bg-transparent outline-none text-lg sm:text-xl md:text-2xl font-medium text-ink-primary leading-relaxed placeholder:text-ink-tertiary placeholder:opacity-60"
+              aria-label="Transcrição editável da consulta"
+            />
           ) : (
             <div className="h-full flex flex-col items-center justify-center opacity-20 space-y-4">
               <Mic size={40} />
