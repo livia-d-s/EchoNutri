@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- EchoNutri — ícone (onda sonora · contorno em losango). Cor da marca #0E7490. -->
+  <rect width="200" height="200" rx="44" fill="#0E7490"/>
+  <g fill="#ffffff">
+    <rect x="34"  y="80" width="12" height="40"  rx="6"/>
+    <rect x="54"  y="66" width="12" height="68"  rx="6"/>
+    <rect x="74"  y="52" width="12" height="96"  rx="6"/>
+    <rect x="94"  y="38" width="12" height="124" rx="6"/>
+    <rect x="114" y="52" width="12" height="96"  rx="6"/>
+    <rect x="134" y="66" width="12" height="68"  rx="6"/>
+    <rect x="154" y="80" width="12" height="40"  rx="6"/>
+  </g>
+</svg>
