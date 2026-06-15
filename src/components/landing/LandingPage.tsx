@@ -7,6 +7,7 @@ import {
   Activity, Mic, Brain, FileText, TrendingUp, Check, ArrowRight,
   ShieldCheck, Clock, Sparkles
 } from 'lucide-react';
+import { AppLogo } from '../Icons';
 
 // Animações CSS
 const styles = `
@@ -85,9 +86,7 @@ interface LandingPageProps {
 
 const Logo = () => (
   <div className="flex items-center gap-2.5">
-    <div className="w-9 h-9 bg-brand-700 rounded-md flex items-center justify-center shadow-xs">
-      <span className="text-white text-lg font-bold leading-none">E</span>
-    </div>
+    <AppLogo className="w-9 h-9 shrink-0 rounded-md shadow-xs" />
     <div>
       <div className="text-md font-bold text-ink-primary tracking-tight leading-none">EchoNutri</div>
       <div className="text-2xs text-ink-tertiary font-medium uppercase tracking-[0.1em] mt-0.5">Inteligência clínica</div>

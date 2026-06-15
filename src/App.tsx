@@ -26,6 +26,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import AuthScreen from './components/AuthScreen';
+import { AppLogo } from './components/Icons';
 import { useAuth } from './context/AuthContext';
 import {
   getPatientsByNutritionist,
@@ -1030,7 +1031,7 @@ export default function App() {
       <nav className="bg-surface/95 backdrop-blur-md border-b border-line px-4 md:px-6 py-3 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => { setCurrentTranscript(''); setPatientName(''); setCurrentResult(null); setView('transcription'); }}>
-            <div className="bg-brand-700 p-2 rounded-md text-white shadow-xs"><Activity size={18} strokeWidth={2.25} /></div>
+            <AppLogo className="w-9 h-9 shrink-0 rounded-md shadow-xs" />
             <div>
               <h1 className="font-bold text-md md:text-lg tracking-tight leading-none text-ink-primary">EchoNutri</h1>
               <span className="text-2xs text-ink-tertiary font-medium uppercase tracking-[0.1em] hidden sm:block mt-0.5">Inteligência clínica</span>

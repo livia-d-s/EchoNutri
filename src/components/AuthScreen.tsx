@@ -6,12 +6,12 @@ import {
   FileBadge,
   Loader2,
   AlertCircle,
-  Activity,
   ArrowLeft,
   CheckCircle2,
   Eye,
   EyeOff
 } from 'lucide-react';
+import { AppLogo } from './Icons';
 import { sendPasswordResetEmail, AuthError } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
@@ -23,9 +23,7 @@ import { createInitialSubscription } from '../../types';
 
 const EchoNutriLogo = () => (
   <div className="flex items-center gap-2.5 mb-1">
-    <div className="bg-brand-700 p-2 rounded-md shadow-xs">
-      <Activity className="w-5 h-5 text-white" strokeWidth={2.25} />
-    </div>
+    <AppLogo className="w-10 h-10 shrink-0 shadow-xs rounded-md" />
     <div className="text-left">
       <div className="text-xl font-bold text-ink-primary tracking-tight leading-none">EchoNutri</div>
       <div className="text-2xs text-ink-tertiary font-medium uppercase tracking-[0.1em] mt-0.5">Inteligência clínica</div>

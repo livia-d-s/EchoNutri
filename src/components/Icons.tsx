@@ -88,10 +88,18 @@ export const SearchIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// EchoNutri — onda sonora com contorno em losango (energia/escuta). Marca #0E7490.
 export const AppLogo = ({ className = "w-10 h-10" }: { className?: string }) => (
-  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <rect width="40" height="40" rx="8" fill="#2563EB"/>
-    <path d="M12 15.5C12 12.4624 14.4624 10 17.5 10C19.3876 10 21.0601 10.9507 22 12.3927C22.9399 10.9507 24.6124 10 26.5 10C29.5376 10 32 12.4624 32 15.5C32 19.3333 28.5 24.5 22 30C15.5 24.5 12 19.3333 12 15.5Z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M7 20H15L18 25L22 13L26 23L29 20H33" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect width="200" height="200" rx="44" fill="#0E7490"/>
+    <g fill="#ffffff">
+      <rect x="34" y="80" width="12" height="40" rx="6"/>
+      <rect x="54" y="66" width="12" height="68" rx="6"/>
+      <rect x="74" y="52" width="12" height="96" rx="6"/>
+      <rect x="94" y="38" width="12" height="124" rx="6"/>
+      <rect x="114" y="52" width="12" height="96" rx="6"/>
+      <rect x="134" y="66" width="12" height="68" rx="6"/>
+      <rect x="154" y="80" width="12" height="40" rx="6"/>
+    </g>
   </svg>
 );
