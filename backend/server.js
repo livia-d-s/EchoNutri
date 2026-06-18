@@ -763,6 +763,68 @@ async function transcribeWithOpenAI(file) {
   return (await resp.text()).trim();
 }
 
+// AssemblyAI transcription WITH speaker diarization. This is the engine that
+// actually separates who-said-what (Falante A/B) — the thing Web Speech and
+// Whisper/Gemini can't do. Returns the plain transcript PLUS per-utterance
+// speaker labels, which the frontend maps to Nutricionista/Paciente.
+const ASSEMBLYAI_BASE = 'https://api.assemblyai.com/v2';
+
+async function transcribeWithAssemblyAI(file) {
+  const key = process.env.ASSEMBLYAI_API_KEY;
+  if (!key) throw new Error('ASSEMBLYAI_API_KEY ausente');
+
+  // 1. Upload the audio bytes to AssemblyAI (returns a private URL usable
+  // only by their API — no public hosting needed).
+  const buf = fs.readFileSync(file.path);
+  const upRes = await fetch(`${ASSEMBLYAI_BASE}/upload`, {
+    method: 'POST',
+    headers: { authorization: key, 'content-type': 'application/octet-stream' },
+    body: buf,
+  });
+  if (!upRes.ok) {
+    throw new Error(`AssemblyAI upload ${upRes.status}: ${(await upRes.text()).slice(0, 200)}`);
+  }
+  const { upload_url } = await upRes.json();
+
+  // 2. Request a transcript with diarization (speaker_labels) in pt-BR.
+  const trRes = await fetch(`${ASSEMBLYAI_BASE}/transcript`, {
+    method: 'POST',
+    headers: { authorization: key, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      audio_url: upload_url,
+      speaker_labels: true,
+      language_code: 'pt',
+    }),
+  });
+  if (!trRes.ok) {
+    throw new Error(`AssemblyAI transcript ${trRes.status}: ${(await trRes.text()).slice(0, 200)}`);
+  }
+  const { id } = await trRes.json();
+
+  // 3. Poll until completed (AssemblyAI processing ~⅓ of audio duration).
+  const deadline = Date.now() + 20 * 60 * 1000; // 20 min cap
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 3000));
+    const pRes = await fetch(`${ASSEMBLYAI_BASE}/transcript/${id}`, {
+      headers: { authorization: key },
+    });
+    if (!pRes.ok) continue;
+    const data = await pRes.json();
+    if (data.status === 'completed') {
+      const utterances = Array.isArray(data.utterances)
+        ? data.utterances
+            .map((u) => ({ speaker: String(u.speaker || '?'), text: String(u.text || '').trim() }))
+            .filter((u) => u.text)
+        : [];
+      return { transcript: (data.text || '').trim(), utterances };
+    }
+    if (data.status === 'error') {
+      throw new Error(`AssemblyAI: ${data.error || 'erro na transcrição'}`);
+    }
+  }
+  throw new Error('Timeout aguardando AssemblyAI');
+}
+
 async function transcribeWithGemini(file) {
   // 1. Upload to Gemini File API. The SDK handles the multipart upload
   // and resumable protocol behind the scenes.
@@ -831,22 +893,36 @@ async function processTranscriptionJob(jobId, file) {
   if (!job) return;
   try {
     let transcript;
-    // Prefer OpenAI Whisper (much better pt-BR accuracy) when configured and
-    // within its 25MB limit; otherwise Gemini. If OpenAI errors, fall back to
-    // Gemini so a consultation never gets stuck.
-    if (process.env.OPENAI_API_KEY && (file.size || 0) <= OPENAI_MAX_BYTES) {
+    let utterances = [];
+    // Prefer AssemblyAI when configured — it's the only engine that separates
+    // speakers (diarization), which is the whole point. If it errors, fall back
+    // to Whisper/Gemini (no diarization) so a consultation never gets stuck.
+    if (process.env.ASSEMBLYAI_API_KEY) {
       try {
-        transcript = await transcribeWithOpenAI(file);
+        const r = await transcribeWithAssemblyAI(file);
+        transcript = r.transcript;
+        utterances = r.utterances;
       } catch (err) {
-        console.warn('[transcribe] OpenAI falhou, usando Gemini:', err?.message);
+        console.warn('[transcribe] AssemblyAI falhou, usando fallback:', err?.message);
+      }
+    }
+    // Fallback: OpenAI Whisper (best pt-BR accuracy, ≤25MB) then Gemini.
+    if (!transcript) {
+      if (process.env.OPENAI_API_KEY && (file.size || 0) <= OPENAI_MAX_BYTES) {
+        try {
+          transcript = await transcribeWithOpenAI(file);
+        } catch (err) {
+          console.warn('[transcribe] OpenAI falhou, usando Gemini:', err?.message);
+          transcript = await transcribeWithGemini(file);
+        }
+      } else {
         transcript = await transcribeWithGemini(file);
       }
-    } else {
-      transcript = await transcribeWithGemini(file);
     }
     if (!transcript) throw new Error('Transcrição vazia');
     job.status = 'done';
     job.transcript = transcript;
+    job.utterances = utterances;
   } catch (err) {
     console.error('[transcribe] Job failed:', err);
     job.status = 'failed';
@@ -907,7 +983,10 @@ app.get('/api/transcribe-audio/:jobId', requireAuth, (req, res) => {
   if (job.uid && job.uid !== req.user?.uid) return res.status(403).json({ error: 'Acesso negado' });
 
   const payload = { status: job.status };
-  if (job.status === 'done') payload.transcript = job.transcript;
+  if (job.status === 'done') {
+    payload.transcript = job.transcript;
+    payload.utterances = job.utterances || [];
+  }
   if (job.status === 'failed') payload.error = job.error;
   res.json(payload);
 
