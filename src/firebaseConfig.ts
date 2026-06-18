@@ -53,6 +53,9 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
+// Sempre mostrar o seletor de conta (senão o Google loga automático na única
+// conta logada no aparelho, sem deixar escolher qual e-mail usar).
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Persist auth in IndexedDB so the user stays logged in after closing the tab.
 // Without this, some browsers/setups (e.g. Cloudflare in front, strict cookie
