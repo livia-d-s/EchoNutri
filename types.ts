@@ -116,6 +116,7 @@ export interface Patient {
   leanMassPct?: number;
   // Dietary restrictions / preferences (free-text, e.g. "vegetariana, sem lactose")
   dietaryRestrictions?: string;
+  supplements?: string;          // Suplementos atuais/prescritos (texto livre)
   // New nutrition-focused fields
   goal?: PatientGoal;            // Legacy single goal (for backwards compat)
   goals?: PatientGoal[];         // Supports up to 2 goals
@@ -240,6 +241,7 @@ export interface FirestorePatient {
   bodyFatPct?: number;
   leanMassPct?: number;
   dietaryRestrictions?: string;
+  supplements?: string;          // Suplementos atuais/prescritos (texto livre)
   goal?: PatientGoal;
   goals?: PatientGoal[];
   goalCustom?: string;

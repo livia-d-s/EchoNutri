@@ -16,6 +16,7 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
   const [bodyFat, setBodyFat] = useState<string>(patient.bodyFatPct != null ? String(patient.bodyFatPct) : '');
   const [leanMass, setLeanMass] = useState<string>(patient.leanMassPct != null ? String(patient.leanMassPct) : '');
   const [restrictions, setRestrictions] = useState<string>(patient.dietaryRestrictions || '');
+  const [supplements, setSupplements] = useState<string>(patient.supplements || '');
 
   const handleSave = () => {
     const w = parseFloat(weight.replace(',', '.'));
@@ -29,6 +30,7 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
     if (!isNaN(lm) && lm > 0 && lm < 100) changes.leanMassPct = lm;
     if (birthDate) changes.birthDate = birthDate;
     if (restrictions.trim()) changes.dietaryRestrictions = restrictions.trim();
+    if (supplements.trim()) changes.supplements = supplements.trim();
     onSave(changes);
     onClose();
   };
@@ -145,6 +147,19 @@ export function ClinicalDataModal({ patient, onSave, onClose }: ClinicalDataModa
               className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
               value={restrictions}
               onChange={(e) => setRestrictions(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="text-2xs font-semibold uppercase tracking-[0.16em] text-ink-tertiary mb-1 block">
+              Suplementos
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: Vitamina D 2000UI, Ômega 3, Creatina 3g"
+              className="w-full bg-surface border border-line rounded-md py-2 px-2.5 outline-none text-sm focus:ring-2 focus:ring-brand-700/20 focus:border-brand-700 transition-all"
+              value={supplements}
+              onChange={(e) => setSupplements(e.target.value)}
             />
           </div>
 

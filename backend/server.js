@@ -231,6 +231,9 @@ ${planText}`;
       if (patientAnthropometry.dietaryRestrictions) {
         parts.push(`Restrições/preferências: ${patientAnthropometry.dietaryRestrictions}`);
       }
+      if (patientAnthropometry.supplements) {
+        parts.push(`Suplementos atuais: ${patientAnthropometry.supplements}`);
+      }
       if (parts.length > 0) {
         anthropoContext = `\n\n[DADOS ANTROPOMÉTRICOS DA PACIENTE]\n${parts.join('\n')}`;
       }
@@ -316,6 +319,12 @@ REGRA CRÍTICA DE FIDELIDADE — NÃO INVENTE NADA:
 - Se a paciente não disse algo, NÃO assuma. É melhor devolver uma análise curta e precisa do que detalhada e inventada.
 - Se a transcrição tiver palavras que parecem erros de reconhecimento de voz (palavras cortadas, termos estranhos), tente interpretar pelo contexto, mas NÃO fabrique detalhes para preencher lacunas.
 - Nos campos de listas (patientHighlights, extractedTraining, suggestedNextQuestions), se não há base na transcrição, retorne array vazio [].
+
+QUEM FALA — REGRA CRÍTICA (a transcrição NÃO identifica os falantes):
+- A NUTRICIONISTA e a PACIENTE estão misturadas no mesmo texto, sem rótulo de quem disse o quê. NÃO assuma que tudo foi dito pela paciente.
+- Frases que soam como recomendação, indicação, receita, opinião técnica ou preferência profissional ("eu gosto de", "costumo indicar", "fica cremoso", "recomendo", "pode usar", "uma boa opção é") quase sempre são da NUTRICIONISTA — NÃO registre como fala, gosto ou hábito da paciente.
+- Registre como fato/preferência da PACIENTE apenas o que ela claramente diz sobre si mesma (queixas, sintomas, rotina, histórico, o que ela come/sente).
+- Fatos sensíveis (gravidez, bebê, alergia, doença, medicação, separação) só atribua à paciente se estiver CLARO que foi ELA quem relatou sobre si. Na dúvida de quem falou, OMITA — atribuir ao paciente errado é um erro grave.
 
 Evite julgamentos, rótulos ou conclusões absolutas.
 Trabalhe com hipóteses nutricionais e possíveis causas associadas.

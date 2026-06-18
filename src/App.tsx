@@ -3058,6 +3058,7 @@ function DiagnosisView({ result, patientName, eventId, onSaveResult, onBack, pre
       if (currentPatient.heightCm) anthro.heightCm = currentPatient.heightCm;
       if (ageFromBirth) anthro.age = ageFromBirth;
       if (currentPatient.dietaryRestrictions) anthro.dietaryRestrictions = currentPatient.dietaryRestrictions;
+      if (currentPatient.supplements) anthro.supplements = currentPatient.supplements;
     }
     // Body composition is always pulled from the patient record (the bubble
     // doesn't expose these fields directly — they come from the clinical
