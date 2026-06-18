@@ -17,7 +17,8 @@ import {
 export function firestorePatientToLocal(
   fp: FirestorePatient,
   exams: PatientExam[],
-  mealPlans: MealPlan[]
+  mealPlans: MealPlan[],
+  supplements: PatientExam[] = []
 ): Patient {
   return {
     id: fp.id,
@@ -31,7 +32,6 @@ export function firestorePatientToLocal(
     bodyFatPct: fp.bodyFatPct,
     leanMassPct: fp.leanMassPct,
     dietaryRestrictions: fp.dietaryRestrictions,
-    supplements: fp.supplements,
     goal: fp.goal,
     goals: fp.goals || [],
     goalCustom: fp.goalCustom,
@@ -40,6 +40,7 @@ export function firestorePatientToLocal(
     highlights: fp.highlights || [],
     exams,
     mealPlans,
+    supplements,
   };
 }
 
@@ -57,7 +58,6 @@ export function localPatientToFirestore(
     bodyFatPct: p.bodyFatPct,
     leanMassPct: p.leanMassPct,
     dietaryRestrictions: p.dietaryRestrictions,
-    supplements: p.supplements,
     goal: p.goal,
     goals: p.goals,
     goalCustom: p.goalCustom,

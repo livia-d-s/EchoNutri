@@ -32,10 +32,13 @@ import {
   getPatientsByNutritionist,
   getPatientExams,
   getPatientMealPlans,
+  getPatientSupplements,
   savePatientExam,
   deletePatientExam,
   savePatientMealPlan,
   deletePatientMealPlan,
+  savePatientSupplement,
+  deletePatientSupplement,
   createPatient,
   updatePatient,
   createPrescription,
@@ -236,6 +239,7 @@ export default function App() {
   // Exams uploaded in popup/transcription — applied to the patient on finalize
   const [pendingExams, setPendingExams] = useState<any[]>([]);
   const [pendingMealPlans, setPendingMealPlans] = useState<any[]>([]);
+  const [pendingSupplements, setPendingSupplements] = useState<any[]>([]);
 
   // Load all user-scoped data when user changes (login/logout switch)
   useEffect(() => {
@@ -267,11 +271,12 @@ export default function App() {
         const fsPatients = await getPatientsByNutritionist(userId);
         const hydratedPatients = await Promise.all(
           fsPatients.map(async fp => {
-            const [exams, mealPlans] = await Promise.all([
+            const [exams, mealPlans, supplements] = await Promise.all([
               getPatientExams(fp.id),
               getPatientMealPlans(fp.id),
+              getPatientSupplements(fp.id),
             ]);
-            return firestorePatientToLocal(fp, exams, mealPlans);
+            return firestorePatientToLocal(fp, exams, mealPlans, supplements);
           })
         );
         setPatients(hydratedPatients);
@@ -541,6 +546,7 @@ export default function App() {
       highlights: [],
       exams: [],
       mealPlans: [],
+      supplements: [],
     };
     setPatients(prev => [...prev, newPatient]);
     return newPatient;
@@ -655,6 +661,18 @@ export default function App() {
       .forEach(m => savePatientMealPlan(patientId, m).catch(err => console.error('Failed to save meal plan:', err)));
     prevPlans.filter(pm => !nextIds.has(pm.id))
       .forEach(pm => deletePatientMealPlan(patientId, pm.id).catch(err => console.error('Failed to delete meal plan:', err)));
+  };
+
+  // Update uploaded supplement PDFs (diffs the array: persist additions, delete removals).
+  const updateSupplements = (patientId: string, supplements: PatientExam[]) => {
+    const prevSupps = patients.find(p => p.id === patientId)?.supplements || [];
+    setPatients(prev => prev.map(p => p.id === patientId ? { ...p, supplements } : p));
+    if (selectedPatient?.id === patientId) setSelectedPatient(prev => prev ? { ...prev, supplements } : null);
+    const nextIds = new Set(supplements.map(s => s.id));
+    supplements.filter(s => !prevSupps.some(ps => ps.id === s.id))
+      .forEach(s => savePatientSupplement(patientId, s).catch(err => console.error('Failed to save supplement:', err)));
+    prevSupps.filter(ps => !nextIds.has(ps.id))
+      .forEach(ps => deletePatientSupplement(patientId, ps.id).catch(err => console.error('Failed to delete supplement:', err)));
   };
 
   // Auto-fill profile name from authenticated user on first login
@@ -773,6 +791,25 @@ export default function App() {
               extractedText: active.extractedText,
             };
           })(),
+          supplements: (() => {
+            // Combine existing patient's supplement PDFs + ones uploaded now.
+            const pn = (patientName || '').trim().toLowerCase();
+            const match = pn ? patients.find((p: any) => p.name.toLowerCase() === pn) : null;
+            const existing: any[] = match?.supplements || [];
+            const combined = [...existing, ...(pendingSupplements || [])];
+            const seen = new Set<string>();
+            return combined.reduce<any[]>((acc, s: any) => {
+              const key = `${s.fileName}::${s.extractedText?.length || 0}`;
+              if (seen.has(key)) return acc;
+              seen.add(key);
+              acc.push({
+                fileName: s.fileName,
+                uploadedAt: s.uploadedAt,
+                extractedText: s.extractedText,
+              });
+              return acc;
+            }, []);
+          })(),
         })
       });
 
@@ -880,6 +917,12 @@ export default function App() {
           (em: any) => em.fileName === pm.fileName && em.extractedText?.length === pm.extractedText?.length
         )
       );
+      const existingSupplements: any[] = (patient as any).supplements || [];
+      const newSupplements = (pendingSupplements || []).filter(
+        (ps: any) => !existingSupplements.some(
+          (es: any) => es.fileName === ps.fileName && es.extractedText?.length === ps.extractedText?.length
+        )
+      );
 
       // Anthropometric data captured this consultation — fill if patient doesn't have it yet
       const anthropoChanges: any = {};
@@ -923,13 +966,15 @@ export default function App() {
       const finalHighlights = newHighlights.length > 0 ? [...existingHighlights, ...newHighlights] : undefined;
       const finalExams = newExams.length > 0 ? [...existingExams, ...newExams] : undefined;
       const finalMealPlans = newMealPlans.length > 0 ? [...existingMealPlans, ...newMealPlans] : undefined;
+      const finalSupplements = newSupplements.length > 0 ? [...existingSupplements, ...newSupplements] : undefined;
 
-      if (hasAnthropoChanges || finalHighlights || mergedTraining || finalExams || finalMealPlans) {
+      if (hasAnthropoChanges || finalHighlights || mergedTraining || finalExams || finalMealPlans || finalSupplements) {
         const changes: Partial<Patient> = { ...anthropoChanges };
         if (finalHighlights) changes.highlights = finalHighlights;
         if (mergedTraining) changes.trainingRoutine = mergedTraining;
         if (finalExams) changes.exams = finalExams;
         if (finalMealPlans) changes.mealPlans = finalMealPlans;
+        if (finalSupplements) changes.supplements = finalSupplements;
 
         setPatients(prev => prev.map(p => p.id === patient.id ? { ...p, ...changes } : p));
         if (selectedPatient?.id === patient.id) {
@@ -946,11 +991,13 @@ export default function App() {
           })).catch(err => console.error('Failed to persist patient updates:', err));
           (newExams as PatientExam[]).forEach(ex => savePatientExam(patient.id, ex).catch(err => console.error('Failed to save exam:', err)));
           (newMealPlans as MealPlan[]).forEach(mp => savePatientMealPlan(patient.id, mp).catch(err => console.error('Failed to save meal plan:', err)));
+          (newSupplements as PatientExam[]).forEach(s => savePatientSupplement(patient.id, s).catch(err => console.error('Failed to save supplement:', err)));
         }
       }
       // Clear pending docs after applying
       setPendingExams([]);
       setPendingMealPlans([]);
+      setPendingSupplements([]);
 
       // Update UI immediately (before Firebase which may hang)
       setCurrentResult(aiResponse);
@@ -1082,6 +1129,7 @@ export default function App() {
               isFirstConsultation={currentIsFirstConsultation} setIsFirstConsultation={setCurrentIsFirstConsultation}
               pendingExams={pendingExams} setPendingExams={setPendingExams}
               pendingMealPlans={pendingMealPlans} setPendingMealPlans={setPendingMealPlans}
+              pendingSupplements={pendingSupplements} setPendingSupplements={setPendingSupplements}
               patientWeight={currentPatientWeight} setPatientWeight={setCurrentPatientWeight}
               patientHeight={currentPatientHeight} setPatientHeight={setCurrentPatientHeight}
               patientBirthDate={currentPatientBirthDate} setPatientBirthDate={setCurrentPatientBirthDate}
@@ -1136,6 +1184,7 @@ export default function App() {
             onUpdateHighlights={updateHighlights}
             onUpdateExams={updateExams}
             onUpdateMealPlans={updateMealPlans}
+            onUpdateSupplements={updateSupplements}
             onUpdatePatient={updatePatientFields}
             onEventClick={(event) => {
               setSelectedEvent(event);
@@ -1910,6 +1959,7 @@ function TranscriptionView({
   patientTraining, setPatientTraining, isFirstConsultation, setIsFirstConsultation,
   pendingExams, setPendingExams,
   pendingMealPlans, setPendingMealPlans,
+  pendingSupplements, setPendingSupplements,
   patientWeight, setPatientWeight,
   patientHeight, setPatientHeight,
   patientBirthDate, setPatientBirthDate,
@@ -2238,6 +2288,7 @@ function TranscriptionView({
       setTempRestrictions('');
       setPendingExams([]);
       setPendingMealPlans([]);
+      setPendingSupplements([]);
       setShowNamePopup(true);
       return false;
     }
@@ -2434,6 +2485,7 @@ function TranscriptionView({
                       // Pre-load existing docs so nutri can see/add more
                       if (p.exams?.length) setPendingExams(p.exams);
                       if (p.mealPlans?.length) setPendingMealPlans(p.mealPlans);
+                      if (p.supplements?.length) setPendingSupplements(p.supplements);
                     }}
                   >
                     <div className="w-7 h-7 rounded-md bg-brand-700 text-white font-semibold text-sm flex items-center justify-center">
@@ -2571,6 +2623,18 @@ function TranscriptionView({
               label="Prescrição vigente"
               emptyMessage="Nenhuma prescrição anexada. Importe a vigente (de outro app ou PDF da nutri anterior)."
               idPrefix="plan"
+            />
+          </div>
+
+          {/* Supplements upload */}
+          <div>
+            <ExamUploader
+              exams={pendingSupplements || []}
+              onChange={setPendingSupplements}
+              compact
+              label="Suplementos"
+              emptyMessage="Nenhum suplemento anexado. Anexe a prescrição de suplementos em PDF."
+              idPrefix="supp"
             />
           </div>
         </div>
@@ -2821,6 +2885,7 @@ function TranscriptionView({
                           // Pre-load existing exams + meal plans so nutri sees them
                           if (p.exams?.length) setPendingExams(p.exams);
                           if (p.mealPlans?.length) setPendingMealPlans(p.mealPlans);
+                          if (p.supplements?.length) setPendingSupplements(p.supplements);
                           // Pre-load anthropometric data
                           if (p.weightKg) setTempWeight(String(p.weightKg));
                           if (p.heightCm) setTempHeight(String(p.heightCm));
@@ -2949,6 +3014,18 @@ function TranscriptionView({
               />
             </div>
 
+            {/* Supplements upload (optional) */}
+            <div className="mb-4">
+              <ExamUploader
+                exams={pendingSupplements}
+                onChange={setPendingSupplements}
+                compact
+                label="Suplementos"
+                emptyMessage="Nenhum suplemento anexado. Anexe a prescrição de suplementos em PDF."
+                idPrefix="supp"
+              />
+            </div>
+
             {/* Action Buttons */}
             <div className="flex gap-2">
               <button
@@ -3058,7 +3135,6 @@ function DiagnosisView({ result, patientName, eventId, onSaveResult, onBack, pre
       if (currentPatient.heightCm) anthro.heightCm = currentPatient.heightCm;
       if (ageFromBirth) anthro.age = ageFromBirth;
       if (currentPatient.dietaryRestrictions) anthro.dietaryRestrictions = currentPatient.dietaryRestrictions;
-      if (currentPatient.supplements) anthro.supplements = currentPatient.supplements;
     }
     // Body composition is always pulled from the patient record (the bubble
     // doesn't expose these fields directly — they come from the clinical

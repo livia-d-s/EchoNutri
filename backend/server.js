@@ -170,7 +170,7 @@ e elaborações emocionais. Vá direto à conduta e às recomendações prática
 
 app.post('/api/analyze-medical', apiLimiter, requireAuth, requireAccess, async (req, res) => {
   try {
-    const { transcript, tone, exams, activeMealPlan, patientAnthropometry, generateMealPlan } = req.body;
+    const { transcript, tone, exams, activeMealPlan, supplements, patientAnthropometry, generateMealPlan } = req.body;
     const selectedTone = tone && TONE_INSTRUCTIONS[tone] ? tone : 'humanizado';
     const toneInstruction = TONE_INSTRUCTIONS[selectedTone];
 
@@ -219,6 +219,31 @@ OBRIGATÓRIO: A paciente já segue o plano alimentar abaixo. No campo "nutrition
 ${planText}`;
     }
 
+    // Build supplements context block (attached supplement-prescription PDFs)
+    let supplementsContext = '';
+    if (Array.isArray(supplements) && supplements.length > 0) {
+      const MAX_PER = 6000;
+      const MAX_TOTAL = 12000;
+      let used = 0;
+      const parts = [];
+      for (const s of supplements) {
+        if (used >= MAX_TOTAL) break;
+        const label = s.fileName || 'suplementos.pdf';
+        const dateStr = s.uploadedAt ? new Date(s.uploadedAt).toLocaleDateString('pt-BR') : '';
+        const remaining = MAX_TOTAL - used;
+        const text = String(s.extractedText || '').slice(0, Math.min(MAX_PER, remaining));
+        if (!text) continue;
+        parts.push(`--- ${label}${dateStr ? ` (anexado em ${dateStr})` : ''} ---\n${text}`);
+        used += text.length;
+      }
+      if (parts.length > 0) {
+        supplementsContext = `\n\n[SUPLEMENTOS PRESCRITOS/ANEXADOS À CONSULTA]
+A paciente usa/foi prescrita os suplementos abaixo. Leve-os em conta no racional clínico e na conduta (evite redundância ou interação, e mencione ajustes quando relevante). NÃO ignore os suplementos.
+
+${parts.join('\n\n')}`;
+      }
+    }
+
     // Anthropometry context (optional)
     let anthropoContext = '';
     if (patientAnthropometry && typeof patientAnthropometry === 'object') {
@@ -230,9 +255,6 @@ ${planText}`;
       if (patientAnthropometry.leanMassPct) parts.push(`% Massa magra: ${patientAnthropometry.leanMassPct}%`);
       if (patientAnthropometry.dietaryRestrictions) {
         parts.push(`Restrições/preferências: ${patientAnthropometry.dietaryRestrictions}`);
-      }
-      if (patientAnthropometry.supplements) {
-        parts.push(`Suplementos atuais: ${patientAnthropometry.supplements}`);
       }
       if (parts.length > 0) {
         anthropoContext = `\n\n[DADOS ANTROPOMÉTRICOS DA PACIENTE]\n${parts.join('\n')}`;
@@ -419,7 +441,7 @@ mencione a necessidade de investigação adicional dentro do campo apropriado,
 sem inventar dados.
 `;
 
-    const prompt = `${systemPrompt}${mealPlanInstruction}\n\nTranscrição da consulta:\n${transcript}${anthropoContext}${examsContext}${mealPlanContext}`;
+    const prompt = `${systemPrompt}${mealPlanInstruction}\n\nTranscrição da consulta:\n${transcript}${anthropoContext}${examsContext}${mealPlanContext}${supplementsContext}`;
 
     const requestBody = JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],

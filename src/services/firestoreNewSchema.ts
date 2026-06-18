@@ -150,6 +150,31 @@ export async function deletePatientMealPlan(patientId: string, mealPlanId: strin
 }
 
 /**
+ * Get uploaded supplement-prescription PDFs for a patient (subcollection
+ * patients/{id}/supplements). Same attach-PDF model as exams/meal plans.
+ */
+export async function getPatientSupplements(patientId: string): Promise<PatientExam[]> {
+  try {
+    const snap = await getDocs(collection(db, 'patients', patientId, 'supplements'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as PatientExam));
+  } catch (err) {
+    console.error('Failed to get patient supplements:', err);
+    return [];
+  }
+}
+
+/** Upsert one uploaded supplement PDF (its own `id` is the doc id). */
+export async function savePatientSupplement(patientId: string, supplement: PatientExam): Promise<void> {
+  const { id, ...rest } = supplement;
+  await setDoc(doc(db, 'patients', patientId, 'supplements', id), stripUndefined(rest));
+}
+
+/** Delete one uploaded supplement PDF. */
+export async function deletePatientSupplement(patientId: string, supplementId: string): Promise<void> {
+  await deleteDoc(doc(db, 'patients', patientId, 'supplements', supplementId));
+}
+
+/**
  * Update patient
  */
 export async function updatePatient(
@@ -386,7 +411,7 @@ export async function deleteAllNutritionistData(
   );
   for (const pdoc of patientsSnap.docs) {
     const pid = pdoc.id;
-    for (const sub of ['exams', 'mealPlans']) {
+    for (const sub of ['exams', 'mealPlans', 'supplements']) {
       const s = await getDocs(collection(db, 'patients', pid, sub));
       await Promise.all(s.docs.map(d => deleteDoc(d.ref)));
     }

@@ -116,7 +116,6 @@ export interface Patient {
   leanMassPct?: number;
   // Dietary restrictions / preferences (free-text, e.g. "vegetariana, sem lactose")
   dietaryRestrictions?: string;
-  supplements?: string;          // Suplementos atuais/prescritos (texto livre)
   // New nutrition-focused fields
   goal?: PatientGoal;            // Legacy single goal (for backwards compat)
   goals?: PatientGoal[];         // Supports up to 2 goals
@@ -126,6 +125,7 @@ export interface Patient {
   highlights?: string[];         // AI-extracted key patient insights (persists across consultations)
   exams?: PatientExam[];         // Uploaded lab result PDFs (extracted text)
   mealPlans?: MealPlan[];        // Uploaded meal plan PDFs (most recent is the active one)
+  supplements?: PatientExam[];   // Uploaded supplement-prescription PDFs (attach like exams)
 }
 
 // ============ MEAL PLAN STRUCTURED TYPES ============
@@ -241,7 +241,6 @@ export interface FirestorePatient {
   bodyFatPct?: number;
   leanMassPct?: number;
   dietaryRestrictions?: string;
-  supplements?: string;          // Suplementos atuais/prescritos (texto livre)
   goal?: PatientGoal;
   goals?: PatientGoal[];
   goalCustom?: string;
