@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   onAuthStateChanged,
   signInWithPopup,
-  signInWithRedirect,
   getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -71,14 +70,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsub();
   }, []);
 
-  const isMobile = () =>
-    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
   const loginWithGoogle = async () => {
-    if (isMobile()) {
-      await signInWithRedirect(auth, googleProvider);
-      return null as unknown as User;
-    }
+    // Popup em todos os dispositivos. O signInWithRedirect quebra no celular
+    // (partição de armazenamento do Safari/Chrome quando o authDomain é outro
+    // origin, *.firebaseapp.com) — o retorno volta sem a sessão. O popup
+    // devolve o resultado via postMessage, que não sofre disso, então funciona
+    // também no mobile.
     const result = await signInWithPopup(auth, googleProvider);
     await saveUserToFirestore(result.user, { provider: "google" });
     return result.user;
