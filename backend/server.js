@@ -804,9 +804,6 @@ async function transcribeWithAssemblyAI(file) {
       audio_url: upload_url,
       speaker_labels: true,
       language_code: 'pt',
-      // Mantém o preço base (US$0,15/h) — sem o acréscimo de 10% das regiões
-      // in-region que entra em 01/07/2026.
-      model_region: 'global',
     }),
   });
   if (!trRes.ok) {
@@ -829,6 +826,8 @@ async function transcribeWithAssemblyAI(file) {
             .map((u) => ({ speaker: String(u.speaker || '?'), text: String(u.text || '').trim() }))
             .filter((u) => u.text)
         : [];
+      const speakers = new Set(utterances.map((u) => u.speaker));
+      console.log(`[transcribe] AssemblyAI OK — ${utterances.length} utterances, ${speakers.size} falante(s)`);
       return { transcript: (data.text || '').trim(), utterances };
     }
     if (data.status === 'error') {
@@ -918,6 +917,8 @@ async function processTranscriptionJob(jobId, file) {
       } catch (err) {
         console.warn('[transcribe] AssemblyAI falhou, usando fallback:', err?.message);
       }
+    } else {
+      console.warn('[transcribe] ASSEMBLYAI_API_KEY ausente — sem diarização, usando fallback');
     }
     // Fallback: OpenAI Whisper (best pt-BR accuracy, ≤25MB) then Gemini.
     if (!transcript) {
