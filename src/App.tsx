@@ -1690,7 +1690,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout, onExportD
         ) : (<>
 
         {/* Subscription summary card — top of Perfil tab. */}
-        {subscriptionState && subscriptionState.kind !== 'admin' && (
+        {subscriptionState && subscriptionState.kind !== 'admin' && subscriptionState.kind !== 'beta' && (
           <div className="mb-5 p-4 bg-subtle border border-line rounded-md">
             <div className="flex items-center justify-between mb-2">
               <div className="text-2xs font-semibold uppercase tracking-[0.1em] text-ink-secondary">

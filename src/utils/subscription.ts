@@ -19,13 +19,32 @@ export function isAdminUser(email: string | null | undefined): boolean {
   return ADMIN_EMAILS.has(email.toLowerCase());
 }
 
+// Beta testers — acesso liberado (comped) durante o beta, mesmo após o trial.
+// Lidos de VITE_BETA_EMAILS (no Vercel), espelhando o BETA_EMAILS do backend.
+// Formato: e-mails separados por vírgula. Trocar a lista exige redeploy no Vercel.
+function getBetaEmails(): Set<string> {
+  const raw = (import.meta as any).env?.VITE_BETA_EMAILS || '';
+  return new Set(
+    String(raw)
+      .split(',')
+      .map((e: string) => e.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+export function isBetaUser(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return getBetaEmails().has(email.toLowerCase());
+}
+
 /**
  * Retorna a "verdade" sobre o status atual da assinatura, considerando
  * a passagem do tempo. Por exemplo: se o doc diz `trialing` mas o
  * trialEnd já passou, retornamos `trial_expired`.
  */
 export type DerivedSubscriptionState =
-  | { kind: 'admin' }                                 // bypass total
+  | { kind: 'admin' }                                 // bypass total (founder)
+  | { kind: 'beta' }                                  // tester comped no beta
   | { kind: 'trialing'; daysLeft: number; trialEnd: Date }
   | { kind: 'trial_expired'; trialEnd: Date }
   | { kind: 'active'; currentPeriodEnd?: Date }
@@ -40,6 +59,7 @@ export function deriveSubscriptionState(
   now: Date = new Date(),
 ): DerivedSubscriptionState {
   if (isAdminUser(email)) return { kind: 'admin' };
+  if (isBetaUser(email)) return { kind: 'beta' };
   if (!subscription) return { kind: 'missing' };
 
   if (subscription.status === 'trialing') {
@@ -79,6 +99,7 @@ export function deriveSubscriptionState(
 export function hasActiveAccess(state: DerivedSubscriptionState, now: Date = new Date()): boolean {
   return (
     state.kind === 'admin' ||
+    state.kind === 'beta' ||
     state.kind === 'trialing' ||
     state.kind === 'active' ||
     // canceled mantém acesso só até o fim do ciclo pago atual. Sem data de fim

@@ -14,6 +14,19 @@ export function TrialBadge({ state, onClick }: TrialBadgeProps) {
   if (state.kind === 'admin') return null;          // founders não veem
   if (state.kind === 'active') return null;         // pagantes não precisam ver
 
+  if (state.kind === 'beta') {                       // testers comped no beta
+    return (
+      <button
+        onClick={onClick}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-semibold border bg-brand-700/10 text-brand-700 border-brand-700/20 hover:opacity-90"
+        title="Acesso beta liberado"
+      >
+        <Clock size={11} strokeWidth={2.25} />
+        Beta
+      </button>
+    );
+  }
+
   if (state.kind === 'trialing') {
     const { daysLeft } = state;
     const tone =
