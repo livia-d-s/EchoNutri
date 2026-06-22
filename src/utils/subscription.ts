@@ -19,24 +19,6 @@ export function isAdminUser(email: string | null | undefined): boolean {
   return ADMIN_EMAILS.has(email.toLowerCase());
 }
 
-// Beta testers — acesso liberado (comped) durante o beta, mesmo após o trial.
-// Lidos de VITE_BETA_EMAILS (no Vercel), espelhando o BETA_EMAILS do backend.
-// Formato: e-mails separados por vírgula. Trocar a lista exige redeploy no Vercel.
-function getBetaEmails(): Set<string> {
-  const raw = (import.meta as any).env?.VITE_BETA_EMAILS || '';
-  return new Set(
-    String(raw)
-      .split(',')
-      .map((e: string) => e.trim().toLowerCase())
-      .filter(Boolean)
-  );
-}
-
-export function isBetaUser(email: string | null | undefined): boolean {
-  if (!email) return false;
-  return getBetaEmails().has(email.toLowerCase());
-}
-
 /**
  * Retorna a "verdade" sobre o status atual da assinatura, considerando
  * a passagem do tempo. Por exemplo: se o doc diz `trialing` mas o
@@ -57,9 +39,10 @@ export function deriveSubscriptionState(
   subscription: Subscription | null | undefined,
   email?: string | null,
   now: Date = new Date(),
+  comped: boolean = false,            // liberado pelo backend (BETA_EMAILS) — tester
 ): DerivedSubscriptionState {
   if (isAdminUser(email)) return { kind: 'admin' };
-  if (isBetaUser(email)) return { kind: 'beta' };
+  if (comped) return { kind: 'beta' };
   if (!subscription) return { kind: 'missing' };
 
   if (subscription.status === 'trialing') {

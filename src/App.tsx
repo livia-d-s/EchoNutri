@@ -232,6 +232,9 @@ export default function App() {
   const [doctorProfile, setDoctorProfile] = useState<DoctorProfileType>(DEFAULT_PROFILE);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  // Comp (tester liberado via BETA_EMAILS no backend) — null = ainda checando.
+  // Mantém a lista de testers só no servidor, sem expor e-mails no site.
+  const [isComped, setIsComped] = useState<boolean | null>(null);
   const [showCheckoutPlaceholder, setShowCheckoutPlaceholder] = useState(false);
   // Pre-auth surface: null = show LandingPage, 'login'/'signup' = show AuthScreen
   const [authMode, setAuthMode] = useState<'login' | 'signup' | null>(null);
@@ -323,6 +326,30 @@ export default function App() {
     };
     loadFromFirestore();
   }, [userId]);
+
+  // Comp status — pergunta ao backend se a conta está liberada (admin/tester
+  // beta). A lista de e-mails fica só no servidor (não vai pro bundle do site).
+  useEffect(() => {
+    if (!userId || !user) { setIsComped(null); return; }
+    const cacheKey = `echonutri_${userId}_comped`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached === 'true' || cached === 'false') setIsComped(cached === 'true');
+    (async () => {
+      try {
+        const idToken = await user.getIdToken();
+        const r = await fetch(`${backendUrl}/api/access-status`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        if (!r.ok) { setIsComped((prev) => (prev === null ? false : prev)); return; }
+        const data = await r.json();
+        const comped = !!data.comped;
+        setIsComped(comped);
+        localStorage.setItem(cacheKey, comped ? 'true' : 'false');
+      } catch {
+        setIsComped((prev) => (prev === null ? false : prev));
+      }
+    })();
+  }, [userId, user]);
 
   // Save doctor profile (localStorage cache + Firestore)
   useEffect(() => {
@@ -1094,7 +1121,7 @@ export default function App() {
             </div>
             {/* Trial / subscription status badge */}
             <TrialBadge
-              state={deriveSubscriptionState(subscription, user?.email)}
+              state={deriveSubscriptionState(subscription, user?.email, undefined, isComped === true)}
               onClick={() => setShowProfilePopup(true)}
             />
             {/* Profile Picture Button */}
@@ -1249,7 +1276,7 @@ export default function App() {
             }
           }}
           subscription={subscription}
-          subscriptionState={deriveSubscriptionState(subscription, user?.email)}
+          subscriptionState={deriveSubscriptionState(subscription, user?.email, undefined, isComped === true)}
           onSubscribe={() => { setShowProfilePopup(false); setShowCheckoutPlaceholder(true); }}
           // LGPD art. 18 — direito de acesso/portabilidade: dump everything we hold
           // about the nutri (profile + patients + events + history) as JSON.
@@ -1338,8 +1365,8 @@ export default function App() {
       {/* Trial expired / past_due gate — bloqueia uso do app quando o
           acesso não está ativo. Só renderiza depois que a subscription
           foi carregada (senão flasha o gate no primeiro paint). */}
-      {subscription && (() => {
-        const state = deriveSubscriptionState(subscription, user?.email);
+      {subscription && isComped !== null && (() => {
+        const state = deriveSubscriptionState(subscription, user?.email, undefined, isComped === true);
         if (hasActiveAccess(state)) return null;
         return (
           <TrialExpiredGate

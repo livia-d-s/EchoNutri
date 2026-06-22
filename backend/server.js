@@ -168,6 +168,16 @@ Use linguagem profissional com base científica.`,
 e elaborações emocionais. Vá direto à conduta e às recomendações práticas.`,
 };
 
+// Diz ao frontend se a conta tem acesso liberado (comped) — admin ou e-mail na
+// allowlist BETA_EMAILS. A lista de testers fica SÓ no servidor (não vai pro
+// bundle do site, então e-mails não ficam expostos). Usado pra liberar o gate
+// de trial das testers durante o beta.
+app.get('/api/access-status', requireAuth, (req, res) => {
+  const email = (req.user && req.user.email ? req.user.email : '').toLowerCase();
+  const comped = ADMIN_EMAILS.has(email) || BETA_EMAILS.has(email);
+  res.json({ comped, betaMode: BETA_MODE });
+});
+
 app.post('/api/analyze-medical', apiLimiter, requireAuth, requireAccess, async (req, res) => {
   try {
     const { transcript, tone, exams, activeMealPlan, supplements, patientAnthropometry, generateMealPlan } = req.body;
