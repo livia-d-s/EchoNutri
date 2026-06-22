@@ -140,7 +140,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Retry transient Gemini overloads (503/UNAVAILABLE/"high demand"/500) with
 // exponential backoff so the nutritionist never sees a momentary spike. Does
 // NOT retry billing/quota (429 RESOURCE_EXHAUSTED) — that won't self-heal.
-async function withGeminiRetry(fn, { retries = 3, baseDelay = 1000 } = {}) {
+async function withGeminiRetry(fn, { retries = 4, baseDelay = 1000 } = {}) {
   for (let attempt = 0; ; attempt++) {
     try {
       return await fn();
@@ -484,7 +484,7 @@ sem inventar dados.
             throw new Error(JSON.stringify(errorData));
           }
           return await response.json();
-        }, { retries: 2 });
+        }, { retries: 3 });
         break; // success
       } catch (err) {
         lastErr = err;
@@ -525,6 +525,15 @@ sem inventar dados.
 
   } catch (error) {
     console.error("Erro na análise nutricional:", error);
+    const msg = String((error && error.message) || error);
+    // 503/overload do Google: mensagem clara em vez do JSON cru, e status 503
+    // pra deixar explícito que é transitório (basta tentar de novo).
+    if (/503|UNAVAILABLE|high demand|overloaded/i.test(msg)) {
+      return res.status(503).json({
+        error: "A IA do Google está sobrecarregada agora (pico de demanda do lado deles). Aguarde alguns segundos e clique em Finalizar de novo — sua transcrição não se perde.",
+        code: "AI_OVERLOADED",
+      });
+    }
     res.status(500).json({
       error: "Erro ao processar análise",
       details: error.message
