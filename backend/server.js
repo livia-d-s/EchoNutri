@@ -794,6 +794,9 @@ async function transcribeWithAssemblyAI(file) {
       audio_url: upload_url,
       speaker_labels: true,
       language_code: 'pt',
+      // Mantém o preço base (US$0,15/h) — sem o acréscimo de 10% das regiões
+      // in-region que entra em 01/07/2026.
+      model_region: 'global',
     }),
   });
   if (!trRes.ok) {
