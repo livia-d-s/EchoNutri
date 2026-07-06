@@ -1,7 +1,12 @@
 # Planilha Financeira — EchoNutri (rascunho)
 
 > Modelo pronto pra copiar no Excel. **Edite só a seção PREMISSAS** — o resto deriva dela.
-> Valores reais da Livia (jun/2026). **Diarização roda em TODA consulta** (é core do produto).
+> Valores reais da Livia (jun/2026). **Começa como MEI** (DAS fixo R$87/mês) → migra pra ME quando lucrar.
+> **Diarização roda em TODA consulta** (é core do produto).
+
+> ⚠️ **CONFIRMAR com contadora / Portal do Empreendedor:** se a atividade de **software/SaaS é permitida no MEI**.
+> Desenvolvimento/licenciamento de software normalmente **não** está na lista de ocupações MEI — pode precisar de
+> uma ocupação correlata permitida ou ir direto pra ME. Isso valida (ou não) todo este modelo MEI.
 
 ---
 
@@ -17,37 +22,34 @@
 | Custo ASR/hora (USD) | 0,17 | AssemblyAI: US$0,15 transcrição + US$0,02 diarização |
 | Custo análise IA/consulta (R$) | 0,10 | Gemini |
 | Taxa Stripe | 3,99% + R$0,39 | por transação |
-| Imposto (Simples Nacional) | 6% | sobre a receita |
+| Regime tributário | **MEI** | DAS fixo R$87/mês (sem 6% sobre receita) |
 
 ---
 
-## 2) CUSTOS FIXOS MENSAIS
+## 2) CUSTOS FIXOS MENSAIS (MEI)
 
 | Item | R$/mês | Obs |
 |---|---|---|
-| Contadora | 325,00 | |
-| INSS | 370,00 | |
+| DAS-MEI | 87,00 | já inclui INSS + imposto (fixo) — substitui contadora+INSS+6% |
 | Domínio + email | 5,83 | R$70/ano já pago ÷ 12 |
-| Render (backend) | 41,00 | US$7 × 5,60 + IOF (~3,4%) |
 | OpenAI/Gemini (base) | 10,00 | uso leve |
-| Vercel / Firebase | 0,00 | planos grátis |
-| **Subtotal SEM ads (Mês 1)** | **751,83** | contato 1-a-1, lista de espera |
+| Render / Vercel / Firebase | 0,00 | planos grátis (Render Free no beta) |
+| **Subtotal SEM ads (Mês 1)** | **102,83** | contato 1-a-1, lista de espera |
 | Ads | 800,00 | **só a partir do Mês 2** |
-| **Subtotal COM ads (Mês 2+)** | **1.551,83** | |
+| **Subtotal COM ads (Mês 2+)** | **902,83** | |
+
+> 💻 **Claude (Claude Code)** é custo de desenvolvimento seu (~R$120/mês, temporário) — fora do break-even do produto.
 
 ---
 
-## 2b) CUSTOS DE ABERTURA (uma vez só — entram na reserva de caixa, não no mensal)
+## 2b) CUSTOS DE ABERTURA (uma vez)
 
-| Item | R$ |
-|---|---|
-| Abertura da empresa (ME) | 900,00 |
-| Encerramento do MEI antigo | 240,00 |
-| **Total de abertura** | **1.140,00** |
+| Quando | Item | R$ |
+|---|---|---|
+| **Agora (MEI)** | usar/ativar MEI existente | ~0 |
+| **Depois (migrar p/ ME, ao lucrar)** | abertura ME R$900 + encerrar MEI R$240 | 1.140 (pago com o lucro) |
 
-> 💡 Some isso à **reserva de caixa inicial**. Com o prejuízo dos primeiros meses
-> (até chegar nas ~28 nutris sem ads) + abertura, uma reserva de **R$3.000–5.000**
-> deixa o lançamento tranquilo.
+> 💡 Adiar a ME pro futuro **tira R$1.140 da largada** → reserva de caixa inicial bem menor (R$1.000-2.000 já tranquiliza).
 
 ---
 
@@ -59,72 +61,74 @@
 | Análise IA (Gemini) | 40 × 0,10 | 4,00 |
 | **TOTAL VARIÁVEL** | | **R$ 32,56** |
 
-**Fórmula Excel** (ASR): `=Consultas * DuracaoH * CustoASR_USD * Cambio`
-
-> O custo é proporcional às **horas de áudio**. Quem usa menos, paga menos (ver seção 6).
-
 ---
 
-## 4) UNIT ECONOMICS (por assinante)
+## 4) UNIT ECONOMICS (por assinante — MEI, sem imposto %)
 
 | Métrica | Cálculo | Valor |
 |---|---|---|
 | Receita bruta | preço | R$ 67,00 |
 | (–) Taxa Stripe | 67×3,99% + 0,39 | R$ 3,06 |
-| (–) Imposto 6% | 67×6% | R$ 4,02 |
-| **Receita líquida** | | **R$ 59,92** |
+| **Receita líquida** | | **R$ 63,94** |
 | (–) Custo variável | seção 3 | R$ 32,56 |
-| **Margem de contribuição** | | **R$ 27,36** |
+| **Margem de contribuição** | | **R$ 31,38** |
+
+> No MEI a margem subiu (de R$27,36 p/ **R$31,38**) porque sumiu o imposto de 6% sobre a receita.
 
 ---
 
 ## 5) PONTO DE EQUILÍBRIO (break-even)
 
-`Break-even = Custo Fixo ÷ Margem de contribuição (27,36)`
+`Break-even = Custo Fixo ÷ Margem de contribuição (31,38)`
 
 | Cenário | Custo fixo | Break-even |
 |---|---|---|
-| **Mês 1 — sem ads** | 751,83 | ≈ **28 assinantes** |
-| **Mês 2+ — com ads** | 1.551,83 | ≈ **57 assinantes** |
+| **Mês 1 — sem ads** | 102,83 | ≈ **4 assinantes** 🤯 |
+| **Mês 2+ — com ads** | 902,83 | ≈ **29 assinantes** |
+
+> 💡 Sem ads, com o fixo do MEI tão baixo, você fica no azul com **~4 nutris pagantes**. O peso real passa a ser **só os ads**.
 
 ---
 
-## 6) SENSIBILIDADE AO USO (consultas realmente diarizadas/mês)
-
-O variável e o break-even dependem de quanto cada nutri usa:
+## 6) SENSIBILIDADE AO USO (consultas diarizadas/mês)
 
 | Consultas/mês | Custo variável | Margem/assin. | Break-even (sem ads) |
 |---|---|---|---|
-| 10 | 8,14 | 51,78 | ≈ 15 |
-| 20 | 16,28 | 43,64 | ≈ 18 |
-| 30 | 24,42 | 35,50 | ≈ 22 |
-| 40 | 32,56 | 27,36 | ≈ 28 |
-
-> 💡 Mesmo diarizando **tudo**, o break-even fica entre **15 e 28 nutris** (sem ads).
-> Totalmente viável — a margem de contribuição é de **41% a 77%**.
+| 10 | 8,14 | 55,80 | ≈ 2 |
+| 20 | 16,28 | 47,66 | ≈ 3 |
+| 30 | 24,42 | 39,52 | ≈ 3 |
+| 40 | 32,56 | 31,38 | ≈ 4 |
 
 ---
 
-## 7) PROJEÇÃO DE LUCRO (uso de 40 consultas, margem R$27,36)
+## 7) PROJEÇÃO DE LUCRO (uso de 40 consultas, margem R$31,38)
 
 | Assinantes | Lucro Mês 1 (sem ads) | Lucro Mês 2+ (com ads) |
 |---|---|---|
-| 10 | −478,23 | −1.278,23 |
-| 20 | −204,63 | −1.004,63 |
-| 30 | +68,97 | −731,03 |
-| 50 | +616,17 | −183,83 |
-| 100 | +1.984,17 | +1.184,17 |
+| 5 | +54,07 | −745,93 |
+| 10 | +210,97 | −589,03 |
+| 20 | +524,77 | −275,23 |
+| 30 | +838,57 | +38,57 |
+| 50 | +1.466,17 | +666,17 |
+| 100 | +3.035,17 | +2.235,17 |
 
-**Fórmula Excel:** `=(Assinantes * 27,36) - CustoFixo`
+**Fórmula Excel:** `=(Assinantes * 31,38) - CustoFixo`
 
 ---
 
-## 8) ALAVANCAS / NOTAS
+## 8) TETO DO MEI + MIGRAÇÃO PRA ME
 
-- **Preço AssemblyAI confirmar na fatura real** após uso (US$0,15 base + US$0,02 diarização).
-- **Aumento de 10% a partir de 01/07/2026:** mandar `"model_region": "global"` na chamada da API
-  pra manter o preço atual (ajuste técnico que eu faço no backend).
-- **Custo escala com horas de áudio** — quem faz consultas mais curtas/menos consultas, custa menos.
-- **INSS + contadora (R$695/mês)** é o peso fixo do início → reforça começar sem ads (break-even ~28 vs ~57).
-- **Trial 7 dias:** gera custo variável sem receita; monitorar abuso.
-- **Atualizar mensalmente** após o lançamento + medir consultas/mês reais (premissa-chave).
+- **Limite de faturamento MEI:** ~R$81.000/ano = R$6.750/mês = **~100 assinantes a R$67**.
+- Ao se aproximar do teto (ou ao lucrar bem), **migrar pra ME** (Simples Nacional): aí voltam contadora (~R$325) + INSS (~R$370) + imposto ~6%, e o custo de abertura R$1.140.
+- **Plano:** crescer no MEI (custo fixo baixíssimo) até perto de ~80-100 nutris → migrar pra ME já lucrando, com a ME se pagando fácil.
+
+---
+
+## 9) NOTAS / REVISAR
+
+- ⚠️ **Validar elegibilidade MEI p/ software** (topo do arquivo) — é o que sustenta este modelo.
+- **Preço R$67 / anual 15% off:** definido. Revisar após validar com as primeiras nutris.
+- **Consultas diarizadas/mês (40):** premissa-chave de custo — medir o uso real.
+- **Ads só no Mês 2:** começar 1-a-1 (break-even ~4 sem ads vs ~29 com ads).
+- **Render Free no beta:** cold start ~50s na 1ª chamada; upgrade US$7 só com volume.
+- **Atualizar mensalmente** após o lançamento.
