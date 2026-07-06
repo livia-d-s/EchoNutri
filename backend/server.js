@@ -180,8 +180,8 @@ app.get('/api/access-status', requireAuth, (req, res) => {
 
 // Separa as falas de uma transcrição corrida (sem marcação) entre
 // Nutricionista/Paciente, deduzindo pelo CONTEXTO da conversa (quem pergunta
-// vs quem responde). Alternativa barata à diarização acústica do AssemblyAI
-// para o fluxo AO VIVO (onde só temos o texto do navegador, sem áudio).
+// vs quem responde). Separa pelo texto (sem áudio), tanto no fluxo ao vivo
+// (texto do navegador) quanto no upload (transcrição do Whisper/Gemini).
 // Nunca trava a consulta: em qualquer falha, devolve a transcrição original.
 app.post('/api/label-speakers', apiLimiter, requireAuth, requireAccess, async (req, res) => {
   const original = (req.body && req.body.transcript) || '';

@@ -7,7 +7,6 @@ import {
 import { Patient, TimelineEvent, EventType, PatientGoal, GOAL_LABELS, TrainingActivity, PatientExam, MealPlan } from '../types';
 import { PatientList, PatientPage } from './components/patient';
 import { ExamUploader } from './components/patient/ExamUploader';
-import { SpeakerMappingModal, Utterance } from './components/SpeakerMappingModal';
 import { ConsultationBriefingBubble } from './components/patient/ConsultationBriefingBubble';
 import { MealPlanCard, planSignature } from './components/patient/MealPlanCard';
 import { MealPlanBubble } from './components/patient/MealPlanBubble';
@@ -865,7 +864,7 @@ export default function App() {
     setStatus(AppStatus.PROCESSING);
     try {
       // Separa as falas (Nutricionista/Paciente) pelo contexto, via IA — barato e
-      // sem conflito de microfone. Pula se já vier rotulado (fluxo de upload/AssemblyAI)
+      // sem conflito de microfone. Pula se já vier rotulado (Nutricionista:/Paciente:)
       // ou se falhar (usa o texto original — nunca trava a consulta).
       let finalText = currentTranscript;
       if (!/^\s*(nutricionista|paciente|falante)\s*:/im.test(currentTranscript)) {
@@ -2041,28 +2040,6 @@ function TranscriptionView({
 
   // Audio upload state — for offline consultations recorded on Zoom/Meet/phone.
   const audioInputRef = useRef<HTMLInputElement>(null);
-  // Diarization result awaiting speaker mapping ("quem é quem"). When set, the
-  // SpeakerMappingModal is shown so the nutri tags her own voice in one tap.
-  const [diarization, setDiarization] = useState<{ utterances: Utterance[]; transcript: string } | null>(null);
-
-  // Build a speaker-labeled transcript from diarized utterances, given which
-  // diarization label is the nutri. Everyone else is the patient.
-  const applyDiarization = (nutriSpeaker: string) => {
-    if (!diarization) return;
-    const labeled = diarization.utterances
-      .map((u) => `${u.speaker === nutriSpeaker ? 'Nutricionista' : 'Paciente'}: ${u.text}`)
-      .join('\n');
-    setTranscript((prev: string) => (prev ? prev + '\n\n' : '') + labeled);
-    setDiarization(null);
-    setAudioUploadState({ kind: 'idle' });
-  };
-
-  const skipDiarization = () => {
-    if (!diarization) return;
-    setTranscript((prev: string) => (prev ? prev + '\n\n' : '') + diarization.transcript);
-    setDiarization(null);
-    setAudioUploadState({ kind: 'idle' });
-  };
   const [audioUploadState, setAudioUploadState] = useState<
     | { kind: 'idle' }
     | { kind: 'uploading'; progress: number; fileName: string }
@@ -2150,16 +2127,10 @@ function TranscriptionView({
       }
       const data = await r.json();
       if (data.status === 'done' && data.transcript) {
-        // If diarization returned ≥2 distinct speakers, ask the nutri who's who
-        // (one tap) before labeling. Otherwise drop the plain transcript in.
-        const utterances: Utterance[] = Array.isArray(data.utterances) ? data.utterances : [];
-        const distinct = new Set(utterances.map((u) => u.speaker));
-        if (utterances.length > 0 && distinct.size >= 2) {
-          setDiarization({ utterances, transcript: data.transcript });
-        } else {
-          setTranscript((prev: string) => (prev ? prev + '\n\n' : '') + data.transcript);
-          setAudioUploadState({ kind: 'idle' });
-        }
+        // Transcrição pronta (sem rótulo). A separação Nutricionista/Paciente
+        // acontece na finalização, por contexto (/api/label-speakers).
+        setTranscript((prev: string) => (prev ? prev + '\n\n' : '') + data.transcript);
+        setAudioUploadState({ kind: 'idle' });
         return;
       }
       if (data.status === 'failed') {
@@ -2867,13 +2838,6 @@ function TranscriptionView({
                 OK
               </button>
             </div>
-          )}
-          {diarization && (
-            <SpeakerMappingModal
-              utterances={diarization.utterances}
-              onConfirm={applyDiarization}
-              onSkip={skipDiarization}
-            />
           )}
           {status === AppStatus.RECORDING && (
             <div className="flex gap-2.5">
