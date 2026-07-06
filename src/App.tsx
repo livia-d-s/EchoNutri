@@ -864,6 +864,30 @@ export default function App() {
     if (status === AppStatus.PROCESSING) return; // Prevent double-click
     setStatus(AppStatus.PROCESSING);
     try {
+      // Separa as falas (Nutricionista/Paciente) pelo contexto, via IA — barato e
+      // sem conflito de microfone. Pula se já vier rotulado (fluxo de upload/AssemblyAI)
+      // ou se falhar (usa o texto original — nunca trava a consulta).
+      let finalText = currentTranscript;
+      if (!/^\s*(nutricionista|paciente|falante)\s*:/im.test(currentTranscript)) {
+        try {
+          const idToken = user ? await user.getIdToken() : null;
+          if (idToken) {
+            const resp = await fetch(`${backendUrl}/api/label-speakers`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+              body: JSON.stringify({ transcript: currentTranscript }),
+            });
+            if (resp.ok) {
+              const data = await resp.json();
+              if (data.labeled && data.labeled.trim()) finalText = data.labeled.trim();
+            }
+          }
+        } catch (e) {
+          console.warn('Separação de falas falhou, usando transcrição original:', e);
+        }
+        if (finalText !== currentTranscript) setCurrentTranscript(finalText);
+      }
+
       // Build patient context for AI (supports multiple goals)
       const goalLabels = currentPatientGoals.length > 0
         ? currentPatientGoals.map(g => g === 'outro' ? currentPatientGoalCustom : GOAL_LABELS[g]).join(' + ')
@@ -875,7 +899,7 @@ export default function App() {
         isFirstConsultation: currentIsFirstConsultation ?? undefined
       };
 
-      const aiResponse = await callGeminiAI(currentTranscript, patientContext);
+      const aiResponse = await callGeminiAI(finalText, patientContext);
       const now = new Date().toISOString();
 
       // Create consultation record (legacy format for backward compatibility)
@@ -884,7 +908,7 @@ export default function App() {
         patient: patientName || 'Anônimo',
         diagnosis: aiResponse.nutritionalAssessment || aiResponse.diagnosis,
         result: aiResponse,
-        transcript: currentTranscript,
+        transcript: finalText,
         createdAt: now,
         doctorName: doctorProfile.name
       };
@@ -905,7 +929,7 @@ export default function App() {
       const eventType: EventType = patientEvents.length === 0 ? 'initial' : 'followup';
 
       // Create timeline event and set it as selected for editing
-      const newEvent = await addEventForPatient(patient.id, eventType, aiResponse, currentTranscript);
+      const newEvent = await addEventForPatient(patient.id, eventType, aiResponse, finalText);
       setSelectedEvent(newEvent);
 
       // Merge AI-extracted highlights + training into patient

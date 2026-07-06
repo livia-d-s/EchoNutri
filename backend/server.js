@@ -178,6 +178,69 @@ app.get('/api/access-status', requireAuth, (req, res) => {
   res.json({ comped, betaMode: BETA_MODE });
 });
 
+// Separa as falas de uma transcrição corrida (sem marcação) entre
+// Nutricionista/Paciente, deduzindo pelo CONTEXTO da conversa (quem pergunta
+// vs quem responde). Alternativa barata à diarização acústica do AssemblyAI
+// para o fluxo AO VIVO (onde só temos o texto do navegador, sem áudio).
+// Nunca trava a consulta: em qualquer falha, devolve a transcrição original.
+app.post('/api/label-speakers', apiLimiter, requireAuth, requireAccess, async (req, res) => {
+  const original = (req.body && req.body.transcript) || '';
+  try {
+    if (!original.trim()) return res.status(400).json({ error: 'Transcrição vazia' });
+
+    const prompt = `Você recebe a transcrição corrida (sem marcação de quem fala) de uma consulta de NUTRIÇÃO entre a NUTRICIONISTA e a PACIENTE.
+
+Separe as falas atribuindo cada trecho a quem falou, deduzindo pelo CONTEXTO:
+- NUTRICIONISTA: quem conduz a consulta, faz perguntas, orienta, explica, prescreve.
+- PACIENTE: quem relata queixas, hábitos, sintomas, rotina — quem responde às perguntas.
+
+REGRAS IMPORTANTES:
+- NÃO invente, resuma, corrija nem altere NENHUMA palavra. Apenas rotule e quebre em falas.
+- Formato de saída, uma fala por linha:
+Nutricionista: <fala exatamente como foi dita>
+Paciente: <fala exatamente como foi dita>
+- Se um trecho for ambíguo, faça a atribuição MAIS PROVÁVEL pelo contexto (não deixe sem rótulo).
+- Responda APENAS com a transcrição rotulada (texto puro, sem comentários, sem markdown).
+
+Transcrição:
+${original}`;
+
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey) return res.json({ labeled: original });
+
+    const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    let text, lastErr;
+    for (const model of MODELS) {
+      try {
+        const result = await withGeminiRetry(async () => {
+          const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0 },
+            }),
+          });
+          if (!r.ok) throw new Error(JSON.stringify(await r.json()));
+          return await r.json();
+        }, { retries: 2 });
+        text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) break;
+      } catch (err) {
+        lastErr = err;
+        if (/503|UNAVAILABLE|high demand|overloaded/i.test(String(err && err.message))) continue;
+        break;
+      }
+    }
+    if (lastErr && !text) console.warn('[label-speakers] falhou:', String(lastErr.message).slice(0, 120));
+    // Fallback silencioso: devolve o original se não veio nada.
+    return res.json({ labeled: (text && text.trim()) ? text.trim() : original });
+  } catch (error) {
+    console.error('[label-speakers] erro:', error.message);
+    return res.json({ labeled: original });
+  }
+});
+
 app.post('/api/analyze-medical', apiLimiter, requireAuth, requireAccess, async (req, res) => {
   try {
     const { transcript, tone, exams, activeMealPlan, supplements, patientAnthropometry, generateMealPlan } = req.body;
@@ -782,70 +845,6 @@ async function transcribeWithOpenAI(file) {
   return (await resp.text()).trim();
 }
 
-// AssemblyAI transcription WITH speaker diarization. This is the engine that
-// actually separates who-said-what (Falante A/B) — the thing Web Speech and
-// Whisper/Gemini can't do. Returns the plain transcript PLUS per-utterance
-// speaker labels, which the frontend maps to Nutricionista/Paciente.
-const ASSEMBLYAI_BASE = 'https://api.assemblyai.com/v2';
-
-async function transcribeWithAssemblyAI(file) {
-  const key = process.env.ASSEMBLYAI_API_KEY;
-  if (!key) throw new Error('ASSEMBLYAI_API_KEY ausente');
-
-  // 1. Upload the audio bytes to AssemblyAI (returns a private URL usable
-  // only by their API — no public hosting needed).
-  const buf = fs.readFileSync(file.path);
-  const upRes = await fetch(`${ASSEMBLYAI_BASE}/upload`, {
-    method: 'POST',
-    headers: { authorization: key, 'content-type': 'application/octet-stream' },
-    body: buf,
-  });
-  if (!upRes.ok) {
-    throw new Error(`AssemblyAI upload ${upRes.status}: ${(await upRes.text()).slice(0, 200)}`);
-  }
-  const { upload_url } = await upRes.json();
-
-  // 2. Request a transcript with diarization (speaker_labels) in pt-BR.
-  const trRes = await fetch(`${ASSEMBLYAI_BASE}/transcript`, {
-    method: 'POST',
-    headers: { authorization: key, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      audio_url: upload_url,
-      speaker_labels: true,
-      language_code: 'pt',
-    }),
-  });
-  if (!trRes.ok) {
-    throw new Error(`AssemblyAI transcript ${trRes.status}: ${(await trRes.text()).slice(0, 200)}`);
-  }
-  const { id } = await trRes.json();
-
-  // 3. Poll until completed (AssemblyAI processing ~⅓ of audio duration).
-  const deadline = Date.now() + 20 * 60 * 1000; // 20 min cap
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 3000));
-    const pRes = await fetch(`${ASSEMBLYAI_BASE}/transcript/${id}`, {
-      headers: { authorization: key },
-    });
-    if (!pRes.ok) continue;
-    const data = await pRes.json();
-    if (data.status === 'completed') {
-      const utterances = Array.isArray(data.utterances)
-        ? data.utterances
-            .map((u) => ({ speaker: String(u.speaker || '?'), text: String(u.text || '').trim() }))
-            .filter((u) => u.text)
-        : [];
-      const speakers = new Set(utterances.map((u) => u.speaker));
-      console.log(`[transcribe] AssemblyAI OK — ${utterances.length} utterances, ${speakers.size} falante(s)`);
-      return { transcript: (data.text || '').trim(), utterances };
-    }
-    if (data.status === 'error') {
-      throw new Error(`AssemblyAI: ${data.error || 'erro na transcrição'}`);
-    }
-  }
-  throw new Error('Timeout aguardando AssemblyAI');
-}
-
 async function transcribeWithGemini(file) {
   // 1. Upload to Gemini File API. The SDK handles the multipart upload
   // and resumable protocol behind the scenes.
@@ -914,38 +913,22 @@ async function processTranscriptionJob(jobId, file) {
   if (!job) return;
   try {
     let transcript;
-    let utterances = [];
-    // Prefer AssemblyAI when configured — it's the only engine that separates
-    // speakers (diarization), which is the whole point. If it errors, fall back
-    // to Whisper/Gemini (no diarization) so a consultation never gets stuck.
-    if (process.env.ASSEMBLYAI_API_KEY) {
+    // Transcrição SEM diarização acústica. A separação de falas é feita depois,
+    // por contexto, no /api/label-speakers (Gemini) — mais barato. Whisper
+    // (melhor pt-BR, ≤25MB) com fallback pro Gemini.
+    if (process.env.OPENAI_API_KEY && (file.size || 0) <= OPENAI_MAX_BYTES) {
       try {
-        const r = await transcribeWithAssemblyAI(file);
-        transcript = r.transcript;
-        utterances = r.utterances;
+        transcript = await transcribeWithOpenAI(file);
       } catch (err) {
-        console.warn('[transcribe] AssemblyAI falhou, usando fallback:', err?.message);
-      }
-    } else {
-      console.warn('[transcribe] ASSEMBLYAI_API_KEY ausente — sem diarização, usando fallback');
-    }
-    // Fallback: OpenAI Whisper (best pt-BR accuracy, ≤25MB) then Gemini.
-    if (!transcript) {
-      if (process.env.OPENAI_API_KEY && (file.size || 0) <= OPENAI_MAX_BYTES) {
-        try {
-          transcript = await transcribeWithOpenAI(file);
-        } catch (err) {
-          console.warn('[transcribe] OpenAI falhou, usando Gemini:', err?.message);
-          transcript = await transcribeWithGemini(file);
-        }
-      } else {
+        console.warn('[transcribe] OpenAI falhou, usando Gemini:', err?.message);
         transcript = await transcribeWithGemini(file);
       }
+    } else {
+      transcript = await transcribeWithGemini(file);
     }
     if (!transcript) throw new Error('Transcrição vazia');
     job.status = 'done';
     job.transcript = transcript;
-    job.utterances = utterances;
   } catch (err) {
     console.error('[transcribe] Job failed:', err);
     job.status = 'failed';
@@ -1008,7 +991,6 @@ app.get('/api/transcribe-audio/:jobId', requireAuth, (req, res) => {
   const payload = { status: job.status };
   if (job.status === 'done') {
     payload.transcript = job.transcript;
-    payload.utterances = job.utterances || [];
   }
   if (job.status === 'failed') payload.error = job.error;
   res.json(payload);
