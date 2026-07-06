@@ -859,14 +859,10 @@ export default function App() {
     }
   };
 
-  const finalizeConsultation = async (transcriptOverride?: string) => {
-    // Fase C: quando a consulta foi gravada e diarizada, o transcript já vem
-    // rotulado (Nutricionista/Paciente) por aqui; senão usa o texto ao vivo.
-    const finalText = (transcriptOverride ?? currentTranscript);
-    if (!finalText.trim()) return;
+  const finalizeConsultation = async () => {
+    if (!currentTranscript.trim()) return;
     if (status === AppStatus.PROCESSING) return; // Prevent double-click
     setStatus(AppStatus.PROCESSING);
-    if (transcriptOverride) setCurrentTranscript(transcriptOverride);
     try {
       // Build patient context for AI (supports multiple goals)
       const goalLabels = currentPatientGoals.length > 0
@@ -879,7 +875,7 @@ export default function App() {
         isFirstConsultation: currentIsFirstConsultation ?? undefined
       };
 
-      const aiResponse = await callGeminiAI(finalText, patientContext);
+      const aiResponse = await callGeminiAI(currentTranscript, patientContext);
       const now = new Date().toISOString();
 
       // Create consultation record (legacy format for backward compatibility)
@@ -888,7 +884,7 @@ export default function App() {
         patient: patientName || 'Anônimo',
         diagnosis: aiResponse.nutritionalAssessment || aiResponse.diagnosis,
         result: aiResponse,
-        transcript: finalText,
+        transcript: currentTranscript,
         createdAt: now,
         doctorName: doctorProfile.name
       };
@@ -909,7 +905,7 @@ export default function App() {
       const eventType: EventType = patientEvents.length === 0 ? 'initial' : 'followup';
 
       // Create timeline event and set it as selected for editing
-      const newEvent = await addEventForPatient(patient.id, eventType, aiResponse, finalText);
+      const newEvent = await addEventForPatient(patient.id, eventType, aiResponse, currentTranscript);
       setSelectedEvent(newEvent);
 
       // Merge AI-extracted highlights + training into patient
@@ -2021,15 +2017,9 @@ function TranscriptionView({
 
   // Audio upload state — for offline consultations recorded on Zoom/Meet/phone.
   const audioInputRef = useRef<HTMLInputElement>(null);
-  // Fase C: gravação do áudio ao vivo (em paralelo ao texto do navegador) para
-  // diarizar no Finalizar. Refs não disparam re-render.
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const audioStreamRef = useRef<MediaStream | null>(null);
   // Diarization result awaiting speaker mapping ("quem é quem"). When set, the
   // SpeakerMappingModal is shown so the nutri tags her own voice in one tap.
-  // `autoFinalize` = veio do fluxo ao vivo → ao mapear, finaliza a análise.
-  const [diarization, setDiarization] = useState<{ utterances: Utterance[]; transcript: string; autoFinalize?: boolean } | null>(null);
+  const [diarization, setDiarization] = useState<{ utterances: Utterance[]; transcript: string } | null>(null);
 
   // Build a speaker-labeled transcript from diarized utterances, given which
   // diarization label is the nutri. Everyone else is the patient.
@@ -2038,107 +2028,16 @@ function TranscriptionView({
     const labeled = diarization.utterances
       .map((u) => `${u.speaker === nutriSpeaker ? 'Nutricionista' : 'Paciente'}: ${u.text}`)
       .join('\n');
-    const auto = diarization.autoFinalize;
+    setTranscript((prev: string) => (prev ? prev + '\n\n' : '') + labeled);
     setDiarization(null);
     setAudioUploadState({ kind: 'idle' });
-    if (auto) {
-      // Fluxo ao vivo: o texto diarizado SUBSTITUI o rascunho e dispara a análise.
-      setTranscript(labeled);
-      onFinalize(labeled);
-    } else {
-      setTranscript((prev: string) => (prev ? prev + '\n\n' : '') + labeled);
-    }
   };
 
   const skipDiarization = () => {
     if (!diarization) return;
-    const auto = diarization.autoFinalize;
-    const plain = diarization.transcript;
+    setTranscript((prev: string) => (prev ? prev + '\n\n' : '') + diarization.transcript);
     setDiarization(null);
     setAudioUploadState({ kind: 'idle' });
-    if (auto) {
-      setTranscript(plain);
-      onFinalize(plain);
-    } else {
-      setTranscript((prev: string) => (prev ? prev + '\n\n' : '') + plain);
-    }
-  };
-
-  // Inicia a captura de áudio (separada do reconhecimento do navegador, que
-  // não expõe o stream). Silenciosa — o texto ao vivo continua na tela.
-  const startAudioCapture = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioStreamRef.current = stream;
-      audioChunksRef.current = [];
-      const mr = new MediaRecorder(stream);
-      mr.ondataavailable = (e) => { if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data); };
-      mr.start(1000); // junta em pedaços de 1s (resiliente a quedas)
-      mediaRecorderRef.current = mr;
-    } catch (err) {
-      // Sem permissão/captura → segue só com o texto ao vivo (sem diarização).
-      console.warn('[fase-c] Sem captura de áudio — usando só o texto ao vivo:', err);
-      mediaRecorderRef.current = null;
-    }
-  };
-
-  // Para a captura e devolve o áudio gravado (ou null se não houver).
-  const stopAudioCapture = (): Promise<Blob | null> => {
-    return new Promise((resolve) => {
-      const mr = mediaRecorderRef.current;
-      if (!mr || mr.state === 'inactive') {
-        audioStreamRef.current?.getTracks().forEach((t) => t.stop());
-        audioStreamRef.current = null;
-        mediaRecorderRef.current = null;
-        resolve(null);
-        return;
-      }
-      mr.onstop = () => {
-        const chunks = audioChunksRef.current;
-        const blob = chunks.length ? new Blob(chunks, { type: mr.mimeType || 'audio/webm' }) : null;
-        audioStreamRef.current?.getTracks().forEach((t) => t.stop());
-        audioStreamRef.current = null;
-        mediaRecorderRef.current = null;
-        resolve(blob);
-      };
-      try { mr.stop(); } catch { resolve(null); }
-    });
-  };
-
-  // Sobe um arquivo de áudio pro backend e aguarda a transcrição diarizada.
-  // Reutilizado pelo Finalizar ao vivo (Fase C). Lança erro em falha.
-  const uploadAndTranscribe = async (file: File): Promise<{ transcript: string; utterances: Utterance[] }> => {
-    const auth = (await import('firebase/auth')).getAuth();
-    const idToken = await auth.currentUser?.getIdToken();
-    if (!idToken) throw new Error('Sessão expirada. Faça login novamente.');
-    const fd = new FormData();
-    fd.append('audio', file);
-    const up = await fetch(`${backendUrl}/api/transcribe-audio`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${idToken}` },
-      body: fd,
-    });
-    if (!up.ok) {
-      const e = await up.json().catch(() => ({}));
-      throw new Error(e.error || 'Erro ao enviar o áudio');
-    }
-    const { jobId } = await up.json();
-    const deadline = Date.now() + 20 * 60 * 1000;
-    let attempt = 0;
-    while (Date.now() < deadline) {
-      attempt += 1;
-      await new Promise((r) => setTimeout(r, attempt < 10 ? 1500 : 5000));
-      const r = await fetch(`${backendUrl}/api/transcribe-audio/${jobId}`, {
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-      if (!r.ok) continue;
-      const data = await r.json();
-      if (data.status === 'done' && data.transcript) {
-        return { transcript: data.transcript, utterances: Array.isArray(data.utterances) ? data.utterances : [] };
-      }
-      if (data.status === 'failed') throw new Error(data.error || 'Falha na transcrição');
-    }
-    throw new Error('Tempo de transcrição excedido.');
   };
   const [audioUploadState, setAudioUploadState] = useState<
     | { kind: 'idle' }
@@ -2545,12 +2444,6 @@ function TranscriptionView({
     };
 
     recognitionRef.current.start();
-    // Fase C: captura o áudio em paralelo (silenciosa) para diarizar no fim.
-    if (isResume && mediaRecorderRef.current?.state === 'paused') {
-      try { mediaRecorderRef.current.resume(); } catch { /* ignore */ }
-    } else {
-      startAudioCapture();
-    }
     setRecordingStartTime(Date.now());
     // Only reset accumulated time if starting fresh (not resuming)
     if (!isResume) {
@@ -2571,9 +2464,6 @@ function TranscriptionView({
   };
 
   const pauseRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      try { mediaRecorderRef.current.pause(); } catch { /* ignore */ }
-    }
     if (recognitionRef.current) {
       // Mark as intentionally stopped to prevent auto-restart
       recognitionRef.current._intentionallyStopped = true;
@@ -2589,7 +2479,7 @@ function TranscriptionView({
     }
   };
 
-  const handleFinalize = async () => {
+  const handleFinalize = () => {
     if (recognitionRef.current) {
       // Mark as intentionally stopped to prevent auto-restart
       recognitionRef.current._intentionallyStopped = true;
@@ -2600,38 +2490,8 @@ function TranscriptionView({
     setAccumulatedTime(0);
     setElapsedTime(0);
     setInterim('');
-
-    // Fase C: se gravamos o áudio, transcreve + diariza ANTES de analisar.
-    const blob = await stopAudioCapture();
-    if (!blob || blob.size < 2000) {
-      // Sem áudio utilizável → usa o texto ao vivo (comportamento original).
-      setStatus(AppStatus.IDLE);
-      onFinalize();
-      return;
-    }
     setStatus(AppStatus.IDLE);
-    setAudioUploadState({ kind: 'transcribing', fileName: 'consulta ao vivo', estimateMs: 90000 });
-    try {
-      const file = new File([blob], 'consulta-ao-vivo.webm', { type: blob.type || 'audio/webm' });
-      const result = await uploadAndTranscribe(file);
-      setAudioUploadState({ kind: 'idle' });
-      const utterances = result.utterances || [];
-      const distinct = new Set(utterances.map((u) => u.speaker));
-      if (utterances.length > 0 && distinct.size >= 2) {
-        // Mostra o cartão "Quem é quem"; ao mapear, finaliza (autoFinalize).
-        setDiarization({ utterances, transcript: result.transcript, autoFinalize: true });
-      } else {
-        // 1 voz / sem separação: usa o texto do AssemblyAI (mais fiel) ou o ao vivo.
-        const text = (result.transcript || '').trim() || transcript;
-        setTranscript(text);
-        onFinalize(text);
-      }
-    } catch (err: any) {
-      console.error('[fase-c] Diarização falhou, usando texto ao vivo:', err);
-      setAudioUploadState({ kind: 'idle' });
-      notify('Não consegui separar as falas desta vez — segui com a transcrição ao vivo.', 'error');
-      onFinalize(); // fallback seguro: texto do navegador
-    }
+    onFinalize();
   };
 
   return (
