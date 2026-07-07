@@ -101,17 +101,29 @@ async function loadPdfMake(): Promise<any> {
     throw new Error('Não foi possível carregar as fontes do PDF. Atualize a página e tente novamente.');
   }
 
-  // pdfmake 0.3.x exposes addVirtualFileSystem(); fall back to direct assignment
-  // for older builds. Both routes end up populating the same internal vfs.
-  try {
-    if (typeof pdfMake.addVirtualFileSystem === 'function') {
-      pdfMake.addVirtualFileSystem(vfs);
-    } else {
+  // pdfmake 0.3.x: o createPdf lê as fontes de `pdfMake.virtualfs` (uma
+  // instância de VirtualFileSystem). O addVirtualFileSystem() se mostrou
+  // instável (às vezes grava num singleton diferente do que a renderização
+  // consulta → "Roboto-Regular.ttf not found", de forma intermitente). Então
+  // escrevemos as fontes DIRETO no virtualfs que o createPdf usa — determinístico.
+  const targetFs: any = pdfMake.virtualfs;
+  if (targetFs && typeof targetFs.writeFileSync === 'function') {
+    for (const key of Object.keys(vfs)) {
+      try {
+        targetFs.writeFileSync(key, vfs[key], 'base64');
+      } catch (e) {
+        console.warn(`[pdfmake] falha ao registrar a fonte ${key}:`, e);
+      }
+    }
+  } else {
+    // Fallback p/ builds sem `virtualfs` exposto.
+    try {
+      if (typeof pdfMake.addVirtualFileSystem === 'function') pdfMake.addVirtualFileSystem(vfs);
+      else pdfMake.vfs = vfs;
+    } catch (e) {
+      console.warn('[pdfmake] addVirtualFileSystem falhou, usando .vfs:', e);
       pdfMake.vfs = vfs;
     }
-  } catch (e) {
-    console.warn('[pdfmake] addVirtualFileSystem failed, falling back to direct assignment:', e);
-    pdfMake.vfs = vfs;
   }
 
   // Explicit font config so pdfmake knows exactly which file to use for each
@@ -124,6 +136,13 @@ async function loadPdfMake(): Promise<any> {
       bolditalics: 'Roboto-MediumItalic.ttf',
     },
   };
+
+  // Verificação final: a fonte base TEM que estar onde o createPdf vai ler.
+  // Se não estiver, erro claro (em vez de o pdfmake estourar lá dentro).
+  if (targetFs && typeof targetFs.existsSync === 'function' && !targetFs.existsSync('Roboto-Regular.ttf')) {
+    console.error('[pdfmake] Roboto-Regular.ttf não ficou registrado no virtualfs');
+    throw new Error('As fontes do PDF não carregaram. Atualize a página (Ctrl+Shift+R) e tente novamente.');
+  }
 
   return pdfMake;
 }
