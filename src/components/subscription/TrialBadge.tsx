@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, Lock } from 'lucide-react';
 import { DerivedSubscriptionState } from '../../utils/subscription';
 
 interface TrialBadgeProps {
@@ -23,6 +23,19 @@ export function TrialBadge({ state, onClick }: TrialBadgeProps) {
       >
         <Clock size={11} strokeWidth={2.25} />
         Beta
+      </button>
+    );
+  }
+
+  if (state.kind === 'beta_locked') {               // conta fora da allowlist do beta
+    return (
+      <button
+        onClick={onClick}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-semibold border bg-subtle text-ink-secondary border-line hover:opacity-90"
+        title="Acesso ainda nao liberado"
+      >
+        <Lock size={11} strokeWidth={2.25} />
+        Beta fechado
       </button>
     );
   }

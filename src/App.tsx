@@ -18,6 +18,8 @@ import { CheckoutPlaceholder } from './components/subscription/CheckoutPlacehold
 import { ConsultaDashboard } from './components/dashboard/ConsultaDashboard';
 import { Subscription, createInitialSubscription } from '../types';
 import { deriveSubscriptionState, hasActiveAccess } from './utils/subscription';
+import { BetaNotice } from './components/subscription/BetaNotice';
+import { DEMO_PATIENT, DEMO_EVENTS } from './utils/demoPatient';
 
 // Firebase Imports
 import {
@@ -239,6 +241,22 @@ export default function App() {
   // Comp (tester liberado via BETA_EMAILS no backend) — null = ainda checando.
   // Mantém a lista de testers só no servidor, sem expor e-mails no site.
   const [isComped, setIsComped] = useState<boolean | null>(null);
+  const [betaMode, setBetaMode] = useState<boolean>(false);
+  // Beta fechado: a conta nao esta na allowlist. Nao bloqueia o app — deixa
+  // gravar e ver a transcricao ao vivo (roda no navegador, custo zero) e so
+  // impede a geracao do prontuario, avisando antes e na hora.
+  const [betaWelcomeOpen, setBetaWelcomeOpen] = useState(false);
+  const [betaBlockedOpen, setBetaBlockedOpen] = useState(false);
+  const isBetaLocked =
+    deriveSubscriptionState(subscription, user?.email, undefined, isComped === true, betaMode).kind === 'beta_locked';
+  // Visitante do beta nunca gera resultado, entao a lista de pacientes dele
+  // chegaria vazia. Injeta a Maria Silva SO na camada de exibicao — o estado
+  // real (que e o que persiste) fica intocado.
+  const viewPatients = isBetaLocked ? [DEMO_PATIENT, ...patients] : patients;
+  const viewEvents = isBetaLocked ? [...DEMO_EVENTS, ...events] : events;
+  // E nenhuma escrita pode sair com o id de demo: no beta os handlers de
+  // edicao viram no-op (o visitante nao tem nada real pra editar mesmo).
+  const demoSafe = <T,>(fn: T): T => (isBetaLocked ? ((() => {}) as unknown as T) : fn);
   const [showCheckoutPlaceholder, setShowCheckoutPlaceholder] = useState(false);
   // Pre-auth surface: null = show LandingPage, 'login'/'signup' = show AuthScreen
   const [authMode, setAuthMode] = useState<'login' | 'signup' | null>(null);
@@ -334,10 +352,13 @@ export default function App() {
   // Comp status — pergunta ao backend se a conta está liberada (admin/tester
   // beta). A lista de e-mails fica só no servidor (não vai pro bundle do site).
   useEffect(() => {
-    if (!userId || !user) { setIsComped(null); return; }
+    if (!userId || !user) { setIsComped(null); setBetaMode(false); return; }
     const cacheKey = `echonutri_${userId}_comped`;
+    const betaKey = `echonutri_${userId}_betamode`;
     const cached = localStorage.getItem(cacheKey);
     if (cached === 'true' || cached === 'false') setIsComped(cached === 'true');
+    const cachedBeta = localStorage.getItem(betaKey);
+    if (cachedBeta === 'true' || cachedBeta === 'false') setBetaMode(cachedBeta === 'true');
     (async () => {
       try {
         const idToken = await user.getIdToken();
@@ -349,11 +370,26 @@ export default function App() {
         const comped = !!data.comped;
         setIsComped(comped);
         localStorage.setItem(cacheKey, comped ? 'true' : 'false');
+        const beta = !!data.betaMode;
+        setBetaMode(beta);
+        localStorage.setItem(betaKey, beta ? 'true' : 'false');
       } catch {
         setIsComped((prev) => (prev === null ? false : prev));
       }
     })();
   }, [userId, user]);
+
+  // Avisa do beta uma vez por sessao. Nao repete a cada tela, e volta a
+  // aparecer se a pessoa abrir o app de novo depois.
+  useEffect(() => {
+    if (!isBetaLocked || !userId) return;
+    const key = `echonutri_${userId}_beta_notice`;
+    try {
+      if (sessionStorage.getItem(key) === 'seen') return;
+      sessionStorage.setItem(key, 'seen');
+    } catch { /* modo privado bloqueia sessionStorage — mostra o aviso mesmo assim */ }
+    setBetaWelcomeOpen(true);
+  }, [isBetaLocked, userId]);
 
   // Save doctor profile (localStorage cache + Firestore)
   useEffect(() => {
@@ -866,6 +902,9 @@ export default function App() {
   const finalizeConsultation = async () => {
     if (!currentTranscript.trim()) return;
     if (status === AppStatus.PROCESSING) return; // Prevent double-click
+    // Beta fechado: para aqui, antes de gastar IA. Explica o porque em vez de
+    // devolver o 403 cru do backend como toast de erro vermelho.
+    if (isBetaLocked) { setBetaBlockedOpen(true); return; }
     setStatus(AppStatus.PROCESSING);
     try {
       // Separa as falas (Nutricionista/Paciente) pelo contexto, via IA — barato e
@@ -1149,7 +1188,7 @@ export default function App() {
             </div>
             {/* Trial / subscription status badge */}
             <TrialBadge
-              state={deriveSubscriptionState(subscription, user?.email, undefined, isComped === true)}
+              state={deriveSubscriptionState(subscription, user?.email, undefined, isComped === true, betaMode)}
               onClick={() => setShowProfilePopup(true)}
             />
             {/* Profile Picture Button */}
@@ -1176,8 +1215,9 @@ export default function App() {
               patientName={patientName} setPatientName={setPatientName}
               transcript={currentTranscript} setTranscript={setCurrentTranscript}
               onFinalize={finalizeConsultation}
-              patients={patients}
-              events={events}
+              isBetaLocked={isBetaLocked}
+              patients={viewPatients}
+              events={viewEvents}
               // Patient context (supports up to 2 goals)
               patientGoals={currentPatientGoals} setPatientGoals={setCurrentPatientGoals}
               patientGoalCustom={currentPatientGoalCustom} setPatientGoalCustom={setCurrentPatientGoalCustom}
@@ -1205,16 +1245,16 @@ export default function App() {
               }}
             />
             <ConsultationBriefingBubble
-              events={events}
+              events={viewEvents}
               patientName={patientName}
-              patients={patients}
+              patients={viewPatients}
             />
           </>
         )}
         {view === 'patients' && (
           <PatientList
-            patients={patients}
-            events={events}
+            patients={viewPatients}
+            events={viewEvents}
             onSelectPatient={(patient) => {
               setSelectedPatient(patient);
               setView('patient');
@@ -1224,7 +1264,7 @@ export default function App() {
         {view === 'patient' && selectedPatient && (
           <PatientPage
             patient={selectedPatient}
-            events={events}
+            events={viewEvents}
             onBack={() => {
               setSelectedPatient(null);
               setView('patients');
@@ -1233,15 +1273,15 @@ export default function App() {
               setPatientName(patient.name);
               setView('transcription');
             }}
-            onAddAdjustment={addAdjustmentForPatient}
-            onDeleteEvent={deleteEvent}
-            onEditEvent={editEventNote}
-            onEditPatient={editPatient}
-            onUpdateHighlights={updateHighlights}
-            onUpdateExams={updateExams}
-            onUpdateMealPlans={updateMealPlans}
-            onUpdateSupplements={updateSupplements}
-            onUpdatePatient={updatePatientFields}
+            onAddAdjustment={demoSafe(addAdjustmentForPatient)}
+            onDeleteEvent={demoSafe(deleteEvent)}
+            onEditEvent={demoSafe(editEventNote)}
+            onEditPatient={demoSafe(editPatient)}
+            onUpdateHighlights={demoSafe(updateHighlights)}
+            onUpdateExams={demoSafe(updateExams)}
+            onUpdateMealPlans={demoSafe(updateMealPlans)}
+            onUpdateSupplements={demoSafe(updateSupplements)}
+            onUpdatePatient={demoSafe(updatePatientFields)}
             onEventClick={(event) => {
               setSelectedEvent(event);
               if (event.result) {
@@ -1255,13 +1295,14 @@ export default function App() {
         {view === 'diagnosis' && <DiagnosisView
           result={currentResult}
           patientName={patientName}
+          isBetaLocked={isBetaLocked}
           eventId={selectedEvent?.id}
           preferences={doctorProfile.preferences}
           doctorProfile={doctorProfile}
           consultationDate={selectedEvent?.date}
           currentPatient={(() => {
             const pn = (patientName || '').trim().toLowerCase();
-            return pn ? patients.find((p: any) => p.name?.toLowerCase() === pn) : null;
+            return pn ? viewPatients.find((p: any) => p.name?.toLowerCase() === pn) : null;
           })()}
           onUpdatePatient={(changes: any) => {
             const pn = (patientName || '').trim().toLowerCase();
@@ -1304,7 +1345,7 @@ export default function App() {
             }
           }}
           subscription={subscription}
-          subscriptionState={deriveSubscriptionState(subscription, user?.email, undefined, isComped === true)}
+          subscriptionState={deriveSubscriptionState(subscription, user?.email, undefined, isComped === true, betaMode)}
           onSubscribe={() => { setShowProfilePopup(false); setShowCheckoutPlaceholder(true); }}
           // LGPD art. 18 — direito de acesso/portabilidade: dump everything we hold
           // about the nutri (profile + patients + events + history) as JSON.
@@ -1394,8 +1435,9 @@ export default function App() {
           acesso não está ativo. Só renderiza depois que a subscription
           foi carregada (senão flasha o gate no primeiro paint). */}
       {subscription && isComped !== null && (() => {
-        const state = deriveSubscriptionState(subscription, user?.email, undefined, isComped === true);
+        const state = deriveSubscriptionState(subscription, user?.email, undefined, isComped === true, betaMode);
         if (hasActiveAccess(state)) return null;
+        if (state.kind === 'beta_locked') return null;   // tem o BetaNotice, que fecha
         return (
           <TrialExpiredGate
             state={state}
@@ -1404,6 +1446,13 @@ export default function App() {
           />
         );
       })()}
+
+      {betaWelcomeOpen && (
+        <BetaNotice variant="welcome" onClose={() => setBetaWelcomeOpen(false)} />
+      )}
+      {betaBlockedOpen && (
+        <BetaNotice variant="blocked" onClose={() => setBetaBlockedOpen(false)} />
+      )}
 
       {showCheckoutPlaceholder && (
         <CheckoutPlaceholder onClose={() => setShowCheckoutPlaceholder(false)} />
@@ -2010,7 +2059,7 @@ function ProfilePopup({ profile, userEmail, onSave, onClose, onLogout, onExportD
 }
 
 function TranscriptionView({
-  autosaveKey, status, setStatus, patientName, setPatientName, transcript, setTranscript, onFinalize, patients, events,
+  autosaveKey, status, setStatus, patientName, setPatientName, transcript, setTranscript, onFinalize, isBetaLocked, patients, events,
   patientGoals, setPatientGoals, patientGoalCustom, setPatientGoalCustom,
   patientTraining, setPatientTraining, isFirstConsultation, setIsFirstConsultation,
   pendingExams, setPendingExams,
@@ -2054,6 +2103,15 @@ function TranscriptionView({
 
   const handleAudioFileSelected = async (file: File) => {
     if (!file) return;
+    // Beta fechado: o upload transcreve no servidor (custa dinheiro), entao para
+    // aqui. Aponta o que DA pra fazer em vez de so dizer nao.
+    if (isBetaLocked) {
+      setAudioUploadState({
+        kind: 'error',
+        message: 'No modo beta, o upload de áudio está bloqueado. Tente gravando pelo navegador aqui mesmo, ou veja a consulta de exemplo da Maria Silva em Pacientes.',
+      });
+      return;
+    }
     if (!patientName.trim()) {
       notify('Informe o nome da paciente antes de carregar o áudio.', 'error');
       return;
@@ -3105,7 +3163,7 @@ function TranscriptionView({
   );
 }
 
-function DiagnosisView({ result, patientName, eventId, onSaveResult, onBack, preferences, doctorProfile, consultationDate, currentPatient, onSaveMealPlan, onUpdatePatient }: any) {
+function DiagnosisView({ result, patientName, eventId, onSaveResult, onBack, preferences, doctorProfile, consultationDate, currentPatient, onSaveMealPlan, onUpdatePatient, isBetaLocked }: any) {
   const prefs = preferences || { showConduct: true, showAttention: true, showExams: true };
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editedRationale, setEditedRationale] = useState('');
@@ -3180,6 +3238,10 @@ function DiagnosisView({ result, patientName, eventId, onSaveResult, onBack, pre
   // passes freshly-edited anthropometry. Returns the plan (or null) — bubble
   // shows error if it throws.
   const handleGeneratePlan = async (anthropometry?: any): Promise<any> => {
+    // Beta fechado: a mensagem sobe pro card vermelho da bolha de plano.
+    if (isBetaLocked) {
+      throw new Error('Não é possível gerar o plano alimentar agora: no seu acesso beta essa funcionalidade está liberada apenas para assinantes.');
+    }
     if (!currentPatient) throw new Error('Paciente não identificado.');
 
     const anthro: any = anthropometry || {};
@@ -3290,6 +3352,9 @@ Análise prévia:
 
   const handleRecalculateMacros = async () => {
     if (!mealPlan) return;
+    if (isBetaLocked) {
+      throw new Error('Não é possível recalcular os macros agora: no seu acesso beta essa funcionalidade está liberada apenas para assinantes.');
+    }
 
     const auth = (await import('firebase/auth')).getAuth();
     const idToken = await auth.currentUser?.getIdToken();

@@ -27,6 +27,7 @@ export function isAdminUser(email: string | null | undefined): boolean {
 export type DerivedSubscriptionState =
   | { kind: 'admin' }                                 // bypass total (founder)
   | { kind: 'beta' }                                  // tester comped no beta
+  | { kind: 'beta_locked' }                           // beta fechado: conta fora da allowlist
   | { kind: 'trialing'; daysLeft: number; trialEnd: Date }
   | { kind: 'trial_expired'; trialEnd: Date }
   | { kind: 'active'; currentPeriodEnd?: Date }
@@ -40,9 +41,14 @@ export function deriveSubscriptionState(
   email?: string | null,
   now: Date = new Date(),
   comped: boolean = false,            // liberado pelo backend (BETA_EMAILS) — tester
+  betaMode: boolean = false,          // BETA_MODE ligado no backend (beta fechado)
 ): DerivedSubscriptionState {
   if (isAdminUser(email)) return { kind: 'admin' };
   if (comped) return { kind: 'beta' };
+  // Beta fechado: o backend nega a IA pra quem nao esta na allowlist, entao o
+  // trial de 7 dias criado no cadastro NAO vale nada. A UI precisa refletir
+  // isso ANTES da consulta comecar — nao depois de 30min de gravacao.
+  if (betaMode) return { kind: 'beta_locked' };
   if (!subscription) return { kind: 'missing' };
 
   if (subscription.status === 'trialing') {
