@@ -60,11 +60,16 @@ import {
 } from './services/schemaMappers';
 import { registerToast, notify } from './utils/toast';
 
+// URL unica do backend. Producao = servico Render "EchoNutri"
+// (echomed.onrender.com) - e nele que vivem BETA_MODE/BETA_EMAILS e a chave do
+// Gemini. Nunca duplicar esta string: todo fetch deve usar o backendUrl abaixo.
+const PROD_BACKEND_URL = 'https://echomed.onrender.com';
+
 const getBackendUrl = () => {
   // In production, use Render backend
   // In development, use localhost
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return 'https://echomed-p3tr.onrender.com'; // Production - Render backend (serviço EchoMed real)
+    return PROD_BACKEND_URL;
   }
   try {
     const env = (import.meta as any)?.env || {};
@@ -2064,9 +2069,7 @@ function TranscriptionView({
       setAudioUploadState({ kind: 'error', message: 'Sessão expirada. Faça login novamente.' });
       return;
     }
-    const baseUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost')
-      ? 'https://echomed-p3tr.onrender.com'
-      : 'http://localhost:3001';
+    const baseUrl = backendUrl;
 
     // Upload via XMLHttpRequest so we get progress events (fetch can't do that yet).
     setAudioUploadState({ kind: 'uploading', progress: 0, fileName: file.name });
@@ -3199,9 +3202,7 @@ function DiagnosisView({ result, patientName, eventId, onSaveResult, onBack, pre
     const idToken = await auth.currentUser?.getIdToken();
     if (!idToken) throw new Error('Sessão expirada. Faça login novamente.');
 
-    const baseUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost')
-      ? 'https://echomed-p3tr.onrender.com'
-      : 'http://localhost:3001';
+    const baseUrl = backendUrl;
 
     const transcript = `Reaproveitamento da consulta atual para gerar plano alimentar estruturado.
 
@@ -3294,9 +3295,7 @@ Análise prévia:
     const idToken = await auth.currentUser?.getIdToken();
     if (!idToken) throw new Error('Sessão expirada. Faça login novamente.');
 
-    const baseUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost')
-      ? 'https://echomed-p3tr.onrender.com'
-      : 'http://localhost:3001';
+    const baseUrl = backendUrl;
 
     const resp = await fetch(`${baseUrl}/api/recalculate-macros`, {
       method: 'POST',
